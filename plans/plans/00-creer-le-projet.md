@@ -15,26 +15,32 @@ Objectif jour 0 : `GET /health` répond **200** avec `"db": true`, et Swagger s�
 
 ---
 
+
+
 ## 1. Ce que le MVP impose (stack)
 
 Le MVP = entrer en confiance, trouver un collègue, écrire / envoyer un fichier, **être sonné téléphone fermé**, appeler.
 
-| Job MVP | App Django | Infra le jour où on code ça |
-|---------|------------|-----------------------------|
-| Santé API, erreurs JSON | `apps.core` | **Jour 0** |
-| Compte, MFA, appareils, QR 2ᵉ écran | `apps.iam` | AUTH-A…J — PostgreSQL + Redis (cache) |
-| Login Windows / AD | `apps.config` + IAM | AUTH-B — serveur LDAP YAS |
-| Photo, PJ, album, vidéo, vocal, GED | `apps.media` | MEDIA-A — **MinIO** (S3) ; lab scan = `SKIPPED` |
-| Trouver un collègue | `apps.annuaire` | ANNUAIRE-A — tables dès AUTH-A (0 ligne) |
-| Clés E2E / groupes | `apps.crypto` | CRYPTO-A — après IAM |
-| Alertes in-app + push | `apps.notifications` | NOTIF-A — Redis + FCM/APNs (clés vides = no-op lab) |
-| Chat 1-1 / groupe + WS | `apps.messaging` | MESSAGERIE — Channels + Redis |
-| Appel audio/vidéo | `apps.calls` | APPELS — **LiveKit** |
-| Présence (en ligne) | IAM `PRES-A` | Redis + Channels |
+
+| Job MVP                             | App Django           | Infra le jour où on code ça                         |
+| ----------------------------------- | -------------------- | --------------------------------------------------- |
+| Santé API, erreurs JSON             | `apps.core`          | **Jour 0**                                          |
+| Compte, MFA, appareils, QR 2ᵉ écran | `apps.iam`           | AUTH-A…J — PostgreSQL + Redis (cache)               |
+| Login Windows / AD                  | `apps.config` + IAM  | AUTH-B — serveur LDAP YAS                           |
+| Photo, PJ, album, vidéo, vocal, GED | `apps.media`         | MEDIA-A — **MinIO** (S3) ; lab scan = `SKIPPED`     |
+| Trouver un collègue                 | `apps.annuaire`      | ANNUAIRE-A — tables dès AUTH-A (0 ligne)            |
+| Clés E2E / groupes                  | `apps.crypto`        | CRYPTO-A — après IAM                                |
+| Alertes in-app + push               | `apps.notifications` | NOTIF-A — Redis + FCM/APNs (clés vides = no-op lab) |
+| Chat 1-1 / groupe + WS              | `apps.messaging`     | MESSAGERIE — Channels + Redis                       |
+| Appel audio/vidéo                   | `apps.calls`         | APPELS — **LiveKit**                                |
+| Présence (en ligne)                 | IAM `PRES-A`         | Redis + Channels                                    |
+
 
 **Pas au jour 0 :** Social, canaux, IA, Django Admin, cookie session Django, `djangorestframework-simplejwt`.
 
 ---
+
+
 
 ## 2. Versions — installer **seulement** ça au jour 0
 
@@ -55,18 +61,22 @@ django-redis>=5.4,<6.0
 ua-parser>=0.18,<1.0
 ```
 
-| Paquet | Pourquoi (pas avant d’en avoir besoin) |
-|--------|----------------------------------------|
-| `django` | ORM, migrations, settings |
-| `djangorestframework` | API JSON, serializers, `APIView` |
-| `drf-spectacular` | OpenAPI + UI `/api/docs/` |
-| `psycopg[binary]` | Driver PostgreSQL 16 (wheels Windows) |
-| `argon2-cffi` | Hasher mots de passe (AUTH-A). Jour 0 : hasher Django standard suffit |
-| `PyJWT` | Access JWT **HS256**. **Pas** SimpleJWT |
-| `django-environ` | `DATABASE_URL` et le `.env` |
-| `django-cors-headers` | Front web / mobile plus tard |
-| `django-redis` | Cache ; jour 0 `REDIS_URL` vide → LocMem |
-| `ua-parser` | AUTH-A : browser dans `login_history` |
+
+| Paquet                | Pourquoi (pas avant d’en avoir besoin)                                |
+| --------------------- | --------------------------------------------------------------------- |
+| `django`              | ORM, migrations, settings                                             |
+| `djangorestframework` | API JSON, serializers, `APIView`                                      |
+| `drf-spectacular`     | OpenAPI + UI `/api/docs/`                                             |
+| `psycopg[binary]`     | Driver PostgreSQL 16 (wheels Windows)                                 |
+| `argon2-cffi`         | Hasher mots de passe (AUTH-A). Jour 0 : hasher Django standard suffit |
+| `PyJWT`               | Access JWT **HS256**. **Pas** SimpleJWT                               |
+| `django-environ`      | `DATABASE_URL` et le `.env`                                           |
+| `django-cors-headers` | Front web / mobile plus tard                                          |
+| `django-redis`        | Cache ; jour 0 `REDIS_URL` vide → LocMem                              |
+| `ua-parser`           | AUTH-A : browser dans `login_history`                                 |
+
+
+
 
 ### 2.2 `requirements/dev.txt`
 
@@ -76,6 +86,8 @@ pytest>=8.3,<9.0
 pytest-django>=4.9,<5.0
 ruff>=0.8,<0.15
 ```
+
+
 
 ### 2.3 `requirements/prod.txt`
 
@@ -88,21 +100,25 @@ Prod API REST = gunicorn + `wsgi.py`. Le **WebSocket** (présence, chat, appels)
 
 ### 2.4 À **ajouter** dans `base.txt` seulement au ticket (pas maintenant)
 
-| Quand | Paquets | Sert à |
-|-------|---------|--------|
-| AUTH-B | `ldap3>=2.9,<3.0` · `croniter>=5.0,<7.0` | Bind AD + next run du job sync |
-| AUTH-C | `pyotp>=2.9,<3.0` · `cryptography>=43.0,<46.0` | Google Authenticator + Fernet secret TOTP |
-| MEDIA-A | `boto3>=1.35,<2.0` | Presign / PUT MinIO (API S3) |
-| MEDIA-B | `Pillow>=11.0,<12.0` | Miniatures album |
-| PRES-A / MSG-D | `channels>=4.2,<5.0` · `channels-redis>=4.2,<5.0` · `daphne>=4.1,<5.0` | WebSocket |
-| NOTIF-A | `firebase-admin>=6.6,<8.0` | Push FCM (no-op si clé vide) |
-| APPELS-C | `livekit-api>=1.0,<2.0` | Créer room + tokens LiveKit |
+
+| Quand          | Paquets                                                                | Sert à                                    |
+| -------------- | ---------------------------------------------------------------------- | ----------------------------------------- |
+| AUTH-B         | `ldap3>=2.9,<3.0` · `croniter>=5.0,<7.0`                               | Bind AD + next run du job sync            |
+| AUTH-C         | `pyotp>=2.9,<3.0` · `cryptography>=43.0,<46.0`                         | Google Authenticator + Fernet secret TOTP |
+| MEDIA-A        | `boto3>=1.35,<2.0`                                                     | Presign / PUT MinIO (API S3)              |
+| MEDIA-B        | `Pillow>=11.0,<12.0`                                                   | Miniatures album                          |
+| PRES-A / MSG-D | `channels>=4.2,<5.0` · `channels-redis>=4.2,<5.0` · `daphne>=4.1,<5.0` | WebSocket                                 |
+| NOTIF-A        | `firebase-admin>=6.6,<8.0`                                             | Push FCM (no-op si clé vide)              |
+| APPELS-C       | `livekit-api>=1.0,<2.0`                                                | Créer room + tokens LiveKit               |
+
 
 Binaire **hors pip** (plus tard) : **FFmpeg** (MEDIA-C), **ClamAV** Docker profil `scan` (staging). Lab : scan = `SKIPPED`, pas FFmpeg obligatoire.
 
 **Interdit :** Poetry obligatoire, `mysqlclient`, `sqlite3` en settings, `rest_framework_simplejwt`, `django-admin` au jour 0.
 
 ---
+
+
 
 ## 3. Prérequis machine (Windows)
 
@@ -114,6 +130,8 @@ Binaire **hors pip** (plus tard) : **FFmpeg** (MEDIA-C), **ClamAV** Docker profi
 Ne **pas** réutiliser la base PostgreSQL du SIRH.
 
 ---
+
+
 
 ## 4. Créer le repo code
 
@@ -144,6 +162,8 @@ build/
 
 ---
 
+
+
 ## 5. Environnement virtuel + paquets
 
 ```powershell
@@ -166,6 +186,8 @@ Si `Activate.ps1` est bloqué : `Set-ExecutionPolicy -Scope CurrentUser RemoteSi
 
 ---
 
+
+
 ## 6. Projet Django (`config` = settings, pas le métier)
 
 ```powershell
@@ -187,6 +209,7 @@ backend-yas-connect/
 ```powershell
 mkdir apps
 New-Item apps\__init__.py -ItemType File
+mkdir apps\core
 python manage.py startapp core apps/core
 ```
 
@@ -208,7 +231,11 @@ class CoreConfig(AppConfig):
 
 ---
 
+
+
 ## 7. Base de données — Docker + `DATABASE_URL`
+
+
 
 ### 7.1 `docker-compose.yml` (lab complet)
 
@@ -274,7 +301,7 @@ volumes:
   yas_connect_minio:
 ```
 
-Jour 0, **seul PostgreSQL est obligatoire**. Les autres services peuvent tourner déjà (ports) : ça évite de les découvrir plus tard. ClamAV : `docker compose --profile scan up -d` (staging seulement).
+Jour 0, **seul PostgreSQL est obligatoire**. Les autres services peuvent tourner déjà (ports) : . ClamAV : `docker compose --profile scan up -d` (staging seulement).
 
 Démarrage lab (**sans** ClamAV) :
 
@@ -284,13 +311,17 @@ docker compose ps
 docker compose exec db psql -U yas -d yas_connect -c '\conninfo'
 ```
 
-| Service | URL locale | Quand Django s’en sert |
-|---------|------------|-------------------------|
-| PostgreSQL | `127.0.0.1:5432` · base `yas_connect` · user/mdp `yas`/`yas` | **Jour 0** |
-| Redis | `127.0.0.1:6379` | AUTH-C challenge, AUTH-J QR, présence, WS — `REDIS_URL` vide = LocMem OK au début |
-| MinIO API / console | `:9000` / [console](http://127.0.0.1:9001) | MEDIA-A |
-| LiveKit | `:7880` | APPELS-C |
-| Mailhog SMTP / UI | `:1025` / [UI](http://127.0.0.1:8025) | AUTH-D verify-email (non bloquant) |
+
+| Service             | URL locale                                                   | Quand Django s’en sert                                                            |
+| ------------------- | ------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| PostgreSQL          | `127.0.0.1:5432` · base `yas_connect` · user/mdp `yas`/`yas` | **Jour 0**                                                                        |
+| Redis               | `127.0.0.1:6379`                                             | AUTH-C challenge, AUTH-J QR, présence, WS — `REDIS_URL` vide = LocMem OK au début |
+| MinIO API / console | `:9000` / [console](http://127.0.0.1:9001)                   | MEDIA-A                                                                           |
+| LiveKit             | `:7880`                                                      | APPELS-C                                                                          |
+| Mailhog SMTP / UI   | `:1025` / [UI](http://127.0.0.1:8025)                        | AUTH-D verify-email (non bloquant)                                                |
+
+
+
 
 ### 7.2 Comment Django se branche
 
@@ -327,6 +358,8 @@ Dans `docker-compose.yml` : `"5433:5432"`.
 `.env` : `DATABASE_URL=postgres://yas:yas@127.0.0.1:5433/yas_connect`.
 
 ---
+
+
 
 ## 8. Secrets — `.env`
 
@@ -383,6 +416,8 @@ Jour 0 : `REDIS_URL=` (vide). Dès MFA / QR appareil / plusieurs workers : `REDI
 `.env` est dans `.gitignore`. `.env.example` est commité (valeurs lab, pas de vrais secrets prod).
 
 ---
+
+
 
 ## 9. Fichiers Python / config du jour 0 (à coller tels quels)
 
@@ -540,6 +575,8 @@ class HealthView(APIView):
         )
 ```
 
+
+
 ### 9.3 `apps/core/urls.py`
 
 ```python
@@ -551,6 +588,8 @@ urlpatterns = [
     path("health", HealthView.as_view(), name="health"),
 ]
 ```
+
+
 
 ### 9.4 `apps/core/exceptions.py`
 
@@ -594,6 +633,8 @@ def api_exception_handler(exc, context):
     return response
 ```
 
+
+
 ### 9.5 `config/urls.py`
 
 ```python
@@ -607,6 +648,8 @@ urlpatterns = [
     # path("api/v1/auth/", include("apps.iam.urls")),  # AUTH-A
 ]
 ```
+
+
 
 ### 9.6 `pyproject.toml` (ruff)
 
@@ -623,6 +666,8 @@ select = ["E", "F", "I", "UP", "B"]
 "apps/*/migrations/*" = ["E501"]
 ```
 
+
+
 ### 9.7 `pytest.ini`
 
 ```ini
@@ -636,6 +681,8 @@ Fuseau : `TIME_ZONE = "Africa/Lome"`, `USE_TZ = True` (UTC en base).
 
 ---
 
+
+
 ## 10. Premier `migrate` + serveur
 
 ```powershell
@@ -643,10 +690,12 @@ python manage.py migrate
 python manage.py runserver 8000
 ```
 
-| URL | Attendu |
-|-----|---------|
-| [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health) | `{"success": true, "data": {"status": "ok", "db": true}}` |
-| [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/) | Swagger, encore vide de routes métier |
+
+| URL                                                                | Attendu                                                   |
+| ------------------------------------------------------------------ | --------------------------------------------------------- |
+| [http://127.0.0.1:8000/health](http://127.0.0.1:8000/health)       | `{"success": true, "data": {"status": "ok", "db": true}}` |
+| [http://127.0.0.1:8000/api/docs/](http://127.0.0.1:8000/api/docs/) | Swagger, encore vide de routes métier                     |
+
 
 `db: false` / 503 → Postgres down ou mauvais `DATABASE_URL`.
 
@@ -658,39 +707,49 @@ pytest
 
 ---
 
+
+
 ## 11. Checklist jour 0
 
-- [ ] Repo `backend-yas-connect` **hors** SIRH (conception peut vivre dans `plans/`)
-- [ ] venv + `pip install -r requirements\dev.txt`
-- [ ] Docker `db` healthy ; `\conninfo` OK
-- [ ] `.env` avec deux secrets distincts
-- [ ] `python manage.py check` OK
-- [ ] `GET /health` → `db: true`
-- [ ] `/api/docs/` s’affiche
-- [ ] `ruff check .` vert
-- [ ] Aucune table métier IAM (ça vient à AUTH-A)
+- [x] Repo `backend-yas-connect` **hors** SIRH (conception peut vivre dans `plans/`)
+- [x] venv + `pip install -r requirements\dev.txt` (Django **5.2.17**)
+- [x] Docker `db` healthy ; `\conninfo` OK (`yas_connect` / `yas`, hôte **5433**)
+- [x] `.env` avec deux secrets distincts (`DJANGO_SECRET_KEY` ≠ `JWT_TOKEN_SECRET`)
+- [x] `python manage.py check` OK
+- [x] `GET /health` → `db: true`
+- [x] `/api/docs/` s’affiche
+- [x] `ruff check` vert (`apps` + `config`)
+- [x] Aucune table métier IAM (seulement `auth_*` + `django_content_type` / `django_migrations`)
 
 ---
 
+
+
 ## 12. Après le jour 0 — ordre (ne pas tout créer d’un coup)
 
-Ordre figé détaillé : [A→Z §4.1](00-application-A-Z.md). **Pas recopié ici** (login, MFA, chat, etc.). Résumé :
+**Jour 1 (maintenant) :** [00-jour-1-auth-a.md](00-jour-1-auth-a.md) — login local AUTH-01…12.
 
-| Étape | Commande / action | Plan |
-|-------|-------------------|------|
-| AUTH-A | `startapp iam` + `media` + `annuaire` ; coller [code/iam_models.py](code/iam_models.py) ; **`AUTH_USER_MODEL` avant migrate** ; seed USER | [AUTH-A](iam_plans/AUTH-A-connexion-locale.md) |
-| AUTH-B…J, F–I, R, ADMIN, PROF, PRES | même app `iam` (+ `config`, Channels) | [iam_plans/](iam_plans/) · routes [IAM-routes.md](iam_plans/IAM-routes.md) |
-| MEDIA-R/A | MinIO + `boto3` | [MEDIA-A](media_plans/MEDIA-A-upload-stockage.md) |
-| NOTIF-R/A | push ; event message/appel | [NOTIF-A](notif_plans/NOTIF-A-in-app-push.md) |
-| CRYPTO-R/A | bundles par appareil | [CRYPTO-A](crypto_plans/CRYPTO-A-cles.md) |
-| MESSAGERIE | 1-to-1 puis groupes + WS | [messaging_plans/](messaging_plans/) |
-| APPELS | LiveKit 1-1 | [calls_plans/](calls_plans/) |
+Ordre figé détaillé : [A→Z §4.1](00-application-A-Z.md). Résumé :
+
+
+| Étape                               | Commande / action                                                                                                                         | Plan                                                                       |
+| ----------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| AUTH-A                              | `startapp iam` + `media` + `annuaire` ; coller [code/iam_models.py](code/iam_models.py) ; `AUTH_USER_MODEL` **avant migrate** ; seed USER | [AUTH-A](iam_plans/AUTH-A-connexion-locale.md)                             |
+| AUTH-B…J, F–I, R, ADMIN, PROF, PRES | même app `iam` (+ `config`, Channels)                                                                                                     | [iam_plans/](iam_plans/) · routes [IAM-routes.md](iam_plans/IAM-routes.md) |
+| MEDIA-R/A                           | MinIO + `boto3`                                                                                                                           | [MEDIA-A](media_plans/MEDIA-A-upload-stockage.md)                          |
+| NOTIF-R/A                           | push ; event message/appel                                                                                                                | [NOTIF-A](notif_plans/NOTIF-A-in-app-push.md)                              |
+| CRYPTO-R/A                          | bundles par appareil                                                                                                                      | [CRYPTO-A](crypto_plans/CRYPTO-A-cles.md)                                  |
+| MESSAGERIE                          | 1-to-1 puis groupes + WS                                                                                                                  | [messaging_plans/](messaging_plans/)                                       |
+| APPELS                              | LiveKit 1-1                                                                                                                               | [calls_plans/](calls_plans/)                                               |
+
 
 **Règle AUTH_USER_MODEL :** dès AUTH-A, poser `AUTH_USER_MODEL = "iam.User"` **avant** `makemigrations`. Si Phase 0 a déjà migré `auth_user` Django : `docker compose down -v`, `up -d`, `migrate` à neuf (jour 0 uniquement).
 
 Modèles : coller depuis [plans/code/](code/) ; attributs = [catalogues/](../catalogues/). Ne pas inventer de colonnes.
 
 ---
+
+
 
 ## 13. Arborescence cible (après AUTH-A, pas jour 0)
 
@@ -724,6 +783,8 @@ backend-yas-connect/
 
 ---
 
+
+
 ## 14. Interdits (à graver)
 
 - Coder dans le SIRH ou fusionner les bases.
@@ -733,3 +794,4 @@ backend-yas-connect/
 - Changer `AUTH_USER_MODEL` après des migrations de prod.
 - Marquer un fichier `CLEAN` sans ClamAV (lab = `SKIPPED`).
 - Social / Canaux / IA tant que message + appel ne sonnent pas app fermée.
+
