@@ -1,5 +1,6 @@
 # Jour 1 — AUTH-A (connexion locale)
 
+**Statut :** clos (2026-09-08).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jour 0 clos ([00-creer-le-projet.md](00-creer-le-projet.md) §11). `/health` = `"db": true`.  
 **Plan métier (code à coller) :** [AUTH-A-connexion-locale.md](iam_plans/AUTH-A-connexion-locale.md) (AUTH-01 … 12).  
@@ -143,15 +144,15 @@ Tests AUTH-A §8 (table des cas).
 
 ## Checklist jour 1
 
-- [ ] Volume Postgres recréé ; plus de `auth_user`
-- [ ] `AUTH_USER_MODEL = "iam.User"` **avant** `makemigrations`
-- [ ] Login email + username + device
-- [ ] 401 unique (inconnu / MDP / rate-limit)
-- [ ] 403 pending / disabled / locked **après** MDP OK
-- [ ] JWT `jti` = `sessions.access_jti` ; refresh hashé, jamais le clair en base
-- [ ] 1 session active par `device_uuid`
-- [ ] `/health` intact
-- [ ] SIRH non modifié
+- [x] Volume Postgres recréé ; plus de `auth_user`
+- [x] `AUTH_USER_MODEL = "iam.User"` **avant** `makemigrations`
+- [x] Login email + username + device
+- [x] 401 unique (inconnu / MDP / rate-limit)
+- [x] 403 pending / disabled / locked **après** MDP OK
+- [x] JWT `jti` = `sessions.access_jti` ; refresh hashé, jamais le clair en base
+- [x] 1 session active par `device_uuid`
+- [x] `/health` intact
+- [x] SIRH non modifié
 
 ---
 

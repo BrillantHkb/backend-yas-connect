@@ -7,6 +7,7 @@ from django.forms import ModelForm
 from apps.iam.models import (
     Device,
     LoginHistory,
+    OtpSecret,
     PrivacySetting,
     RefreshToken,
     Role,
@@ -126,3 +127,26 @@ class PrivacySettingAdmin(admin.ModelAdmin):
     list_display = ("user", "last_seen_visibility", "online_status_visibility")
     raw_id_fields = ("user",)
     readonly_fields = ("id", "updated_at")
+
+
+@admin.register(OtpSecret)
+class OtpSecretAdmin(admin.ModelAdmin):
+    """Secret TOTP masqué ; backup_codes = hash, jamais le clair."""
+
+    list_display = ("user", "enabled", "verified_at", "algorithm", "updated_at")
+    list_filter = ("enabled",)
+    search_fields = ("user__email",)
+    readonly_fields = (
+        "id",
+        "secret_display",
+        "backup_codes",
+        "created_at",
+        "updated_at",
+    )
+    exclude = ("secret",)
+    raw_id_fields = ("user",)
+
+    def secret_display(self, obj):
+        return "********"  # Fernet : jamais le clair, même en lab
+
+    secret_display.short_description = "Secret TOTP"

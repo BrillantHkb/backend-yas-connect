@@ -51,3 +51,49 @@ def hit(ident: str, ip: str | None) -> None:
 def reset(ident: str) -> None:
     """Après login OK : on remet l’identifiant à zéro. Pas l’IP (NAT)."""
     cache.delete(_ident_key(ident))
+
+
+def _mfa_user_key(user_id) -> str:
+    """Compteur OTP / backup faux, distinct du login MDP."""
+    return f"mfa:attempts:user:{user_id}"
+
+
+def _mfa_ip_key(ip: str) -> str:
+    return f"mfa:attempts:ip:{ip}"
+
+
+def is_mfa_limited(user_id) -> bool:
+    """True si trop d’OTP / backup faux (AUTH-C)."""
+    current = cache.get(_mfa_user_key(user_id), 0)
+    return current >= settings.YAS_MFA_OTP_ATTEMPTS
+
+
+def is_mfa_limited_ip(ip: str | None) -> bool:
+    """Même plafond que l’user (YAS_MFA_OTP_ATTEMPTS). Ignoré si IP inconnue."""
+    if not ip:
+        return False
+    current = cache.get(_mfa_ip_key(ip), 0)
+    return current >= settings.YAS_MFA_OTP_ATTEMPTS
+
+
+def mfa_hit(user_id, ip: str | None) -> None:
+    """Incrémente user + IP à chaque verify (succès ou échec, avant le check TOTP)."""
+    window = settings.YAS_MFA_OTP_WINDOW_SECONDS
+    user_cache = _mfa_user_key(user_id)
+    cache.add(user_cache, 0, window)
+    try:
+        cache.incr(user_cache)
+    except ValueError:
+        cache.set(user_cache, 1, window)
+    if ip:
+        ip_cache = _mfa_ip_key(ip)
+        cache.add(ip_cache, 0, window)
+        try:
+            cache.incr(ip_cache)
+        except ValueError:
+            cache.set(ip_cache, 1, window)
+
+
+def mfa_reset(user_id) -> None:
+    """Succès OTP : on oublie les échecs de cet user."""
+    cache.delete(_mfa_user_key(user_id))

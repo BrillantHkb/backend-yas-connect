@@ -1,7 +1,8 @@
 # AUTH-C — MFA TOTP obligatoire (AUTH-19 … 24)
 
+**Statut :** clos (2026-09-08) — lab [00-jour-4-auth-c.md](../00-jour-4-auth-c.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
-**Préalable :** Phase 0 + **AUTH-A** + **AUTH-D** + **AUTH-B** (jour 3 : JWT encore sans OTP). Enchaînement aussi après **AUTH-D** `register/ad` (`complete_login` → `begin_mfa`).  
+**Préalable :** Phase 0 + **AUTH-A** + **AUTH-D** + **AUTH-B** (jours 1–3 clos). Enchaînement aussi après **AUTH-D** `register/ad` (`complete_login` → `begin_mfa`).  
 **Attributs / index :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md).  
 **Models :** [code/iam_models.py](../code/iam_models.py) (`otp_secrets`).
 
@@ -586,17 +587,17 @@ Fixture : Fernet de test + `pyotp.TOTP(b32).now()`.
 
 ## 12. Acceptation AUTH-C
 
-- [ ] Aucun JWT sans TOTP (ou backup) après facteur 1, **tous** les users
-- [ ] `devices.trusted` et le rôle **n’exemptent pas**
-- [ ] Enroll : **QR affiché** (`otpauth_uri`) ; scan Google Authenticator ; **aucun JWT** sans `otp` TOTP valide
-- [ ] QR enroll ≠ QR 2ᵉ appareil ([AUTH-J](AUTH-J-lier-appareil-qr.md))
-- [ ] Login LDAP et login MDP : même challenge
-- [ ] Refresh sans OTP
-- [ ] Reset = admin `iam.mfa.reset` seulement ; pas de désactivation user
-- [ ] Secret TOTP chiffré ; backup hashés
-- [ ] Tests verts ; `/api/docs` : `/mfa/verify`, regen, reset admin
-- [ ] AUTH-A/B : 401/403/503 facteur 1 inchangés ; **200 login = MFA required**
-- [ ] SIRH non modifié
+- [x] Aucun JWT sans TOTP (ou backup) après facteur 1, **tous** les users
+- [x] `devices.trusted` et le rôle **n’exemptent pas**
+- [x] Enroll : **QR affiché** (`otpauth_uri`) ; scan Google Authenticator ; **aucun JWT** sans `otp` TOTP valide
+- [x] QR enroll ≠ QR 2ᵉ appareil ([AUTH-J](AUTH-J-lier-appareil-qr.md))
+- [x] Login LDAP et login MDP : même challenge
+- [x] Refresh sans OTP
+- [x] Reset = JWT + rôle ADMIN (palier D05) ; AUTH-R → `iam.mfa.reset` ; pas de désactivation user
+- [x] Secret TOTP chiffré ; backup hashés
+- [x] Tests verts ; `/api/docs` : `/mfa/verify`, regen, reset admin
+- [x] AUTH-A/B : 401/403/503 facteur 1 inchangés ; **200 login = MFA required**
+- [x] SIRH non modifié
 
 ---
 

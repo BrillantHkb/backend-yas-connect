@@ -25,4 +25,6 @@ urlpatterns = [
         name="docs",
     ),
     path("api/v1/auth/", include("apps.iam.urls")),
+    path("api/v1/admin/", include("apps.iam.urls_admin")),  # JWT API, distinct de /admin/
+    path("api/v1/directory/", include("apps.annuaire.urls")),  # publics, pas de Bearer
 ]

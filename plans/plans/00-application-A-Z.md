@@ -763,8 +763,8 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 | 0 | `apps.core` | Socle | aucune métier |
 | 1 | `apps.iam` + `apps.media` + `apps.annuaire` | **AUTH-A** (01–12) | 16 tables IAM + `media_files` + 5 Annuaire. Login local : devices, sessions, refresh, history. |
 | 1b | `apps.config` + IAM + seed annuaire min | **AUTH-D puis AUTH-B** | `ldap_service` + inscription (`register/ad` = seul JIT) **puis** `login/ldap` + job AUTH-16. Pas de seed user AD. Seed régions TG + segment `YAS`. JWT encore sans OTP. |
-| 1c | `apps.iam` | **AUTH-C** (19–24) | `otp_secrets`. TOTP obligatoire chaque login **et** après `register/ad`. |
-| 1e | `apps.iam` | **AUTH-E** (27–36) | `devices` : liste, **push_token**, trusted, jailbreak. |
+| 1c | `apps.iam` | **AUTH-C** (19–24) | `otp_secrets`. TOTP obligatoire chaque login **et** après `register/ad`. Lab : [00-jour-4-auth-c.md](00-jour-4-auth-c.md) **clos**. |
+| 1e | `apps.iam` | **AUTH-E** (27–36) | `devices` : liste, **push_token**, trusted, jailbreak. Lab : [00-jour-5-auth-e.md](00-jour-5-auth-e.md). |
 | 1e2 | `apps.iam` | **AUTH-J** (67–69) | QR 2ᵉ appareil + TOTP Authenticator. Cache Redis, 0 table. |
 | 1f–1i | `apps.iam` | **AUTH-F…I** | CGU, MDP, sessions, lock. |
 | 1j | `apps.iam` | **AUTH-R** | Seed USER/ADMIN, `HasPermission`. |
@@ -908,11 +908,11 @@ Hors AUTH-A : MFA ([AUTH-C](iam_plans/AUTH-C-mfa-otp.md)), LDAP/AD (**AUTH-B**),
 
 Socle jour 0 :
 
-- [ ] Repo `backend-yas-connect` créé, indépendant du SIRH
-- [ ] PostgreSQL + 16 tables IAM + 5 Annuaire + `media_files`
-- [ ] AUTH-A vert (login email/username, refresh, device, tests)
-- [ ] `/api/docs` documente `POST /api/v1/auth/login` et `/refresh`
-- [ ] SIRH `/api/auth/login` **non concerné**
+- [x] Repo `backend-yas-connect` créé, indépendant du SIRH
+- [x] PostgreSQL + 16 tables IAM + 5 Annuaire + `media_files`
+- [x] AUTH-A vert (login email/username, refresh, device, tests)
+- [x] `/api/docs` documente `POST /api/v1/auth/login` et `/refresh`
+- [x] SIRH `/api/auth/login` **non concerné**
 
 Fermeture MVP (chemin §4.1) :
 

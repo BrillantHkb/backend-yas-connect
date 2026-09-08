@@ -123,7 +123,7 @@ def _history(
 
 
 def login(*, email, username, password, ip, user_agent: str, device_spec: dict) -> dict:
-    """Ordre contractuel AUTH-A : rate-limit → lookup → MDP → 403 compte → complete_login."""
+    """Ordre AUTH-A : rate-limit → lookup → MDP → 403 compte → begin_mfa (pas de JWT)."""
     email = normalize_email(email) if email else None
     username = username.strip() if username else None
 
@@ -200,13 +200,149 @@ def login(*, email, username, password, ip, user_agent: str, device_spec: dict) 
         )
         raise AuthAPIError(403, "ACCOUNT_LOCKED", "Compte verrouillé.")
 
-    return complete_login(
+    # AUTH-C : JWT seulement après POST /mfa/verify
+    from apps.iam.services.mfa_service import begin_mfa
+
+    return begin_mfa(
         user=user,
         ip=ip,
         user_agent=user_agent,
         device_spec=device_spec,
         ident_key=ident_key,
-        login_method=LoginMethod.PASSWORD,  # AUTH-B / AUTH-J réutilisent complete_login
+        login_method=LoginMethod.PASSWORD,
+    )
+
+
+def login_ldap(*, email, username, password, ip, user_agent: str, device_spec: dict) -> dict:
+    """AUTH-13 : bind AD, user YAS déjà en base, puis begin_mfa. Pas de JIT."""
+    # Import local : ldap3 n’est chargé que sur le chemin LDAP (tests mockent ldap_service).
+    from apps.iam.services.ldap_service import (
+        DirectoryUnavailable,
+        LdapBindFailed,
+        bind_user_dn,
+        search_user_dn,
+    )
+
+    email = normalize_email(email) if email else None
+    username = username.strip() if username else None
+
+    ident_key = email or username
+    # Même 401 AUTH-05 que MDP faux (pas 429 : pas d’énumération throttle)
+    if rate_limit_service.is_limited(ident_key) or rate_limit_service.is_limited_ip(ip):
+        _history(
+            user=None,
+            email=ident_key,
+            ip=ip,
+            success=False,
+            reason="RATE_LIMITED",
+            user_agent=user_agent,
+            login_method=LoginMethod.LDAP,
+        )
+        raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID)
+
+    rate_limit_service.hit(ident_key, ip)
+
+    user = _get_user(email=email, username=username)
+    if user is None:
+        verify_dummy(password)  # timing AUTH-05 ; on ne contacte pas l’AD
+        _history(
+            user=None,
+            email=ident_key,
+            ip=ip,
+            success=False,
+            reason="INVALID_CREDENTIALS",
+            user_agent=user_agent,
+            login_method=LoginMethod.LDAP,
+        )
+        raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID)
+
+    try:
+        if user.ldap_dn:
+            try:
+                bind_user_dn(dn=user.ldap_dn, password=password)
+                dn = user.ldap_dn
+            except LdapBindFailed:
+                # DN déplacé ou compte devenu non loggable : un retry search+bind
+                dn = search_user_dn(email=user.email, username=user.username)
+                bind_user_dn(dn=dn, password=password)
+                # ne pas écraser ldap_dn : AUTH-16 s’appuie sur la valeur liée
+        else:
+            dn = search_user_dn(email=user.email, username=user.username)
+            bind_user_dn(dn=dn, password=password)
+    except DirectoryUnavailable as exc:
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="DIRECTORY_UNAVAILABLE",
+            user_agent=user_agent,
+            login_method=LoginMethod.LDAP,
+        )
+        raise AuthAPIError(503, "DIRECTORY_UNAVAILABLE", "Annuaire indisponible.") from exc
+    except LdapBindFailed as exc:
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="INVALID_CREDENTIALS",
+            user_agent=user_agent,
+            login_method=LoginMethod.LDAP,
+        )
+        raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID) from exc
+
+    # 403 YAS seulement après bind AD OK (pas les bits UAC)
+    if user.pending_approval:
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="ACCOUNT_PENDING",
+            user_agent=user_agent,
+            login_method=LoginMethod.LDAP,
+        )
+        raise AuthAPIError(403, "ACCOUNT_PENDING", "Compte en attente de validation.")
+
+    if not user.is_active:
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="ACCOUNT_DISABLED",
+            user_agent=user_agent,
+            login_method=LoginMethod.LDAP,
+        )
+        raise AuthAPIError(403, "ACCOUNT_DISABLED", "Compte désactivé.")
+
+    if user.is_locked:
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="ACCOUNT_LOCKED",
+            user_agent=user_agent,
+            login_method=LoginMethod.LDAP,
+        )
+        raise AuthAPIError(403, "ACCOUNT_LOCKED", "Compte verrouillé.")
+
+    if not user.ldap_dn:
+        user.ldap_dn = dn  # 1er lien YAS ↔ DN (D02 l’a déjà en général)
+        user.save(update_fields=["ldap_dn", "updated_at"])
+
+    # AUTH-C : JWT seulement après POST /mfa/verify (login_method=LDAP)
+    from apps.iam.services.mfa_service import begin_mfa
+
+    return begin_mfa(
+        user=user,
+        ip=ip,
+        user_agent=user_agent,
+        device_spec=device_spec,
+        ident_key=ident_key,
+        login_method=LoginMethod.LDAP,
     )
 
 

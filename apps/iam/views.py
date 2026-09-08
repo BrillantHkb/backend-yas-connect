@@ -8,9 +8,10 @@ from rest_framework.views import APIView
 from apps.iam.serializers import (
     AuthSuccessSerializer,
     LoginSerializer,
+    MfaChallengeEnvelopeSerializer,
     RefreshSerializer,
 )
-from apps.iam.services.auth_service import client_ip, login, refresh
+from apps.iam.services.auth_service import client_ip, login, login_ldap, refresh
 
 
 class LoginView(APIView):
@@ -24,14 +25,14 @@ class LoginView(APIView):
         auth=[],  # endpoint public : pas de cadenas Bearer
         request=LoginSerializer,
         responses={
-            200: AuthSuccessSerializer,
+            200: MfaChallengeEnvelopeSerializer,
             400: OpenApiResponse(description="VALIDATION_ERROR (email XOR username, device)"),
             401: OpenApiResponse(description="INVALID_CREDENTIALS (inconnu / MDP / rate-limit)"),
             403: OpenApiResponse(description="ACCOUNT_PENDING / DISABLED / LOCKED"),
         },
         description=(
-            "Connexion locale. Exactement un identifiant (`email` ou `username`) + "
-            "`password` + `device` obligatoire."
+            "Connexion locale. Facteur 1 : identifiant + password + device. "
+            "200 = mfa_required (pas de JWT). TOTP : POST /mfa/verify."
         ),
     )
     def post(self, request):
@@ -69,4 +70,40 @@ class RefreshView(APIView):
         serializer = RefreshSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = refresh(raw=serializer.validated_data["refresh_token"], ip=client_ip(request))
+        return Response({"success": True, "data": data})
+
+
+class LdapLoginView(APIView):
+    """POST /api/v1/auth/login/ldap — public (AUTH-13). User déjà créé par register/ad."""
+
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    @extend_schema(
+        tags=["Auth"],
+        auth=[],
+        request=LoginSerializer,
+        responses={
+            200: MfaChallengeEnvelopeSerializer,
+            400: OpenApiResponse(description="VALIDATION_ERROR"),
+            401: OpenApiResponse(description="INVALID_CREDENTIALS (inconnu / bind / UAC)"),
+            403: OpenApiResponse(description="ACCOUNT_PENDING / DISABLED / LOCKED après bind OK"),
+            503: OpenApiResponse(description="DIRECTORY_UNAVAILABLE"),
+        },
+        description=(
+            "Connexion mot de passe Active Directory. Même body qu’AUTH-A. "
+            "200 = mfa_required. Pas de JIT (création = POST /register/ad)."
+        ),
+    )
+    def post(self, request):
+        serializer = LoginSerializer(data=request.data)  # même contrat qu’AUTH-A
+        serializer.is_valid(raise_exception=True)
+        data = login_ldap(
+            email=serializer.validated_data.get("email"),
+            username=serializer.validated_data.get("username"),
+            password=serializer.validated_data["password"],
+            ip=client_ip(request),
+            user_agent=request.META.get("HTTP_USER_AGENT", ""),
+            device_spec=serializer.validated_data["device"],
+        )
         return Response({"success": True, "data": data})

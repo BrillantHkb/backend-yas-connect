@@ -1,5 +1,6 @@
 # AUTH-D — Inscription (AD + hors AD)
 
+**Statut :** clos (jour 3, 2026-09-08). JWT après D02 ; MFA = AUTH-C (jour 4).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A**. **`ldap_service`** est livré **dans le même jour**, **avant** D01/D02 ([00-jour-3-auth-b.md](../00-jour-3-auth-b.md)). **AUTH-C n’est pas un prérequis de code** : après D02, jour 3 = `complete_login` (JWT) ; jour 4 AUTH-C remplace par `begin_mfa`.  
 **Ordre lab :** AUTH-D **avant** AUTH-13 (`login/ldap`) — pas de seed `users.ldap_dn`.  
@@ -257,9 +258,10 @@ RH peut filtrer « email vérifié » avant approve (jointure `email_verificatio
 
 | Endpoint | Effet |
 |----------|--------|
-| `GET /api/v1/admin/users?pending=true` | `pending_approval=true` (file hors AD). Perm `iam.user.read` |
+| `GET /api/v1/admin/users` | Tous les users (jour 3 : rôle ADMIN). Perm `iam.user.read` plus tard |
+| `GET /api/v1/admin/users?pending=true` | Filtre `pending_approval=true` (file hors AD) |
 | `POST /api/v1/admin/users/{id}/approve` | `is_active=true` ; `pending_approval=false` ; audit `USER_APPROVE` |
-| `POST /api/v1/admin/users/{id}/reject` `{ "reason": "…" }` | reste `is_active=false` ; audit `USER_REJECT` + `metadata.reason` |
+| `POST /api/v1/admin/users/{id}/reject` `{ "reason": "…" }` | reste `is_active=false` ; `pending_approval` inchangé ; audit `USER_REJECT` + `metadata.reason` |
 
 Approve sur user déjà actif → **200** idempotent.  
 Approve sur user avec `ldap_dn` → **400** (parcours AD, pas pending).
@@ -408,21 +410,22 @@ def register_ad(*, ident_email, ident_username, password_ad, password_app, profi
 | D03 | email AD loggable | 409 `AD_ACCOUNT_EXISTS` |
 | D03 | login avant approve | 403 `ACCOUNT_PENDING` |
 | D04 | verify email | `verified_at` set ; `is_active` toujours false |
+| D05 | `GET /admin/users` | tous les users ; `?pending=true` = file RH seulement |
 | D05 | approve | `is_active=true` ; `pending_approval=false` ; login possible (+ MFA) |
-| D05 | reject | reste inactif ; audit reason |
+| D05 | reject | reste inactif ; `pending_approval` inchangé ; audit `reason` ; login 403 |
 | D06 | login AD user | MDP app et LDAP OK |
 
 ---
 
 ## Critères d’acceptation
 
-- [ ] Check-ad + register/ad + register local documentés OpenAPI
-- [ ] Inscription AD : `ldap_dn` + UPN + sAMAccountName + MDP app ; JWT jour 3 / MFA AUTH-C
-- [ ] Inscription hors AD : pending RH + email optionnel sans activer
-- [ ] `ACCOUNT_PENDING` sur login
-- [ ] AUTH-B inchangé pour **login** (pas de JIT login) ; register/ad = seul JIT
-- [ ] Tests verts ci-dessus
-- [ ] SIRH non concerné
+- [x] Check-ad + register/ad + register local documentés OpenAPI
+- [x] Inscription AD : `ldap_dn` + UPN + sAMAccountName + MDP app ; JWT jour 3 / MFA AUTH-C
+- [x] Inscription hors AD : pending RH + email optionnel sans activer
+- [x] `ACCOUNT_PENDING` sur login
+- [x] AUTH-B inchangé pour **login** (pas de JIT login) ; register/ad = seul JIT
+- [x] Tests verts ci-dessus
+- [x] SIRH non concerné
 
 ---
 

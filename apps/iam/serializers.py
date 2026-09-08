@@ -102,7 +102,7 @@ class UserPublicSerializer(serializers.Serializer):
 
 
 class TokenDataSerializer(serializers.Serializer):
-    """data du 200 login / refresh."""
+    """data du 200 après MFA / refresh. backup_codes seulement à l’enroll."""
 
     access_token = serializers.CharField()
     refresh_token = serializers.CharField()
@@ -110,10 +110,51 @@ class TokenDataSerializer(serializers.Serializer):
     expires_in = serializers.IntegerField()
     refresh_expires_in = serializers.IntegerField()
     user = UserPublicSerializer()
+    backup_codes = serializers.ListField(
+        child=serializers.CharField(), required=False
+    )  # seulement au 1er verify enroll
 
 
 class AuthSuccessSerializer(serializers.Serializer):
-    """Enveloppe {success, data} des 200 AUTH-A."""
+    """Enveloppe {success, data} des 200 après MFA / refresh."""
 
     success = serializers.BooleanField()
     data = TokenDataSerializer()
+
+
+class MfaChallengeSerializer(serializers.Serializer):
+    """200 facteur 1 AUTH-C : pas de JWT."""
+
+    mfa_required = serializers.BooleanField()
+    mfa_token = serializers.CharField()
+    enroll = serializers.BooleanField()
+    expires_in = serializers.IntegerField()
+    otpauth_uri = serializers.CharField(required=False)
+
+
+class MfaChallengeEnvelopeSerializer(serializers.Serializer):
+    """Enveloppe {success, data} du 200 facteur 1."""
+
+    success = serializers.BooleanField()
+    data = MfaChallengeSerializer()
+
+
+class MfaVerifySerializer(serializers.Serializer):
+    """POST /mfa/verify : otp XOR backup_code."""
+
+    mfa_token = serializers.CharField(min_length=16, max_length=128)
+    otp = serializers.CharField(min_length=6, max_length=8, required=False)
+    backup_code = serializers.CharField(min_length=8, max_length=16, required=False)
+
+    def validate(self, attrs):
+        has_otp = bool(attrs.get("otp"))
+        has_b = bool(attrs.get("backup_code"))
+        if has_otp == has_b:  # les deux ou aucun
+            raise serializers.ValidationError("Fournir otp ou backup_code, pas les deux.")
+        return attrs
+
+
+class BackupRegenSerializer(serializers.Serializer):
+    """Body regen : TOTP courant, pas un backup."""
+
+    otp = serializers.CharField(min_length=6, max_length=8)

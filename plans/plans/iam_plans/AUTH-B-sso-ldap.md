@@ -1,5 +1,6 @@
 # AUTH-B — LDAP / Active Directory (AUTH-13 + AUTH-16)
 
+**Statut :** clos (jour 3, 2026-09-08).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** [AUTH-A-connexion-locale.md](AUTH-A-connexion-locale.md) + **AUTH-D** (`register/ad` déjà livré le même jour, **avant** cet incrément HTTP).  
 **Ordre lab :** [00-jour-3-auth-b.md](../00-jour-3-auth-b.md) — `ldap_service` → AUTH-D → `login/ldap`. **Pas** de seed `users.ldap_dn`.  
@@ -821,16 +822,16 @@ Fixture `device` minimale AUTH-A : `{ "device_uuid": "test-web-1", "platform": "
 
 ## 11. Acceptation AUTH-B
 
-- [ ] Login AD **et** login MDP applicatif pour le même user
-- [ ] 401 unique (inconnu YAS / bind KO / AD désactivé ou expiré / rate-limit) ; 503 seulement si AD down
-- [ ] 403 inactif / lock **après** bind OK
-- [ ] `ldap_dn` posé à AUTH-D register/ad (puis éventuellement au 1er `login/ldap` si encore vide) ; jamais de création de compte au **login** ni mapping de rôle ; **0** user AD en seed
-- [ ] Job de sync : `is_active=false` si DN absent **ou** AD désactivé **ou** AD expiré (users déjà liés seulement)
-- [ ] Secrets bind absents des logs / API (`is_sensitive`)
-- [ ] `complete_login` AUTH-A réutilisé (`login_method=LDAP`)
-- [ ] Tests verts ; `/api/docs` documente `POST /api/v1/auth/login/ldap`
-- [ ] AUTH-A inchangé fonctionnellement (`POST /login` + `/refresh`) jusqu’à **AUTH-C** (alors 200 login = `mfa_required`)
-- [ ] SIRH non modifié
+- [x] Login AD **et** login MDP applicatif pour le même user
+- [x] 401 unique (inconnu YAS / bind KO / AD désactivé ou expiré / rate-limit) ; 503 seulement si AD down
+- [x] 403 inactif / lock **après** bind OK
+- [x] `ldap_dn` posé à AUTH-D register/ad (puis éventuellement au 1er `login/ldap` si encore vide) ; jamais de création de compte au **login** ni mapping de rôle ; **0** user AD en seed
+- [x] Job de sync : `is_active=false` si DN absent **ou** AD désactivé **ou** AD expiré (users déjà liés seulement)
+- [x] Secrets bind absents des logs / API (`is_sensitive`)
+- [x] `complete_login` AUTH-A réutilisé (`login_method=LDAP`)
+- [x] Tests verts ; `/api/docs` documente `POST /api/v1/auth/login/ldap`
+- [x] AUTH-A inchangé fonctionnellement (`POST /login` + `/refresh`) jusqu’à **AUTH-C** (alors 200 login = `mfa_required`)
+- [x] SIRH non modifié
 
 ---
 

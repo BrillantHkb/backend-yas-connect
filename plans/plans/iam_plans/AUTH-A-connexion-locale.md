@@ -1,5 +1,6 @@
 # AUTH-A — Connexion locale (AUTH-01 … AUTH-12)
 
+**Statut :** clos (jour 1, 2026-09-08).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 [00-application-A-Z.md](../00-application-A-Z.md).  
 **Attributs / index :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md) · [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) · [Médias](../../catalogues/MEDIA-catalogue-tables.md).
@@ -544,18 +545,18 @@ Header test UA : Chrome/128 comme avant.
 
 ## 9. Acceptation AUTH-A
 
-- [ ] Login email **et** username
-- [ ] 401 unique (inconnu / MDP / rate-limit)
-- [ ] 403 distincts inactif / lock **après** MDP OK
-- [ ] Rate-limit identifiant + IP
-- [ ] `login_history` succès/échec ; UA parsé
-- [ ] `last_login` / `first_login` au succès seulement
-- [ ] Access JWT HS256 15 min
-- [ ] Refresh opaque hashé + endpoint `/refresh` + rotation
-- [ ] Upsert `devices` ; 1 session active par appareil
-- [ ] `ATOMIC_REQUESTS` : pas de session sans history / refresh au succès
-- [ ] Tests verts ; `/api/docs` login + refresh
-- [ ] SIRH non modifié
+- [x] Login email **et** username
+- [x] 401 unique (inconnu / MDP / rate-limit)
+- [x] 403 distincts inactif / lock **après** MDP OK
+- [x] Rate-limit identifiant + IP
+- [x] `login_history` succès/échec ; UA parsé
+- [x] `last_login` / `first_login` au succès seulement
+- [x] Access JWT HS256 15 min
+- [x] Refresh opaque hashé + endpoint `/refresh` + rotation
+- [x] Upsert `devices` ; 1 session active par appareil
+- [x] `ATOMIC_REQUESTS` : pas de session sans history / refresh au succès
+- [x] Tests verts ; `/api/docs` login + refresh
+- [x] SIRH non modifié
 
 ---
 

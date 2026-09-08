@@ -1,7 +1,8 @@
 # AUTH-E — Appareils & reconnaissance (AUTH-27 … 36)
 
+**Statut :** à faire — lab [00-jour-5-auth-e.md](../00-jour-5-auth-e.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
-**Préalable :** Phase 0 + **AUTH-A** (upsert `devices`) + **AUTH-C** (MFA ; `trusted` **ne skip pas** l’OTP).  
+**Préalable :** Phase 0 + **AUTH-A** (upsert `devices`) + **AUTH-C** (MFA ; `trusted` **ne skip pas** l’OTP) — jours 1–4 **clos**.  
 **Attributs / index :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md).  
 **Models :** [code/iam_models.py](../code/iam_models.py).
 

@@ -727,7 +727,8 @@ pytest
 
 ## 12. Après le jour 0 — ordre (ne pas tout créer d’un coup)
 
-**Jour 1 (maintenant) :** [00-jour-1-auth-a.md](00-jour-1-auth-a.md) — login local AUTH-01…12.
+**Jour 1–3 :** clos — [jour 1 AUTH-A](00-jour-1-auth-a.md), [jour 2 admin/Swagger](00-jour-2-admin-swagger.md), [jour 3 AUTH-D puis AUTH-B](00-jour-3-auth-b.md).  
+**Suivant :** [jour 5 AUTH-E](00-jour-5-auth-e.md) (appareils). Jours 1–4 clos.
 
 Ordre figé détaillé : [A→Z §4.1](00-application-A-Z.md). Résumé :
 

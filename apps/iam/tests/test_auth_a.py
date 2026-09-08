@@ -6,6 +6,7 @@ from rest_framework.test import APIClient
 
 from apps.iam.models import Device, LoginHistory, RefreshToken, Role, Session, User
 from apps.iam.services.token_service import hash_refresh_token
+from apps.iam.tests.mfa_helpers import login_until_jwt, post_mfa_verify
 
 DEVICE = {"device_uuid": "test-web-1", "platform": "WEB"}
 UA = (
@@ -50,8 +51,14 @@ def _login(api, **extra):
 def test_login_email_ok(api, user_ok):
     r = _login(api, email="jean.dupont@yas.tg")
     assert r.status_code == 200
-    data = r.data["data"]
+    challenge = r.data["data"]
     assert r.data["success"] is True
+    assert challenge["mfa_required"] is True
+    assert "access_token" not in challenge
+    assert challenge["enroll"] is True
+    v = post_mfa_verify(api, mfa_token=challenge["mfa_token"], user=user_ok)
+    assert v.status_code == 200
+    data = v.data["data"]
     assert "access_token" in data
     assert "refresh_token" in data
     assert data["token_type"] == "Bearer"
@@ -80,8 +87,9 @@ def test_login_email_ok(api, user_ok):
 
 @pytest.mark.django_db
 def test_login_username_ok(api, user_ok):
-    r = _login(api, username="jean.dupont")
-    assert r.status_code == 200
+    r = login_until_jwt(
+        api, username="jean.dupont", password=PASSWORD, device=DEVICE
+    )
     assert r.data["data"]["user"]["email"] == user_ok.email
 
 
@@ -176,7 +184,9 @@ def test_rate_limit_sixth_attempt(api, user_ok):
 
 @pytest.mark.django_db
 def test_history_and_ua(api, user_ok):
-    _login(api, email="jean.dupont@yas.tg")
+    challenge = _login(api, email="jean.dupont@yas.tg")
+    assert LoginHistory.objects.filter(success=True).count() == 0
+    post_mfa_verify(api, mfa_token=challenge.data["data"]["mfa_token"], user=user_ok)
     api.post(
         "/api/v1/auth/login",
         {"email": "jean.dupont@yas.tg", "password": "WrongPass1!", "device": DEVICE},
@@ -200,14 +210,19 @@ def test_last_login_only_on_success(api, user_ok):
     )
     user_ok.refresh_from_db()
     assert user_ok.last_login is None
-    _login(api, email="jean.dupont@yas.tg")
+    challenge = _login(api, email="jean.dupont@yas.tg")
+    user_ok.refresh_from_db()
+    assert user_ok.last_login is None
+    post_mfa_verify(api, mfa_token=challenge.data["data"]["mfa_token"], user=user_ok)
     user_ok.refresh_from_db()
     assert user_ok.last_login is not None
 
 
 @pytest.mark.django_db
 def test_refresh_rotates(api, user_ok):
-    first = _login(api, email="jean.dupont@yas.tg")
+    first = login_until_jwt(
+        api, email="jean.dupont@yas.tg", password=PASSWORD, device=DEVICE
+    )
     old = first.data["data"]["refresh_token"]
     r = api.post("/api/v1/auth/refresh", {"refresh_token": old}, format="json")
     assert r.status_code == 200
@@ -229,9 +244,9 @@ def test_refresh_unknown_401(api, user_ok):
 
 @pytest.mark.django_db
 def test_second_login_same_device_upserts(api, user_ok):
-    _login(api, email="jean.dupont@yas.tg")
+    login_until_jwt(api, email="jean.dupont@yas.tg", password=PASSWORD, device=DEVICE)
     first_session = Session.objects.get(user=user_ok, is_active=True)
-    _login(api, email="jean.dupont@yas.tg")
+    login_until_jwt(api, email="jean.dupont@yas.tg", password=PASSWORD, device=DEVICE)
     assert Device.objects.filter(user=user_ok, device_uuid="test-web-1").count() == 1
     first_session.refresh_from_db()
     assert first_session.is_active is False

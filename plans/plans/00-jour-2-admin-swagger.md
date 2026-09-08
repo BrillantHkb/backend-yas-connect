@@ -1,7 +1,8 @@
 # Jour 2 — Admin Django + Swagger (lab)
 
+**Statut :** clos (2026-09-08).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
-**Préalable :** jour 0 ([00-creer-le-projet.md](00-creer-le-projet.md)) + jour 1 ([00-jour-1-auth-a.md](00-jour-1-auth-a.md)).  
+**Préalable :** jour 0 ([00-creer-le-projet.md](00-creer-le-projet.md)) + jour 1 clos ([00-jour-1-auth-a.md](00-jour-1-auth-a.md)).  
 Login API : `POST /api/v1/auth/login` vert. `/health` = `"db": true`.
 
 **Objectif du jour :** inspecter les tables IAM dans **Django admin** (`/admin/`) et documenter l’API AUTH-A dans **Swagger UI** (`/api/docs/`) avec schéma Bearer JWT.
@@ -110,12 +111,12 @@ Navigateur :
 
 ## Checklist jour 2
 
-- [ ] `/admin/` login cookie ; USER rejeté (`is_staff` faux)
-- [ ] Tables IAM visibles ; hash MDP / refresh **pas** en clair
-- [ ] `/api/docs/` documente login + refresh + health
-- [ ] Schéma Bearer JWT dans OpenAPI
-- [ ] API toujours sans cookie session
-- [ ] 0 colonne inventée sur `users`
+- [x] `/admin/` login cookie ; USER rejeté (`is_staff` faux)
+- [x] Tables IAM visibles ; hash MDP / refresh **pas** en clair
+- [x] `/api/docs/` documente login + refresh + health
+- [x] Schéma Bearer JWT dans OpenAPI
+- [x] API toujours sans cookie session
+- [x] 0 colonne inventée sur `users`
 
 ---
 

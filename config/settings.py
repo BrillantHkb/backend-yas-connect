@@ -13,6 +13,10 @@ env = environ.Env(
     LOGIN_RATE_LIMIT_ATTEMPTS=(int, 5),
     LOGIN_RATE_LIMIT_IP_ATTEMPTS=(int, 20),
     LOGIN_RATE_LIMIT_WINDOW_SECONDS=(int, 900),
+    YAS_MFA_CHALLENGE_TTL_SECONDS=(int, 300),
+    YAS_MFA_OTP_ATTEMPTS=(int, 5),
+    YAS_MFA_OTP_WINDOW_SECONDS=(int, 900),
+    YAS_MFA_BACKUP_COUNT=(int, 10),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 if os.environ.get("DATABASE_URL"):
@@ -37,6 +41,7 @@ INSTALLED_APPS = [
     "apps.iam",
     "apps.media",
     "apps.annuaire",
+    "apps.config.apps.ConfigAppConfig",  # system_settings LDAP + jobs (pas .env)
 ]
 
 AUTH_USER_MODEL = "iam.User"
@@ -107,7 +112,9 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": r"/api/v1",
     "TAGS": [
         {"name": "Santé", "description": "Liveness / base"},
-        {"name": "Auth", "description": "Login local AUTH-A + refresh"},
+        {"name": "Auth", "description": "Login AUTH-A / LDAP / inscription / MFA AUTH-C"},
+        {"name": "Admin", "description": "Approbation RH + reset MFA (rôle ADMIN)"},
+        {"name": "Directory", "description": "Dropdowns publics inscription (régions / segments)"},
     ],
     "SECURITY": [{"bearerAuth": []}],
     "APPEND_COMPONENTS": {
@@ -116,7 +123,7 @@ SPECTACULAR_SETTINGS = {
                 "type": "http",
                 "scheme": "bearer",
                 "bearerFormat": "JWT",
-                "description": "Access JWT (15 min). Login / refresh : pas de Bearer.",
+                "description": "Access JWT (15 min). Login / MFA verify / refresh : pas de Bearer au facteur 1.",
             }
         }
     },
@@ -136,6 +143,27 @@ YAS_LOGIN_ALLOW_USERNAME = env("YAS_LOGIN_ALLOW_USERNAME")
 LOGIN_RATE_LIMIT_ATTEMPTS = env("LOGIN_RATE_LIMIT_ATTEMPTS")
 LOGIN_RATE_LIMIT_IP_ATTEMPTS = env("LOGIN_RATE_LIMIT_IP_ATTEMPTS")
 LOGIN_RATE_LIMIT_WINDOW_SECONDS = env("LOGIN_RATE_LIMIT_WINDOW_SECONDS")
+
+# AUTH-C : Fernet lab/tests par défaut (pas une clé prod). Prod : poser YAS_MFA_FERNET_KEY.
+# Ne pas mettre le secret TOTP dans system_settings.
+YAS_MFA_CHALLENGE_TTL_SECONDS = env("YAS_MFA_CHALLENGE_TTL_SECONDS")
+YAS_MFA_OTP_ATTEMPTS = env("YAS_MFA_OTP_ATTEMPTS")
+YAS_MFA_OTP_WINDOW_SECONDS = env("YAS_MFA_OTP_WINDOW_SECONDS")
+YAS_MFA_BACKUP_COUNT = env("YAS_MFA_BACKUP_COUNT")
+YAS_MFA_FERNET_KEY = env(
+    "YAS_MFA_FERNET_KEY",
+    default="nzTKKdyRvzn1yebJkYMvtBIEElklGp59BAjQYcLEkio=",
+)
+YAS_MFA_ISSUER = "YAS Connect"
+
+# Vide = skip envoi (lab). Mailhog plus tard ; verify-email ne bloque pas.
+EMAIL_HOST = env("EMAIL_HOST", default="")
+EMAIL_PORT = env.int("EMAIL_PORT", default=1025)
+EMAIL_HOST_USER = env("EMAIL_HOST_USER", default="")
+EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
+EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=False)
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="noreply@yas.tg")
+EMAIL_VERIFICATION_TTL_HOURS = 48
 
 REDIS_URL = env("REDIS_URL", default="")
 if REDIS_URL:
