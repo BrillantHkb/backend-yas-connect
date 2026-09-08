@@ -1,14 +1,15 @@
 # AUTH-B — LDAP / Active Directory (AUTH-13 + AUTH-16)
 
 **Produit :** YAS Connect uniquement (pas le SIRH).  
-**Préalable :** Phase 0 + **AUTH-A** [AUTH-A-connexion-locale.md](AUTH-A-connexion-locale.md).  
+**Préalable :** Phase 0 + **AUTH-A** [AUTH-A-connexion-locale.md](AUTH-A-connexion-locale.md) + **AUTH-D** (`register/ad` déjà livré le même jour, **avant** cet incrément HTTP).  
+**Ordre lab :** [00-jour-3-auth-b.md](../00-jour-3-auth-b.md) — `ldap_service` → AUTH-D → `login/ldap`. **Pas** de seed `users.ldap_dn`.  
 **Attributs / index :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md).  
 **Models :** [code/iam_models.py](../code/iam_models.py) · [code/config_models.py](../code/config_models.py).
 
 **Périmètre unique :** se connecter avec le mot de passe **AD** **ou** le mot de passe **applicatif** (AUTH-A) ; **sync périodique** pour couper l’accès YAS si le compte AD n’est plus **loggable** (absent, UAC bloquant, `accountExpires`).
 
-Sur le chemin **login** LDAP : le compte YAS **existe déjà** (RH / seed / **AUTH-D register/ad**). AUTH-13 **n’invente pas** l’utilisateur et **ne change pas** son rôle / profil / matricule.  
-La **création** d’un user lié AD = [AUTH-D](AUTH-D-inscription.md) (`POST /register/ad`), pas le login.
+Sur le chemin **login** LDAP : le compte YAS **existe déjà** via **AUTH-D `register/ad`** (ou création RH plus tard). AUTH-13 **n’invente pas** l’utilisateur et **ne change pas** son rôle / profil / matricule.  
+**Interdit :** poser `ldap_dn` en seed (`jean.dupont` / `admin` restent MDP-only). La **création** d’un user lié AD = [AUTH-D](AUTH-D-inscription.md) uniquement.
 
 ---
 
@@ -101,7 +102,7 @@ Username : `"username": "jean.dupont"` à la place de `email` (souvent = `sAMAcc
 
 ## Flux login LDAP
 
-Ordre contractuel : rate-limit → lookup YAS → dummy si absent → search AD (DN + `userAccountControl` + `accountExpires`) → si AD non loggable **401** → bind → **AUTH-03/04** → poser `ldap_dn` si vide → `complete_login` AUTH-A (`login_method=LDAP`).
+Ordre contractuel : rate-limit → lookup YAS → dummy si absent → search AD (DN + `userAccountControl` + `accountExpires`) → si AD non loggable **401** → bind → **AUTH-03/04** (`pending_approval` / `is_active` / `is_locked` **après** bind OK) → poser `ldap_dn` si vide → `complete_login` AUTH-A (`login_method=LDAP`).
 
 ```mermaid
 sequenceDiagram
@@ -528,6 +529,12 @@ def login_ldap(*, email, username, password, ip, user_agent: str, device_spec: d
                  login_method=LoginMethod.LDAP)
         raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID)
 
+    if user.pending_approval:
+        _history(user=user, email=user.email, ip=ip, success=False,
+                 reason="ACCOUNT_PENDING", user_agent=user_agent,
+                 login_method=LoginMethod.LDAP)
+        raise AuthAPIError(403, "ACCOUNT_PENDING", "Compte en attente de validation.")
+
     if not user.is_active:
         _history(user=user, email=user.email, ip=ip, success=False,
                  reason="ACCOUNT_DISABLED", user_agent=user_agent,
@@ -708,7 +715,7 @@ Cron prod (systemd / Task Scheduler) : `python manage.py run_scheduled_jobs` tou
 
 ## 9. Seed
 
-`seed_iam` AUTH-A **inchangé** (rôle `USER`, `jean.dupont@yas.tg` / `Secret123!`). `ldap_dn` reste NULL jusqu’au 1er bind OK.
+`seed_iam` AUTH-A **inchangé** (rôle `USER`, `jean.dupont@yas.tg` / `Secret123!`). **`ldap_dn` reste NULL** sur les users seed — jamais de faux lien AD. Le 1er `ldap_dn` vient de **D02** (ou, si vide, du 1er `login/ldap` d’un user déjà créé par D02).
 
 `apps/config/management/commands/seed_config.py` :
 
@@ -817,7 +824,7 @@ Fixture `device` minimale AUTH-A : `{ "device_uuid": "test-web-1", "platform": "
 - [ ] Login AD **et** login MDP applicatif pour le même user
 - [ ] 401 unique (inconnu YAS / bind KO / AD désactivé ou expiré / rate-limit) ; 503 seulement si AD down
 - [ ] 403 inactif / lock **après** bind OK
-- [ ] `ldap_dn` posé au 1er succès login **ou** à AUTH-D register/ad ; jamais de création de compte au **login** ni mapping de rôle
+- [ ] `ldap_dn` posé à AUTH-D register/ad (puis éventuellement au 1er `login/ldap` si encore vide) ; jamais de création de compte au **login** ni mapping de rôle ; **0** user AD en seed
 - [ ] Job de sync : `is_active=false` si DN absent **ou** AD désactivé **ou** AD expiré (users déjà liés seulement)
 - [ ] Secrets bind absents des logs / API (`is_sensitive`)
 - [ ] `complete_login` AUTH-A réutilisé (`login_method=LDAP`)
@@ -832,7 +839,8 @@ Fixture `device` minimale AUTH-A : `{ "device_uuid": "test-web-1", "platform": "
 ## 12. Vérif manuelle
 
 ```powershell
-curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login/ldap -H "Content-Type: application/json" -d "{\"email\":\"jean.dupont@yas.tg\",\"password\":\"<mdp-AD>\",\"device\":{\"device_uuid\":\"dev-1\",\"platform\":\"WEB\"}}"
+# User = celui créé par POST /register/ad (pas jean.dupont seed).
+curl -s -X POST http://127.0.0.1:8000/api/v1/auth/login/ldap -H "Content-Type: application/json" -d "{\"email\":\"<upn-issu-de-D02>\",\"password\":\"<mdp-AD>\",\"device\":{\"device_uuid\":\"dev-1\",\"platform\":\"WEB\"}}"
 ```
 
 Même user en MDP app (AUTH-A) :

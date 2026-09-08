@@ -8,7 +8,7 @@ __pycache__/
 htmlcov/
 .coverage
 staticfiles/
-media/
+/media/
 *.egg-info/
 dist/
 build/

@@ -1,0 +1,334 @@
+"""Orchestration login / refresh AUTH-A (AUTH-01 … 12). Les vues HTTP n’ont pas de métier."""
+
+import uuid
+from datetime import timedelta
+
+from django.conf import settings
+from django.utils import timezone
+
+from apps.iam.exceptions import AuthAPIError
+from apps.iam.models import LoginHistory, LoginMethod, RefreshToken, Session, User
+from apps.iam.services import rate_limit_service
+from apps.iam.services.device_service import revoke_active_sessions_for_device, upsert_device
+from apps.iam.services.password_service import verify_dummy, verify_password
+from apps.iam.services.token_service import (
+    hash_refresh_token,
+    issue_refresh,
+    sign_access_token,
+)
+from apps.iam.services.ua_service import parse_user_agent
+
+# Message unique AUTH-05 : inconnu / MDP faux / rate-limit (pas d’énumération)
+MSG_INVALID = "Identifiant ou mot de passe incorrect."
+
+
+def client_ip(request) -> str | None:
+    """IP client : 1er hop X-Forwarded-For si proxy, sinon REMOTE_ADDR."""
+    forwarded = request.META.get("HTTP_X_FORWARDED_FOR")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.META.get("REMOTE_ADDR")
+
+
+def normalize_email(email: str) -> str:
+    """Login toujours en minuscules (catalogue users.email)."""
+    return email.strip().lower()
+
+
+def public_user(user: User) -> dict:
+    """Payload JSON 200 : profil + role + prefs/privacy. Jamais password / hash."""
+    role = user.role
+    prefs = getattr(user, "preferences", None)
+    privacy = getattr(user, "privacy", None)
+    return {
+        "id": str(user.id),
+        "email": user.email,
+        "username": user.username,
+        "first_name": user.first_name,
+        "last_name": user.last_name,
+        "matricule": user.matricule,
+        "phone": user.phone,
+        "job_title": user.job_title,
+        "status": user.status,  # présence ONLINE/OFFLINE, pas le statut de compte
+        "language": user.language,
+        "timezone": user.timezone,
+        "role": {"id": str(role.id), "code": role.code, "name": role.name},
+        "region_id": str(user.region_id) if user.region_id else None,
+        "segment_id": str(user.segment_id) if user.segment_id else None,  # UUID sans FK
+        "avatar_id": str(user.avatar_id) if user.avatar_id else None,
+        "preferences": {
+            "language": prefs.language,
+            "timezone": prefs.timezone,
+            "notification_sound": prefs.notification_sound,
+            "auto_download_media": prefs.auto_download_media,
+            "read_receipts": prefs.read_receipts,
+            "typing_indicator": prefs.typing_indicator,
+        }
+        if prefs
+        else None,
+        "privacy": {
+            "last_seen_visibility": privacy.last_seen_visibility,
+            "profile_photo_visibility": privacy.profile_photo_visibility,
+            "online_status_visibility": privacy.online_status_visibility,
+            "read_receipts_enabled": privacy.read_receipts_enabled,
+            "typing_indicator_enabled": privacy.typing_indicator_enabled,
+            "allow_calls": privacy.allow_calls,
+            "allow_mentions": privacy.allow_mentions,
+            "allow_group_invites": privacy.allow_group_invites,
+        }
+        if privacy
+        else None,
+    }
+
+
+def _get_user(*, email: str | None, username: str | None) -> User | None:
+    """Lookup AUTH-01/02. Prefetch role/prefs/privacy pour le JSON 200."""
+    qs = User.objects.select_related("role", "preferences", "privacy")
+    try:
+        if email:
+            return qs.get(email=email)  # déjà normalisé en lower
+        if not settings.YAS_LOGIN_ALLOW_USERNAME:
+            return None  # username interdit → dummy + 401 (pas 400)
+        return qs.get(username__iexact=username)
+    except User.DoesNotExist:
+        return None
+
+
+def _history(
+    *,
+    user,
+    email: str,
+    ip,
+    success: bool,
+    reason=None,
+    user_agent: str = "",
+    session=None,
+    device=None,
+    login_method=LoginMethod.PASSWORD,
+) -> None:
+    """INSERT login_history. device_id seulement au succès (pas d’upsert device avant MDP OK)."""
+    browser, browser_version = parse_user_agent(user_agent)
+    LoginHistory.objects.create(
+        user=user,  # NULL si identifiant inconnu
+        device=device,
+        session=session,
+        email=email,  # identifiant tenté (email ou username)
+        ip_address=ip,
+        browser=browser,
+        browser_version=browser_version,
+        login_method=login_method,
+        success=success,
+        failure_reason=reason,  # NULL si succès
+    )
+
+
+def login(*, email, username, password, ip, user_agent: str, device_spec: dict) -> dict:
+    """Ordre contractuel AUTH-A : rate-limit → lookup → MDP → 403 compte → complete_login."""
+    email = normalize_email(email) if email else None
+    username = username.strip() if username else None
+
+    ident_key = email or username  # un seul identifiant (le serializer a déjà validé)
+    # AUTH-06 : trop d’essais → même 401 que MDP faux (pas 429)
+    if rate_limit_service.is_limited(ident_key) or rate_limit_service.is_limited_ip(ip):
+        _history(
+            user=None,
+            email=ident_key,
+            ip=ip,
+            success=False,
+            reason="RATE_LIMITED",
+            user_agent=user_agent,
+        )
+        raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID)
+
+    rate_limit_service.hit(ident_key, ip)  # compte cette tentative (succès ou échec)
+
+    user = _get_user(email=email, username=username)
+    if user is None:
+        verify_dummy(password)  # AUTH-05 : même durée qu’un check Argon2 réel
+        _history(
+            user=None,
+            email=ident_key,
+            ip=ip,
+            success=False,
+            reason="INVALID_CREDENTIALS",
+            user_agent=user_agent,
+        )
+        raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID)
+
+    if not verify_password(password, user.password):
+        _history(
+            user=user,
+            email=user.email,  # user connu : on journalise l’email réel
+            ip=ip,
+            success=False,
+            reason="INVALID_CREDENTIALS",
+            user_agent=user_agent,
+        )
+        raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID)
+
+    # AUTH-03 / 04 : 403 seulement après MDP OK
+    if user.pending_approval:
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="ACCOUNT_PENDING",
+            user_agent=user_agent,
+        )
+        raise AuthAPIError(403, "ACCOUNT_PENDING", "Compte en attente de validation.")
+
+    if not user.is_active:
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="ACCOUNT_DISABLED",
+            user_agent=user_agent,
+        )
+        raise AuthAPIError(403, "ACCOUNT_DISABLED", "Compte désactivé.")
+
+    if user.is_locked:
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="ACCOUNT_LOCKED",
+            user_agent=user_agent,
+        )
+        raise AuthAPIError(403, "ACCOUNT_LOCKED", "Compte verrouillé.")
+
+    return complete_login(
+        user=user,
+        ip=ip,
+        user_agent=user_agent,
+        device_spec=device_spec,
+        ident_key=ident_key,
+        login_method=LoginMethod.PASSWORD,  # AUTH-B / AUTH-J réutilisent complete_login
+    )
+
+
+def complete_login(*, user, ip, user_agent, device_spec, ident_key, login_method) -> dict:
+    """Queue commune succès : device → révoquer sessions → session + refresh + JWT + history."""
+    device = upsert_device(user=user, spec=device_spec, ip=ip)  # AUTH-11
+    revoke_active_sessions_for_device(device=device)  # AUTH-12
+
+    now = timezone.now()
+    access_jti = uuid.uuid4()  # = jti du JWT
+    refresh_jti = uuid.uuid4()
+    session = Session.objects.create(
+        user=user,
+        device=device,  # NOT NULL au succès login local
+        access_jti=access_jti,
+        refresh_jti=refresh_jti,
+        ip_address=ip,
+        user_agent=user_agent or "",
+        last_activity=now,
+        expires_at=now + timedelta(seconds=settings.YAS_JWT_ACCESS_TTL_SECONDS),
+        is_active=True,
+        login_method=login_method,
+    )
+    raw_refresh = issue_refresh(session=session, user=user, ip=ip)  # AUTH-10
+
+    user.last_login = now  # AUTH-08
+    if user.first_login is None:
+        user.first_login = now  # 1er succès seulement
+    user.save(update_fields=["last_login", "first_login", "updated_at"])
+
+    _history(
+        user=user,
+        email=user.email,
+        ip=ip,
+        success=True,
+        session=session,
+        user_agent=user_agent,
+        device=device,
+        login_method=login_method,
+    )
+    rate_limit_service.reset(ident_key)  # succès : on oublie les échecs de cet identifiant
+
+    token = sign_access_token(
+        user_id=user.id,
+        email=user.email,
+        role_id=user.role_id,
+        role_code=user.role.code,
+        jti=access_jti,
+    )
+    return {
+        "access_token": token,
+        "refresh_token": raw_refresh,  # une seule fois
+        "token_type": "Bearer",
+        "expires_in": settings.YAS_JWT_ACCESS_TTL_SECONDS,
+        "refresh_expires_in": settings.YAS_JWT_REFRESH_TTL_SECONDS,
+        "user": public_user(user),
+    }
+
+
+def _force_logout_user(*, user, reason: str) -> None:
+    """Vol de refresh (AUTH-10) : tue toutes les sessions actives de l’user."""
+    now = timezone.now()
+    Session.objects.filter(user=user, is_active=True).update(
+        is_active=False,
+        revoked_at=now,
+        revoke_reason=reason,
+    )
+    RefreshToken.objects.filter(user=user, revoked_at__isnull=True).update(
+        revoked_at=now,
+        revoked_reason=reason,
+    )
+
+
+def refresh(*, raw: str, ip) -> dict:
+    """Rotation AUTH-10 : nouvel access + nouvel refresh. Ancien hash = ROTATED."""
+    digest = hash_refresh_token(raw)
+    row = (
+        RefreshToken.objects.select_related(
+            "session", "user", "user__role", "user__preferences", "user__privacy"
+        )
+        .filter(token_hash=digest)
+        .first()
+    )
+    if row is None:
+        raise AuthAPIError(401, "INVALID_REFRESH", "Session expirée. Reconnectez-vous.")
+    # Réutilisation d’un token déjà rotaté / révoqué = vol → kill global
+    if row.revoked_at is not None or row.rotated_at is not None:
+        _force_logout_user(user=row.user, reason="REFRESH_REUSE")
+        raise AuthAPIError(401, "FORCE_LOGOUT", "Session invalidée. Reconnectez-vous.")
+
+    now = timezone.now()
+    session = row.session
+    if (not session.is_active) or row.expires_at <= now:
+        raise AuthAPIError(401, "INVALID_REFRESH", "Session expirée. Reconnectez-vous.")
+
+    row.rotated_at = now
+    row.revoked_at = now
+    row.revoked_reason = "ROTATED"
+    row.save(update_fields=["rotated_at", "revoked_at", "revoked_reason"])
+
+    access_jti = uuid.uuid4()
+    refresh_jti = uuid.uuid4()
+    session.access_jti = access_jti  # l’ancien JWT access devient invalide (jti plus en base)
+    session.refresh_jti = refresh_jti
+    session.last_activity = now
+    session.expires_at = now + timedelta(seconds=settings.YAS_JWT_ACCESS_TTL_SECONDS)
+    session.save(
+        update_fields=["access_jti", "refresh_jti", "last_activity", "expires_at", "updated_at"]
+    )
+    new_raw = issue_refresh(session=session, user=session.user, ip=ip)
+    token = sign_access_token(
+        user_id=session.user.id,
+        email=session.user.email,
+        role_id=session.user.role_id,
+        role_code=session.user.role.code,
+        jti=access_jti,
+    )
+    return {
+        "access_token": token,
+        "refresh_token": new_raw,
+        "token_type": "Bearer",
+        "expires_in": settings.YAS_JWT_ACCESS_TTL_SECONDS,
+        "refresh_expires_in": settings.YAS_JWT_REFRESH_TTL_SECONDS,
+        "user": public_user(session.user),
+    }

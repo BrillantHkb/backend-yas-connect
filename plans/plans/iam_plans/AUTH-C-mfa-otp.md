@@ -1,7 +1,7 @@
 # AUTH-C — MFA TOTP obligatoire (AUTH-19 … 24)
 
 **Produit :** YAS Connect uniquement (pas le SIRH).  
-**Préalable :** Phase 0 + **AUTH-A** + **AUTH-B**. Enchaînement aussi après **AUTH-D** register/ad.  
+**Préalable :** Phase 0 + **AUTH-A** + **AUTH-D** + **AUTH-B** (jour 3 : JWT encore sans OTP). Enchaînement aussi après **AUTH-D** `register/ad` (`complete_login` → `begin_mfa`).  
 **Attributs / index :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md).  
 **Models :** [code/iam_models.py](../code/iam_models.py) (`otp_secrets`).
 

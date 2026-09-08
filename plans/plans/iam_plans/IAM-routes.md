@@ -24,8 +24,8 @@ Le [socle A→Z §4](../00-application-A-Z.md) est un **ordre de documentation d
 |-------|--------|
 | **AUTH-R seed + `HasPermission` dès la vague 1** (HTTP rôles plus tard) | Sinon chaque vue JWT est à rétrofitter. Le CRUD `/admin/roles` n’est pas bloquant pour login. |
 | **AUTH-H avant AUTH-B / D / G public** | Logout, idle, rotation refresh = hygiène dès qu’on a un JWT. LDAP et inscription s’appuient dessus. |
-| **AUTH-B après sessions + MFA** | Même pipeline que le login local ; pas besoin d’AD pour valider le tunnel. |
-| **Directory public + seed régions avant AUTH-D** | `region_id` / `segment_id` obligatoires à l’inscription. |
+| **Jour 3 lab : AUTH-D avant AUTH-B** | Pas de seed `ldap_dn`. `ldap_service` + `register/ad` créent le user ; `login/ldap` ensuite. [00-jour-3-auth-b.md](../00-jour-3-auth-b.md). |
+| **Directory public + seed régions avant AUTH-D** | `region_id` / `segment_id` obligatoires à l’inscription. Livré **dans** le jour 3 (pas attendre ANNUAIRE-A people-picker). |
 | **PROF puis privacy avant `GET /users`** | La fiche collègue et le people-picker masquent photo / online. |
 | **PRES-A en dernier** | Channels + Redis présence, après les portes AUTH-F et PROF-C. |
 
@@ -44,11 +44,11 @@ Le [socle A→Z §4](../00-application-A-Z.md) est un **ordre de documentation d
 | **4b** | 3 | Lier un 2ᵉ appareil par QR + TOTP (AUTH-J) | 2, 4 |
 | **5** | 6 | `GET /me` + CGU + wizard | 2 |
 | **6** | 4 | Mot de passe app (change + forgot TOTP) | 3, 5 (portes sur `/me/password`) |
-| **7** | 1 | Login LDAP (+ job AUTH-16, pas une route) | 2 |
+| **7** | 1 | Login LDAP (+ job AUTH-16, pas une route) | **AUTH-D déjà là** (jour 3) ; catalogue : 2 |
 | **8** | 5 | Logins, e-mail, codes secours | 5, 2 |
 | **9** | 8 | Profil, avatar, prefs, privacy, fiche collègue | 5 |
-| **10** | 8 | Régions admin + `GET /directory/*` | 1 (admin JWT) |
-| **11** | 5 | Inscription AD / hors AD | 7, 10 |
+| **10** | 8 | Régions admin + `GET /directory/*` | 1 (admin JWT) ; **slice publique dès jour 3** |
+| **11** | 5 | Inscription AD / hors AD | **avant vague 7 en lab** ; catalogue : 10 |
 | **12** | 14 | Lifecycle RH, unlock, MFA reset, rôle, audit | 3, 6, 11 |
 | **13** | 12 | CRUD rôles / permissions / matrice | 12 (users existent) |
 | **14** | 2 | Appareils compromis (admin) | 4 |
@@ -160,12 +160,13 @@ Première surface « app ». Toutes les vues métier suivantes s’appuient sur 
 
 ## Vague 7 — LDAP (AUTH-B)
 
+**Lab jour 3 :** cette route se code **après** la vague 11 (inscription). User déjà créé par `register/ad`.  
 **Hors HTTP :** job AUTH-16 (sync DN / `userAccountControl` / `accountExpires`).
 
 
 | # | Méthode | Chemin | Acteur | Permission | Rôles | Plan | Sert à | Spécificités |
 |---|---------|--------|--------|------------|------|------|--------|--------------|
-| 25 | `POST` | `/api/v1/auth/login/ldap` | Public | `AllowAny` | — | AUTH-B | Connexion mot de passe Active Directory | User déjà en base. Pas de JIT. Puis même MFA que le login local. |
+| 25 | `POST` | `/api/v1/auth/login/ldap` | Public | `AllowAny` | — | AUTH-B | Connexion mot de passe Active Directory | User déjà créé par `register/ad`. Pas de JIT. Pas de seed `ldap_dn`. |
 
 ---
 
@@ -220,7 +221,8 @@ Seed 5 régions TG + types `DIRECTION`/`DEPARTEMENT`/`SERVICE` + segment `YAS`. 
 
 ## Vague 11 — Inscription (AUTH-D)
 
-Approve / reject RH = vague 12 (même ressource `/admin/users`).
+**Lab jour 3 :** livrer **avant** `POST /login/ldap` (vague 7). Slice `GET /directory/regions` + `GET /directory/segments` + seed `YAS` dans le même jour.  
+Approve / reject RH = vague 12 (même ressource `/admin/users`) ; jour 3 = rôle ADMIN / `is_staff` jusqu’à AUTH-R.
 
 
 | # | Méthode | Chemin | Acteur | Permission | Rôles | Plan | Sert à | Spécificités |

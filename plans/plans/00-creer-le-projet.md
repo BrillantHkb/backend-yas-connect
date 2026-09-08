@@ -26,7 +26,7 @@ Le MVP = entrer en confiance, trouver un collègue, écrire / envoyer un fichier
 | ----------------------------------- | -------------------- | --------------------------------------------------- |
 | Santé API, erreurs JSON             | `apps.core`          | **Jour 0**                                          |
 | Compte, MFA, appareils, QR 2ᵉ écran | `apps.iam`           | AUTH-A…J — PostgreSQL + Redis (cache)               |
-| Login Windows / AD                  | `apps.config` + IAM  | AUTH-B — serveur LDAP YAS                           |
+| Login Windows / AD + inscription    | `apps.config` + IAM  | Jour 3 : AUTH-D **puis** AUTH-B — pas de seed user AD |
 | Photo, PJ, album, vidéo, vocal, GED | `apps.media`         | MEDIA-A — **MinIO** (S3) ; lab scan = `SKIPPED`     |
 | Trouver un collègue                 | `apps.annuaire`      | ANNUAIRE-A — tables dès AUTH-A (0 ligne)            |
 | Clés E2E / groupes                  | `apps.crypto`        | CRYPTO-A — après IAM                                |

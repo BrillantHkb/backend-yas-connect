@@ -762,9 +762,8 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 |-------|------------|----------------|----------------|
 | 0 | `apps.core` | Socle | aucune métier |
 | 1 | `apps.iam` + `apps.media` + `apps.annuaire` | **AUTH-A** (01–12) | 16 tables IAM + `media_files` + 5 Annuaire. Login local : devices, sessions, refresh, history. |
-| 1b | `apps.config` + IAM | **AUTH-B** (13 + 16) | `system_settings`, `scheduled_jobs`. Login LDAP + sync. Pas de mapping profil/rôle. |
-| 1c | `apps.iam` | **AUTH-C** (19–24) | `otp_secrets`. TOTP obligatoire chaque login. |
-| 1d | `apps.iam` | **AUTH-D** | Inscription AD + hors AD (`pending_approval`). SMTP : §4.3. |
+| 1b | `apps.config` + IAM + seed annuaire min | **AUTH-D puis AUTH-B** | `ldap_service` + inscription (`register/ad` = seul JIT) **puis** `login/ldap` + job AUTH-16. Pas de seed user AD. Seed régions TG + segment `YAS`. JWT encore sans OTP. |
+| 1c | `apps.iam` | **AUTH-C** (19–24) | `otp_secrets`. TOTP obligatoire chaque login **et** après `register/ad`. |
 | 1e | `apps.iam` | **AUTH-E** (27–36) | `devices` : liste, **push_token**, trusted, jailbreak. |
 | 1e2 | `apps.iam` | **AUTH-J** (67–69) | QR 2ᵉ appareil + TOTP Authenticator. Cache Redis, 0 table. |
 | 1f–1i | `apps.iam` | **AUTH-F…I** | CGU, MDP, sessions, lock. |
@@ -773,7 +772,7 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 | 2 | `apps.iam` + `apps.media` | **PROF-A** | `/me`, avatar (scan SKIPPED lab). |
 | 2b–2c | `apps.iam` | **PROF-B / PROF-C** | Prefs + privacy. |
 | 2d | `apps.iam` + `apps.realtime` | **PRES-A** | Présence Redis + WS. |
-| 2e | `apps.iam` + `apps.annuaire` | **ANNUAIRE-A** | People-picker `GET /users`, seed types + `YAS`. |
+| 2e | `apps.iam` + `apps.annuaire` | **ANNUAIRE-A** | People-picker `GET /users`. Seed types + `YAS` **déjà** jour 3 (AUTH-D). |
 | **2x** | — | **[CRYPTO-00](crypto_plans/CRYPTO-00-modele-chiffrement.md)** | Décision 1 page. **0 table.** Clés HTTP = phase **3c**. |
 | **3a** | `apps.media` | **MEDIA-R + MEDIA-A** | Seed `media.*` + upload MinIO (PJ, avatars) **avant** les messages. |
 | **3b** | `apps.notifications` | **NOTIF-R + NOTIF-A** | 2 tables ; in-app + push ; events message/appel. |

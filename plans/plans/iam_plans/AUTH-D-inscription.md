@@ -1,7 +1,8 @@
 # AUTH-D — Inscription (AD + hors AD)
 
 **Produit :** YAS Connect uniquement (pas le SIRH).  
-**Préalable :** Phase 0 + **AUTH-A** + **AUTH-B** (`ldap_service`) + **AUTH-C** (MFA à l’issue de l’inscription AD).  
+**Préalable :** Phase 0 + **AUTH-A**. **`ldap_service`** est livré **dans le même jour**, **avant** D01/D02 ([00-jour-3-auth-b.md](../00-jour-3-auth-b.md)). **AUTH-C n’est pas un prérequis de code** : après D02, jour 3 = `complete_login` (JWT) ; jour 4 AUTH-C remplace par `begin_mfa`.  
+**Ordre lab :** AUTH-D **avant** AUTH-13 (`login/ldap`) — pas de seed `users.ldap_dn`.  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md).
 
 **Périmètre :** self-service **création de compte** — avec preuve Active Directory, ou hors AD avec **approbation RH**.  
@@ -15,11 +16,11 @@ Ce n’est **pas** le login LDAP (AUTH-13) : le login ne crée toujours pas de u
 | ID | Fonctionnalité | Comportement | Écritures |
 |----|----------------|--------------|-----------|
 | **AUTH-D01** | Pré-check AD | `POST /register/check-ad` : email\|username + MDP AD → search + UAC + expires + bind | aucune (rate-limit cache) |
-| **AUTH-D02** | Inscription AD | Création user : UPN / sAMAccountName / `ldap_dn` auto ; MDP **app** distinct ; rôle `USER` ; `is_active=true` ; puis **MFA** | `users`, prefs, privacy, `email_verifications` optionnel, audit |
+| **AUTH-D02** | Inscription AD | Création user : UPN / sAMAccountName / `ldap_dn` auto ; MDP **app** distinct ; rôle `USER` ; `is_active=true` ; puis JWT (jour 3) / MFA (AUTH-C) | `users`, prefs, privacy, `email_verifications` optionnel, audit |
 | **AUTH-D03** | Inscription hors AD | Username auto `jdupont` ; `ldap_dn=NULL` ; `is_active=false` ; **pas** de JWT | idem + garde-fou si AD loggable |
 | **AUTH-D04** | Vérif email | Token → `email_verifications.verified_at` ; **`is_active` inchangé** | `email_verifications` |
 | **AUTH-D05** | Approbation RH | approve / reject / liste `pending` | `users.is_active` ; `audit_logs` |
-| **AUTH-D06** | Connexion après | AD → login + MFA ; hors AD pending → **403 `ACCOUNT_PENDING`** | — |
+| **AUTH-D06** | Connexion après | AD → `login` et/ou `login/ldap` (MFA dès AUTH-C) ; hors AD pending → **403 `ACCOUNT_PENDING`** | — |
 
 
 **Hors incrément :** mapping groupe AD → rôle, copie attributs AD vers profil (hors UPN / sAMAccountName / DN), OIDC/SAML, soft-delete RH (reject = reste inactif + motif). Dropdown `region_id` / `segment_id` = [ANNUAIRE-A](../annuaire_plans/ANNUAIRE-A-recherche-referentiels.md) `GET /directory/*`.
@@ -32,7 +33,7 @@ Ce n’est **pas** le login LDAP (AUTH-13) : le login ne crée toujours pas de u
 | Sujet | Choix |
 |-------|--------|
 | MDP inscription AD | **Deux secrets** : MDP AD (preuve, jamais stocké) + MDP **applicatif** (saisi, politique YAS, Argon2id) — peuvent différer |
-| Après D02 | **MFA obligatoire** (`begin_mfa` AUTH-C) — pas d’`access_token` tant que `/mfa/verify` KO |
+| Après D02 | **Jour 3 :** `complete_login` (JWT). **AUTH-C :** `begin_mfa` — pas d’`access_token` tant que `/mfa/verify` KO |
 | Hors AD | Validation **RH uniquement** (D03b) ; email D04 = preuve d’adresse **sans** activer |
 | Login pending | **403 `ACCOUNT_PENDING`** (distinct de `ACCOUNT_DISABLED`) |
 | `region_id` / `segment_id` | **Obligatoires** sur D02 et D03 (contrainte API ; nullable en base pour seed/legacy) |
@@ -149,13 +150,14 @@ Attributs AD lus au search (étendre `ldap_service`) : `distinguishedName`, `use
 
 | Code | Cas |
 |------|-----|
-| **200** | Compte créé + payload AUTH-C `mfa_required` + `mfa_token` (pas d’`access_token`) |
+| **200** | Compte créé + **jour 3 :** même payload AUTH-A (`access_token`). **AUTH-C :** `mfa_required` + `mfa_token` (pas d’`access_token`) |
 | **400** | Validation / `WEAK_PASSWORD` / `REGION_INVALID` / `SEGMENT_INVALID` |
 | **401** | Bind / AD non loggable / rate-limit → `INVALID_CREDENTIALS` |
 | **409** | UPN ou sAMAccountName déjà en base |
 | **503** | AD down |
 
-Après `/mfa/verify` : `complete_login(..., login_method=PASSWORD)` — le hash app vient d’être posé ; le LDAP a servi à **prouver** l’identité.
+**Jour 3 :** `return complete_login(..., login_method=PASSWORD)` tout de suite (le hash app vient d’être posé ; l’AD a servi à **prouver** l’identité).  
+**AUTH-C :** `return begin_mfa(...)` ; JWT seulement après `/mfa/verify`.
 
 **Audit :** `USER_REGISTER_AD` (`entity_type=users`, `severity=INFO`, `success=true`).
 
@@ -250,7 +252,8 @@ RH peut filtrer « email vérifié » avant approve (jointure `email_verificatio
 
 ## AUTH-D05 — Approbation RH
 
-Permission : `iam.user.approve` / `iam.user.reject` via `HasPermission` ([AUTH-R](AUTH-R-roles-permissions.md) R05/R10). Liste = `iam.user.read` ([ADMIN-A](ADMIN-A-lifecycle-audit.md) ADM-01). **Pas** de fallback `role.code == "ADMIN"`.
+**Jour 3 :** JWT + `role.code == "ADMIN"` (`is_staff` déjà AUTH-A).  
+**AUTH-R :** `iam.user.approve` / `iam.user.reject` via `HasPermission` uniquement (plus de fallback ADMIN). Liste = `iam.user.read` ([ADMIN-A](ADMIN-A-lifecycle-audit.md) ADM-01).
 
 | Endpoint | Effet |
 |----------|--------|
@@ -267,7 +270,7 @@ Approve sur user avec `ldap_dn` → **400** (parcours AD, pas pending).
 
 | Situation | Comportement |
 |-----------|--------------|
-| Inscrit AD, actif | `POST /login` (MDP app) et/ou `POST /login/ldap` ; MFA AUTH-C |
+| Inscrit AD, actif | `POST /login` (MDP app) et/ou `POST /login/ldap` (JWT jour 3 ; MFA AUTH-C) |
 | Hors AD, non approuvé | Après MDP OK → **403 `ACCOUNT_PENDING`** — « Compte en attente de validation. » |
 | Hors AD, approuvé | Login AUTH-A + MFA |
 | Tentative `/register` alors qu’AD loggable | 409 → UI D02 |
@@ -381,8 +384,9 @@ def register_ad(*, ident_email, ident_username, password_ad, password_app, profi
     UserPreference.objects.create(user=user, language=profile.get("language", "fr"))
     PrivacySettings.objects.create(user=user)
     audit(...)
-    return begin_mfa(user=user, ip=ip, user_agent=ua, device_spec=device,
-                     ident_key=user.email, login_method=LoginMethod.PASSWORD)
+    # Jour 3 : complete_login. AUTH-C : begin_mfa(..., login_method=LoginMethod.PASSWORD)
+    return complete_login(user=user, ip=ip, user_agent=ua, device_spec=device,
+                          ident_key=user.email, login_method=LoginMethod.PASSWORD)
 ```
 
 ---
@@ -395,7 +399,7 @@ def register_ad(*, ident_email, ident_username, password_ad, password_app, profi
 | D01 | bind OK | 200 `ad_available=true` |
 | D01 | mauvais MDP AD | 200 `ad_available=false` |
 | D01 | AD down | 503 |
-| D02 | OK | 200 `mfa_required` ; `ldap_dn` posé ; rôle USER ; `password_hash` ≠ MDP AD |
+| D02 | OK | 200 JWT (jour 3) / `mfa_required` (AUTH-C) ; `ldap_dn` posé ; rôle USER ; `password_hash` ≠ MDP AD |
 | D02 | UPN déjà pris | 409 |
 | D02 | MDP app faible | 400 `WEAK_PASSWORD` |
 | D02 | sans region/segment | 400 |
@@ -413,7 +417,7 @@ def register_ad(*, ident_email, ident_username, password_ad, password_app, profi
 ## Critères d’acceptation
 
 - [ ] Check-ad + register/ad + register local documentés OpenAPI
-- [ ] Inscription AD : `ldap_dn` + UPN + sAMAccountName + MDP app + MFA
+- [ ] Inscription AD : `ldap_dn` + UPN + sAMAccountName + MDP app ; JWT jour 3 / MFA AUTH-C
 - [ ] Inscription hors AD : pending RH + email optionnel sans activer
 - [ ] `ACCOUNT_PENDING` sur login
 - [ ] AUTH-B inchangé pour **login** (pas de JIT login) ; register/ad = seul JIT
@@ -426,7 +430,8 @@ def register_ad(*, ident_email, ident_username, password_ad, password_app, profi
 
 - **AUTH-B** : « LDAP n’invente pas l’utilisateur » → vrai pour **login** ; **register/ad** crée le user.
 - **AUTH-B** : `ldap_dn` aussi à l’inscription AD, pas seulement au 1er `login/ldap`.
-- **AUTH-A / AUTH-C** : brancher `ACCOUNT_PENDING` + enchaînement MFA post-D02.
-- **AUTH-R** : D05 = `HasPermission` uniquement (plus « ou ADMIN »).
+- **AUTH-A / AUTH-C** : `ACCOUNT_PENDING` déjà AUTH-A ; MFA post-D02 = AUTH-C (jour 4).  
+- **Jour 3** : AUTH-D **avant** AUTH-B ; 0 seed user AD.
+- **AUTH-R** : D05 jour 3 = rôle ADMIN ; ensuite `HasPermission` uniquement.
 - **Catalogue IAM** : colonne `pending_approval` ; notes « renseigné par » inscription.
 - **ANNUAIRE-A** : dropdowns `/directory/*`. **ANNUAIRE-C** : historique `user_segments` à la création.

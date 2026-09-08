@@ -1,10 +1,21 @@
+"""Format unique des erreurs API : {success, code, message}."""
+
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_exception_handler
 
+from apps.iam.exceptions import AuthAPIError
+
 
 def api_exception_handler(exc, context):
-    response = drf_exception_handler(exc, context)
+    """Handler DRF (settings EXCEPTION_HANDLER). AuthAPIError en premier (401/403 métier)."""
+    if isinstance(exc, AuthAPIError):
+        return Response(
+            {"success": False, "code": exc.code, "message": exc.message},
+            status=exc.status_code,
+        )
+
+    response = drf_exception_handler(exc, context)  # ValidationError, AuthenticationFailed, …
     if response is None:
         return Response(
             {
@@ -26,7 +37,7 @@ def api_exception_handler(exc, context):
                 code = str(code).upper()
         elif data:
             message = "Données invalides."
-            code = "VALIDATION_ERROR"
+            code = "VALIDATION_ERROR"  # serializers login / refresh
 
     response.data = {
         "success": False,

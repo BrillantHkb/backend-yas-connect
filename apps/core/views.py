@@ -1,4 +1,7 @@
+"""GET /health — public (jour 0)."""
+
 from django.db import connection
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -8,6 +11,26 @@ class HealthView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        tags=["Santé"],
+        auth=[],
+        responses={
+            200: {
+                "type": "object",
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "data": {
+                        "type": "object",
+                        "properties": {
+                            "status": {"type": "string"},
+                            "db": {"type": "boolean"},
+                        },
+                    },
+                },
+            }
+        },
+        description="Liveness. `db=true` si SELECT 1 Postgres OK.",
+    )
     def get(self, request):
         db_ok = True
         try:
