@@ -764,9 +764,10 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 | 1 | `apps.iam` + `apps.media` + `apps.annuaire` | **AUTH-A** (01–12) | 16 tables IAM + `media_files` + 5 Annuaire. Login local : devices, sessions, refresh, history. |
 | 1b | `apps.config` + IAM + seed annuaire min | **AUTH-D puis AUTH-B** | `ldap_service` + inscription (`register/ad` = seul JIT) **puis** `login/ldap` + job AUTH-16. Pas de seed user AD. Seed régions TG + segment `YAS`. JWT encore sans OTP. |
 | 1c | `apps.iam` | **AUTH-C** (19–24) | `otp_secrets`. TOTP obligatoire chaque login **et** après `register/ad`. Lab : [00-jour-4-auth-c.md](00-jour-4-auth-c.md) **clos**. |
-| 1e | `apps.iam` | **AUTH-E** (27–36) | `devices` : liste, **push_token**, trusted, jailbreak. Lab : [00-jour-5-auth-e.md](00-jour-5-auth-e.md). |
-| 1e2 | `apps.iam` | **AUTH-J** (67–69) | QR 2ᵉ appareil + TOTP Authenticator. Cache Redis, 0 table. |
-| 1f–1i | `apps.iam` | **AUTH-F…I** | CGU, MDP, sessions, lock. |
+| 1e | `apps.iam` | **AUTH-E** (27–36) | `devices` : liste, **push_token**, trusted, jailbreak. Lab : [00-jour-5-auth-e.md](00-jour-5-auth-e.md) **clos**. |
+| 1e2 | `apps.iam` | **AUTH-J** (67–69) | QR 2ᵉ appareil + TOTP Authenticator. Cache Redis, 0 table. Lab : [00-jour-6-auth-j.md](00-jour-6-auth-j.md) **clos**. |
+| 1f | `apps.iam` | **AUTH-F** (37–42) | CGU + wizard. Lab : [00-jour-7-auth-f.md](00-jour-7-auth-f.md). |
+| 1g–1i | `apps.iam` | **AUTH-G…I** | MDP, sessions, lock. |
 | 1j | `apps.iam` | **AUTH-R** | Seed USER/ADMIN, `HasPermission`. |
 | 1k | `apps.iam` | **ADMIN-A** | Lifecycle, audit, `region`. |
 | 2 | `apps.iam` + `apps.media` | **PROF-A** | `/me`, avatar (scan SKIPPED lab). |
@@ -852,9 +853,9 @@ Plans fonctionnels Appels : [APPELS-R](calls_plans/APPELS-R-roles-permissions.md
 Comportement login local : [AUTH-A-connexion-locale.md](iam_plans/AUTH-A-connexion-locale.md).  
 MFA : [AUTH-C-mfa-otp.md](iam_plans/AUTH-C-mfa-otp.md) (TOTP obligatoire ; coupe le JWT tant que `/mfa/verify` n’est pas OK).  
 Inscription : [AUTH-D-inscription.md](iam_plans/AUTH-D-inscription.md) (AD + hors AD / RH).  
-Appareils : [AUTH-E-appareils.md](iam_plans/AUTH-E-appareils.md) (27–36 ; `trusted` ≠ skip MFA).  
-Lier un 2ᵉ écran : [AUTH-J-lier-appareil-qr.md](iam_plans/AUTH-J-lier-appareil-qr.md) (QR Connect **puis** Google Authenticator ; ≠ QR enroll AUTH-C).  
-Première connexion / CGU : [AUTH-F-onboarding.md](iam_plans/AUTH-F-onboarding.md) (37–42).  
+Appareils : [AUTH-E-appareils.md](iam_plans/AUTH-E-appareils.md) (27–36 ; `trusted` ≠ skip MFA). Lab [00-jour-5-auth-e.md](00-jour-5-auth-e.md) **clos**.  
+Lier un 2ᵉ écran : [AUTH-J-lier-appareil-qr.md](iam_plans/AUTH-J-lier-appareil-qr.md) (QR Connect **puis** Google Authenticator ; ≠ QR enroll AUTH-C). Lab [00-jour-6-auth-j.md](00-jour-6-auth-j.md) **clos**.  
+Première connexion / CGU : [AUTH-F-onboarding.md](iam_plans/AUTH-F-onboarding.md) (37–42). Lab : [00-jour-7-auth-f.md](00-jour-7-auth-f.md).  
 Mot de passe : [AUTH-G-mot-de-passe.md](iam_plans/AUTH-G-mot-de-passe.md) (43–50).  
 Sessions / logout : [AUTH-H-sessions.md](iam_plans/AUTH-H-sessions.md) (51–60).  
 Sécurité compte : [AUTH-I-securite.md](iam_plans/AUTH-I-securite.md) (61–66).  

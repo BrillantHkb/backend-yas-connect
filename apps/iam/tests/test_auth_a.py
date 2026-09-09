@@ -4,9 +4,9 @@ from django.conf import settings
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
+from apps.iam.helpers.mfa import login_until_jwt, post_mfa_verify
 from apps.iam.models import Device, LoginHistory, RefreshToken, Role, Session, User
 from apps.iam.services.token_service import hash_refresh_token
-from apps.iam.tests.mfa_helpers import login_until_jwt, post_mfa_verify
 
 DEVICE = {"device_uuid": "test-web-1", "platform": "WEB"}
 UA = (

@@ -7,6 +7,7 @@ from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from apps.annuaire.models import Segment, SegmentType
+from apps.iam.helpers.mfa import post_mfa_verify
 from apps.iam.jobs import sync_ldap_accounts
 from apps.iam.models import AuditLog, Device, LoginHistory, Region, Role, Session, User
 from apps.iam.services.ldap_service import (
@@ -22,7 +23,6 @@ from apps.iam.services.ldap_service import (
     ad_logon_status,
     is_account_expired,
 )
-from apps.iam.tests.mfa_helpers import post_mfa_verify
 
 DEVICE = {"device_uuid": "test-web-1", "platform": "WEB"}
 UA = "Mozilla/5.0 pytest"

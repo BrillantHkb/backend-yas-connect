@@ -2,7 +2,7 @@
 
 from django.contrib.auth.hashers import check_password
 
-from apps.iam.hashers import verify_dummy  # réexport : auth_service n’importe pas hashers
+from apps.iam.helpers.hashers import verify_dummy  # réexport : auth_service n’importe pas hashers
 
 __all__ = ["verify_dummy", "verify_password"]
 

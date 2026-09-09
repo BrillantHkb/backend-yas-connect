@@ -97,3 +97,31 @@ def mfa_hit(user_id, ip: str | None) -> None:
 def mfa_reset(user_id) -> None:
     """Succès OTP : on oublie les échecs de cet user."""
     cache.delete(_mfa_user_key(user_id))
+
+
+START_LIMIT = 10  # AUTH-J : 10 start / min / IP
+START_WINDOW = 60
+
+
+def _device_link_ip_key(ip: str) -> str:
+    return f"device-link:start:ip:{ip}"
+
+
+def is_device_link_limited(ip: str | None) -> bool:
+    """True si trop de POST /device-link/start sur cette IP."""
+    if not ip:
+        return False
+    current = cache.get(_device_link_ip_key(ip), 0)
+    return current >= START_LIMIT
+
+
+def device_link_hit(ip: str | None) -> None:
+    """Incrémente le compteur start par IP (fenêtre 60 s)."""
+    if not ip:
+        return
+    key = _device_link_ip_key(ip)
+    cache.add(key, 0, START_WINDOW)
+    try:
+        cache.incr(key)
+    except ValueError:
+        cache.set(key, 1, START_WINDOW)

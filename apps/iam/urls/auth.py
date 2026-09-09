@@ -2,9 +2,10 @@
 
 from django.urls import path
 
-from apps.iam.views import LdapLoginView, LoginView, RefreshView
-from apps.iam.views_mfa import BackupRegenView, MfaVerifyView
-from apps.iam.views_register import (
+from apps.iam.views.auth import LdapLoginView, LoginView, RefreshView
+from apps.iam.views.device_link import DeviceLinkStartView, DeviceLinkStatusView
+from apps.iam.views.mfa import BackupRegenView, MfaVerifyView
+from apps.iam.views.register import (
     CheckAdView,
     RegisterAdView,
     RegisterLocalView,
@@ -27,4 +28,10 @@ urlpatterns = [
     path("register", RegisterLocalView.as_view(), name="register"),
     path("register/verify-email", VerifyEmailView.as_view(), name="register-verify-email"),
     path("register/resend-verification", ResendVerificationView.as_view(), name="register-resend"),
+    path("device-link/start", DeviceLinkStartView.as_view(), name="device-link-start"),
+    path(
+        "device-link/<uuid:challenge_id>",
+        DeviceLinkStatusView.as_view(),
+        name="device-link-status",
+    ),
 ]

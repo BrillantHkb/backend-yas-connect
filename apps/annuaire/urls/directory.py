@@ -2,7 +2,7 @@
 
 from django.urls import path
 
-from apps.annuaire.views import DirectoryRegionsView, DirectorySegmentsView
+from apps.annuaire.views.directory import DirectoryRegionsView, DirectorySegmentsView
 
 urlpatterns = [
     path("regions", DirectoryRegionsView.as_view(), name="directory-regions"),

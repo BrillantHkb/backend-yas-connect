@@ -124,7 +124,7 @@ Le QR `otpauth://` (enroll Authenticator) reste vague 2. Ici = QR **2ᵉ écran*
 
 | # | Méthode | Chemin | Acteur | Permission | Rôles | Plan | Sert à | Spécificités |
 |---|---------|--------|--------|------------|------|------|--------|--------------|
-| 84 | `POST` | `/api/v1/auth/device-link/start` | Public | `AllowAny` | — | AUTH-J-67 | Nouvel écran : créer le challenge + payload QR | `DeviceSpec` waiter. Secret **pas** dans le QR. TTL 90 s. |
+| 84 | `POST` | `/api/v1/auth/device-link/start` | Public | `AllowAny` | — | AUTH-J-67 | Nouvel écran : créer le challenge + payload QR | `DeviceSpec` waiter. Secret **pas** dans le QR. TTL 120 s. |
 | 85 | `GET` | `/api/v1/auth/device-link/{id}` | Public | `AllowAny` | — | AUTH-J-68 | Poll jusqu’aux tokens | Header `X-Device-Link-Secret`. APPROVED = one-shot puis 410. |
 | 86 | `POST` | `/api/v1/me/devices/link` | Collaborateur | `iam.device.update` | USER, ADMIN | AUTH-J-69 | Téléphone : confirmer le scan avec Google Authenticator | Body `{ challenge_id, otp }`. Pas de backup. Pas de JWT dans la réponse téléphone. |
 

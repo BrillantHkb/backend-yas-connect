@@ -17,6 +17,8 @@ env = environ.Env(
     YAS_MFA_OTP_ATTEMPTS=(int, 5),
     YAS_MFA_OTP_WINDOW_SECONDS=(int, 900),
     YAS_MFA_BACKUP_COUNT=(int, 10),
+    YAS_BLOCK_JAILBREAK=(bool, True),
+    YAS_DEVICE_LINK_TTL_SECONDS=(int, 120),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 if os.environ.get("DATABASE_URL"):
@@ -90,12 +92,12 @@ STATIC_URL = "static/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 PASSWORD_HASHERS = [
-    "apps.iam.hashers.YasArgon2PasswordHasher",
+    "apps.iam.helpers.hashers.YasArgon2PasswordHasher",
     "django.contrib.auth.hashers.Argon2PasswordHasher",
 ]
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": ["apps.iam.authentication.YasJWTAuthentication"],
+    "DEFAULT_AUTHENTICATION_CLASSES": ["apps.iam.middlewares.authentication.YasJWTAuthentication"],
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
@@ -112,8 +114,15 @@ SPECTACULAR_SETTINGS = {
     "SCHEMA_PATH_PREFIX": r"/api/v1",
     "TAGS": [
         {"name": "Santé", "description": "Liveness / base"},
-        {"name": "Auth", "description": "Login AUTH-A / LDAP / inscription / MFA AUTH-C"},
-        {"name": "Admin", "description": "Approbation RH + reset MFA (rôle ADMIN)"},
+        {
+            "name": "Auth",
+            "description": "Login AUTH-A / LDAP / inscription / MFA AUTH-C / lien QR AUTH-J",
+        },
+        {"name": "Admin", "description": "Approbation RH + reset MFA + appareils (rôle ADMIN)"},
+        {
+            "name": "Devices",
+            "description": "Mes appareils AUTH-E + confirmer un lien QR AUTH-J",
+        },
         {"name": "Directory", "description": "Dropdowns publics inscription (régions / segments)"},
     ],
     "SECURITY": [{"bearerAuth": []}],
@@ -155,6 +164,10 @@ YAS_MFA_FERNET_KEY = env(
     default="nzTKKdyRvzn1yebJkYMvtBIEElklGp59BAjQYcLEkio=",
 )
 YAS_MFA_ISSUER = "YAS Connect"
+# AUTH-E : 403 DEVICE_JAILBROKEN sur IOS/ANDROID si spec.jailbreak. WEB ignoré.
+YAS_BLOCK_JAILBREAK = env("YAS_BLOCK_JAILBREAK")
+# AUTH-J : TTL challenge QR 2ᵉ appareil (cache). Prod multi-workers = Redis.
+YAS_DEVICE_LINK_TTL_SECONDS = env("YAS_DEVICE_LINK_TTL_SECONDS")
 
 # Vide = skip envoi (lab). Mailhog plus tard ; verify-email ne bloque pas.
 EMAIL_HOST = env("EMAIL_HOST", default="")

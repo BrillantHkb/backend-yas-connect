@@ -41,7 +41,7 @@ Clés AUTH-F : `legal.tos_version`, `legal.tos_url` — [AUTH-F](../plans/iam_pl
 Clés AUTH-G : `security.password_min_length` (et `max`, `require_*`, `password_history_n`, TTL reset) — [AUTH-G](../plans/iam_plans/AUTH-G-mot-de-passe.md).  
 Clés AUTH-H : `security.session_idle_seconds`, `session_absolute_seconds`, `session_heartbeat_min_seconds` — [AUTH-H](../plans/iam_plans/AUTH-H-sessions.md).  
 Clés AUTH-I : `security.lock_after_failures`, `security.lock_duration_seconds` — [AUTH-I](../plans/iam_plans/AUTH-I-securite.md).  
-Clé AUTH-J : `security.device_link_ttl_seconds` (défaut `90`) — [AUTH-J](../plans/iam_plans/AUTH-J-lier-appareil-qr.md).  
+Clé AUTH-J : `security.device_link_ttl_seconds` (défaut `120`) — [AUTH-J](../plans/iam_plans/AUTH-J-lier-appareil-qr.md).  
 Clé PROF-B : `profile.job_title_self_edit` (bool, défaut `false`) — [PROF-B](../plans/iam_plans/PROF-B-edition-preferences.md).  
 Clés PRES-A : `presence.heartbeat_seconds`, `redis_ttl_seconds`, `away_after_seconds` — [PRES-A](../plans/iam_plans/PRES-A-presence.md).
 

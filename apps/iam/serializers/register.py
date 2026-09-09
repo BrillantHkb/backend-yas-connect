@@ -2,11 +2,12 @@
 
 from rest_framework import serializers
 
-from apps.iam.serializers import DeviceSpecSerializer
+from apps.iam.serializers.devices import DeviceSpecSerializer
 
 
 class CheckAdSerializer(serializers.Serializer):
     """D01 : email XOR username + MDP AD. write_only : jamais renvoyé."""
+
     email = serializers.EmailField(max_length=254, required=False)
     username = serializers.CharField(max_length=64, required=False)
     password = serializers.CharField(
@@ -23,6 +24,7 @@ class CheckAdSerializer(serializers.Serializer):
 
 class RegisterAdSerializer(serializers.Serializer):
     """D02 : deux secrets distincts — password_ad (Windows) et password (app Argon2)."""
+
     email = serializers.EmailField(max_length=254, required=False)
     username = serializers.CharField(max_length=64, required=False)
     password_ad = serializers.CharField(
@@ -54,6 +56,7 @@ class RegisterAdSerializer(serializers.Serializer):
 
 class RegisterLocalSerializer(serializers.Serializer):
     """D03 : un seul MDP app. Pas de device : pas de JWT à l’inscription locale."""
+
     email = serializers.EmailField(max_length=254)
     password = serializers.CharField(
         write_only=True, min_length=1, max_length=128, trim_whitespace=False
@@ -73,6 +76,7 @@ class RegisterLocalSerializer(serializers.Serializer):
 
 class VerifyEmailSerializer(serializers.Serializer):
     """D04 : token brut (hashé en base). Jamais le hash côté client."""
+
     token = serializers.CharField(min_length=1)
 
 
@@ -82,4 +86,5 @@ class ResendVerificationSerializer(serializers.Serializer):
 
 class RejectUserSerializer(serializers.Serializer):
     """D05 : motif obligatoire, stocké en audit seulement."""
+
     reason = serializers.CharField(min_length=1, max_length=500)

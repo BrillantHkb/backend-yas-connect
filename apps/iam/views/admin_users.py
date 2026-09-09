@@ -5,8 +5,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from apps.iam.permissions import IsAdminRole
-from apps.iam.serializers_register import RejectUserSerializer
+from apps.iam.middlewares.permissions import IsAdminRole
+from apps.iam.serializers.register import RejectUserSerializer
 from apps.iam.services.auth_service import client_ip
 from apps.iam.services.mfa_service import admin_reset_mfa
 from apps.iam.services.register_service import (

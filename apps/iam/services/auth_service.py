@@ -9,7 +9,12 @@ from django.utils import timezone
 from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import LoginHistory, LoginMethod, RefreshToken, Session, User
 from apps.iam.services import rate_limit_service
-from apps.iam.services.device_service import revoke_active_sessions_for_device, upsert_device
+from apps.iam.services.device_service import (
+    jailbreak_blocked,
+    on_new_device,
+    revoke_active_sessions_for_device,
+    upsert_device,
+)
 from apps.iam.services.password_service import verify_dummy, verify_password
 from apps.iam.services.token_service import (
     hash_refresh_token,
@@ -105,6 +110,7 @@ def _history(
     session=None,
     device=None,
     login_method=LoginMethod.PASSWORD,
+    suspicious: bool = False,
 ) -> None:
     """INSERT login_history. device_id seulement au succès (pas d’upsert device avant MDP OK)."""
     browser, browser_version = parse_user_agent(user_agent)
@@ -118,6 +124,7 @@ def _history(
         browser_version=browser_version,
         login_method=login_method,
         success=success,
+        suspicious=suspicious,  # AUTH-29 : 1er UUID
         failure_reason=reason,  # NULL si succès
     )
 
@@ -347,8 +354,38 @@ def login_ldap(*, email, username, password, ip, user_agent: str, device_spec: d
 
 
 def complete_login(*, user, ip, user_agent, device_spec, ident_key, login_method) -> dict:
-    """Queue commune succès : device → révoquer sessions → session + refresh + JWT + history."""
-    device = upsert_device(user=user, spec=device_spec, ip=ip)  # AUTH-11
+    """Queue : upsert → 403 appareil → DEVICE_NEW → session JWT."""
+    device, created = upsert_device(user=user, spec=device_spec, ip=ip)  # AUTH-11 + 32
+
+    if device.compromised:
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="DEVICE_COMPROMISED",
+            user_agent=user_agent,
+            device=device,
+            login_method=login_method,
+        )
+        raise AuthAPIError(403, "DEVICE_COMPROMISED", "Appareil signalé compromis.")
+
+    if jailbreak_blocked(device=device):
+        _history(
+            user=user,
+            email=user.email,
+            ip=ip,
+            success=False,
+            reason="DEVICE_JAILBROKEN",
+            user_agent=user_agent,
+            device=device,
+            login_method=login_method,
+        )
+        raise AuthAPIError(403, "DEVICE_JAILBROKEN", "Appareil non autorisé (root/jailbreak).")
+
+    if created:
+        on_new_device(user=user, device=device, ip=ip)  # AUTH-29 : alerte, pas de MFA extra
+
     revoke_active_sessions_for_device(device=device)  # AUTH-12
 
     now = timezone.now()
@@ -382,6 +419,7 @@ def complete_login(*, user, ip, user_agent, device_spec, ident_key, login_method
         user_agent=user_agent,
         device=device,
         login_method=login_method,
+        suspicious=created,  # AUTH-29 : 1er uuid seulement
     )
     rate_limit_service.reset(ident_key)  # succès : on oublie les échecs de cet identifiant
 

@@ -1,6 +1,6 @@
 # AUTH-E — Appareils & reconnaissance (AUTH-27 … 36)
 
-**Statut :** à faire — lab [00-jour-5-auth-e.md](../00-jour-5-auth-e.md).  
+**Statut :** clos (2026-09-09) — lab [00-jour-5-auth-e.md](../00-jour-5-auth-e.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** (upsert `devices`) + **AUTH-C** (MFA ; `trusted` **ne skip pas** l’OTP) — jours 1–4 **clos**.  
 **Attributs / index :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md).  
@@ -461,16 +461,16 @@ class DevicePatchSerializer(serializers.Serializer):
 
 ## 10. Acceptation
 
-- [ ] Enregistrement = AUTH-11 enrichi ; liste / rename / push / confiance
-- [ ] Nouvel appareil (login MDP/LDAP) : alerte + `suspicious`, **sans** skip ni MFA extra
-- [ ] Lien QR 2ᵉ écran : [AUTH-J](AUTH-J-lier-appareil-qr.md) (TOTP sur le téléphone)
-- [ ] `trusted` n’ouvre **pas** de session sans TOTP
-- [ ] Jailbreak mobile bloquant configurable
-- [ ] Compromis / révocation tuent session + refresh + push
-- [ ] `/me/devices*` = `iam.device.{read,update,revoke,compromise}` ; admin = `iam.device.manage` (`HasPermission`, AUTH-R)
-- [ ] `push_token` jamais en GET
-- [ ] Pas de DELETE `devices`
-- [ ] SIRH non modifié
+- [x] Enregistrement = AUTH-11 enrichi ; liste / rename / push / confiance
+- [x] Nouvel appareil (login MDP/LDAP) : alerte + `suspicious`, **sans** skip ni MFA extra
+- [ ] Lien QR 2ᵉ écran : [AUTH-J](AUTH-J-lier-appareil-qr.md) (TOTP sur le téléphone) — lab [00-jour-6-auth-j.md](../00-jour-6-auth-j.md)
+- [x] `trusted` n’ouvre **pas** de session sans TOTP
+- [x] Jailbreak mobile bloquant configurable
+- [x] Compromis / révocation tuent session + refresh + push
+- [x] `/me/devices*` = JWT + owner ; admin = JWT + `IsAdminRole` (palier D05) ; AUTH-R → `iam.device.*`
+- [x] `push_token` jamais en GET
+- [x] Pas de DELETE `devices`
+- [x] SIRH non modifié
 
 ---
 

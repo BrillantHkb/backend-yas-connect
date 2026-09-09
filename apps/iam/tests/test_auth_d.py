@@ -7,9 +7,9 @@ from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from apps.annuaire.models import Segment, SegmentType
+from apps.iam.helpers.mfa import login_until_jwt, post_mfa_verify
 from apps.iam.models import AuditLog, Device, Region, Role, Session, User
 from apps.iam.services.ldap_service import AdIdentity, DirectoryUnavailable, LdapBindFailed
-from apps.iam.tests.mfa_helpers import login_until_jwt, post_mfa_verify
 
 DEVICE = {"device_uuid": "test-web-1", "platform": "WEB"}
 UA = "Mozilla/5.0 pytest"

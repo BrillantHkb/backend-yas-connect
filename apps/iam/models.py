@@ -418,6 +418,8 @@ class LoginHistory(models.Model):
         DIRECTORY_UNAVAILABLE = "DIRECTORY_UNAVAILABLE"  # AUTH-13 AD timeout / down
         MFA_INVALID = "MFA_INVALID"  # AUTH-C TOTP / backup faux
         MFA_CHALLENGE_EXPIRED = "MFA_CHALLENGE_EXPIRED"  # AUTH-C mfa_token TTL
+        DEVICE_COMPROMISED = "DEVICE_COMPROMISED"  # AUTH-E : install bannie
+        DEVICE_JAILBROKEN = "DEVICE_JAILBROKEN"  # AUTH-E : mobile root + politique
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
@@ -453,6 +455,7 @@ class LoginHistory(models.Model):
         max_length=16, choices=LoginMethod.choices, default=LoginMethod.PASSWORD
     )
     success = models.BooleanField(db_index=True)
+    suspicious = models.BooleanField(default=False)  # AUTH-29 1er UUID ; AUTH-I pays plus tard
     failure_reason = models.CharField(
         max_length=64,
         choices=FailureReason.choices,

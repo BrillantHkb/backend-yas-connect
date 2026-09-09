@@ -55,11 +55,27 @@ class UserAdmin(admin.ModelAdmin):
 
 @admin.register(Device)
 class DeviceAdmin(admin.ModelAdmin):
-    list_display = ("device_uuid", "user", "platform", "trusted", "last_seen")
-    list_filter = ("platform", "trusted", "compromised")
+    """push_token masqué ; compromised via API admin, pas d’édition claire ici."""
+
+    list_display = (
+        "device_uuid",
+        "user",
+        "platform",
+        "trusted",
+        "compromised",
+        "jailbreak",
+        "last_seen",
+    )
+    list_filter = ("platform", "trusted", "compromised", "jailbreak")
     search_fields = ("device_uuid", "device_name", "user__email")
-    readonly_fields = ("id", "created_at", "updated_at")
+    readonly_fields = ("id", "push_token_display", "compromised", "created_at", "updated_at")
+    exclude = ("push_token",)
     raw_id_fields = ("user",)
+
+    def push_token_display(self, obj):
+        return "********" if obj.push_token else ""
+
+    push_token_display.short_description = "Push token"
 
 
 @admin.register(Session)

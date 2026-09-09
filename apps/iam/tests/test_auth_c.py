@@ -8,10 +8,10 @@ from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from apps.annuaire.models import Segment, SegmentType
+from apps.iam.helpers.mfa import login_until_jwt, post_mfa_verify, totp_now
 from apps.iam.models import AuditLog, Device, LoginHistory, OtpSecret, Region, Role, Session, User
 from apps.iam.services.ldap_service import AdIdentity
 from apps.iam.services.mfa_service import decrypt_totp_secret, hash_backup_code
-from apps.iam.tests.mfa_helpers import login_until_jwt, post_mfa_verify, totp_now
 
 DEVICE = {"device_uuid": "test-web-1", "platform": "WEB"}
 UA = "Mozilla/5.0 pytest"

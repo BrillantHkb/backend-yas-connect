@@ -1,9 +1,9 @@
 # Jour 5 — AUTH-E (appareils)
 
-**Statut :** à faire.  
+**Statut :** clos (2026-09-09).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jours 0–4 **clos** ([jour 1](00-jour-1-auth-a.md), [jour 2](00-jour-2-admin-swagger.md), [jour 3](00-jour-3-auth-b.md), [jour 4](00-jour-4-auth-c.md)).  
-`complete_login` upsert déjà un `devices` (AUTH-11) après MFA. Il n’y a **pas** encore de liste, rename, push, trusted, jailbreak bloquant, révocation, alerte nouvel appareil.
+`complete_login` upsert un `devices` après MFA. Liste, rename, push, trusted, jailbreak bloquant, révocation et alerte nouvel appareil sont **livrés**.
 
 **MVP** ([MVP-fonctionnalites-roles.md](MVP-fonctionnalites-roles.md) §2 — *Mon profil et mes appareils*) :
 
@@ -11,11 +11,11 @@
 | Fonction MVP                         | Ticket     | Statut              |
 | ------------------------------------ | ---------- | ------------------- |
 | Scanner / valider Google Authenticator | AUTH-C   | **fait** (jour 4)   |
-| **Liste de mes téléphones et ordis** | **AUTH-E** | **ce jour**         |
-| **Nommer un appareil**               | **AUTH-E** | **ce jour**         |
-| **Déconnecter un appareil**          | **AUTH-E** | **ce jour** (revoke) |
-| **Alerte « nouvel appareil »**       | **AUTH-E** | **ce jour** (audit + stub) |
-| Relier un ordi par QR                | AUTH-J     | jour suivant        |
+| **Liste de mes téléphones et ordis** | **AUTH-E** | **fait** (ce jour)  |
+| **Nommer un appareil**               | **AUTH-E** | **fait** (ce jour)  |
+| **Déconnecter un appareil**          | **AUTH-E** | **fait** (revoke)   |
+| **Alerte « nouvel appareil »**       | **AUTH-E** | **fait** (audit + stub) |
+| Relier un ordi par QR                | AUTH-J     | [jour 6](00-jour-6-auth-j.md) |
 
 
 **À quoi ça sert (MVP) :** voir où le compte est ouvert, nommer « iPhone perso », couper un téléphone perdu, être prévenu si un **nouvel** UUID apparaît. `trusted` = étiquette UI (« c’est le mien »), **pas** un skip MFA.
@@ -255,18 +255,18 @@ Second client `device_uuid=dev-2` → 2 lignes ; history du 2e verify `suspiciou
 
 ## Checklist jour 5
 
-- [ ] Migration `suspicious` + `DEVICE_COMPROMISED` / `DEVICE_JAILBROKEN` (pas `down -v`)
-- [ ] `upsert_device` → `(device, created)` ; ne pas écraser trusted / compromised / push vide
-- [ ] `complete_login` : 403 compromis / jailbreak ; `DEVICE_NEW` si created
-- [ ] `GET /me/devices` sans `push_token` ; `is_current`
-- [ ] PATCH current / name / trusted ; revoke ; compromise owner
-- [ ] Admin compromise + clear (`IsAdminRole`)
-- [ ] `trusted` n’exempte pas le MFA
-- [ ] Stub notif (log + audit), pas NOTIF-A
-- [ ] `test_auth_e.py` + régression A/C/jour 2 verts
-- [ ] `/api/docs/` documente `/me/devices*`
-- [ ] `/admin/` cookie et `/health` intacts
-- [ ] SIRH non modifié
+- [x] Migration `suspicious` + `DEVICE_COMPROMISED` / `DEVICE_JAILBROKEN` (pas `down -v`)
+- [x] `upsert_device` → `(device, created)` ; ne pas écraser trusted / compromised / push vide
+- [x] `complete_login` : 403 compromis / jailbreak ; `DEVICE_NEW` si created
+- [x] `GET /me/devices` sans `push_token` ; `is_current`
+- [x] PATCH current / name / trusted ; revoke ; compromise owner
+- [x] Admin compromise + clear (`IsAdminRole`)
+- [x] `trusted` n’exempte pas le MFA
+- [x] Stub notif (log + audit), pas NOTIF-A
+- [x] `test_auth_e.py` + régression A/C/jour 2 verts
+- [x] `/api/docs/` documente `/me/devices*`
+- [x] `/admin/` cookie et `/health` intacts
+- [x] SIRH non modifié
 
 ---
 
@@ -289,4 +289,5 @@ Second client `device_uuid=dev-2` → 2 lignes ; history du 2e verify `suspiciou
 
 ## Après le jour 5
 
-Jour suivant (MVP / A→Z §4.1 **1e2**) : **AUTH-J** — lier un 2ᵉ écran (`POST /auth/device-link/start`, poll, `POST /me/devices/link` + TOTP déjà enrollé). Autre QR que l’enroll AUTH-C.
+Jour 6 : [00-jour-6-auth-j.md](00-jour-6-auth-j.md) — **AUTH-J** (QR 2ᵉ écran `yasconnect://…` + TOTP déjà enrollé) **clos**.  
+Jour 7 : [00-jour-7-auth-f.md](00-jour-7-auth-f.md) — **AUTH-F** (CGU + wizard).

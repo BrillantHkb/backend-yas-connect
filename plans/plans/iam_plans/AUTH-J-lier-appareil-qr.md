@@ -1,7 +1,8 @@
 # AUTH-J — Lier un 2ᵉ appareil par QR (AUTH-67 … 69)
 
+**Statut :** clos (2026-09-09) — lab [00-jour-6-auth-j.md](../00-jour-6-auth-j.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
-**Préalable :** Phase 0 + **AUTH-A** (`complete_login`, `DeviceSpec`) + **AUTH-C** (`_verify_totp`) + **AUTH-E** (upsert / AUTH-29).  
+**Préalable :** Phase 0 + **AUTH-A** (`complete_login`, `DeviceSpec`) + **AUTH-C** (`_verify_totp`) + **AUTH-E** (upsert / AUTH-29) — jours 1–5 **clos**.  
 **Attributs / index :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md).  
 **Models :** [code/iam_models.py](../code/iam_models.py) (`LoginMethod.DEVICE_LINK`). Pas de table SQL : challenge = cache (Redis / LocMem), comme `mfa_token`.
 
@@ -39,7 +40,7 @@ Ce n’est **pas** le QR `otpauth://` d’enroll AUTH-C.
 | Quel TOTP | Celui du **compte déjà enrollé** (AUTH-C). Pas un nouvel enroll, pas d’`otpauth_uri`. |
 | Codes de secours | **Interdits** ici. L’user a son téléphone + Authenticator. Perte de téléphone = login MDP + backup (AUTH-C-22), pas ce flux. |
 | Tokens | Remis **uniquement** au waiter (GET status). Le téléphone reçoit `{ "linked": true, "device_id" }` — **pas** les JWT de l’ordi. |
-| TTL | **90 s** (`security.device_link_ttl_seconds`). Une fois consommé ou expiré : 410. |
+| TTL | **120 s** (`security.device_link_ttl_seconds`). Une fois consommé ou expiré : 410. |
 | `trusted` | **Non lu.** N’épargne pas le TOTP (AUTH-C-26 inchangé). |
 | AUTH-29 | **Oui** si 1re vue `(user, device_uuid)` : `suspicious` + notif `DEVICE_NEW`. |
 | CRYPTO-A | Après tokens, le nouvel appareil **PUT** son identité Signal (`session.device_id`). Sans ça : 409 `CRYPTO_KEYS_MISSING` en 1-to-1. |
@@ -82,7 +83,7 @@ Préfixe `/api/v1`.
   "data": {
     "challenge_id": "<uuid>",
     "waiter_secret": "<opaque, une fois>",
-    "expires_in": 90,
+    "expires_in": 120,
     "qr_payload": "yasconnect://device-link/v1?cid=<uuid>"
   }
 }
@@ -196,7 +197,7 @@ Même famille que `mfa:challenge:` (AUTH-C). Redis down → LocMem (dev) ; en pr
 
 ```python
 LINK_PREFIX = "device-link:"
-TTL = 90  # settings / system_settings security.device_link_ttl_seconds
+TTL = 120  # settings / system_settings security.device_link_ttl_seconds
 
 
 def start_device_link(*, device_spec: dict, ip: str) -> dict:
@@ -301,7 +302,7 @@ Throttle OTP : réutiliser le compteur AUTH-C par `user_id` (fenêtre courte). 6
 
 | category | setting_key | défaut | Rôle |
 |----------|-------------|--------|------|
-| `security` | `device_link_ttl_seconds` | `90` | TTL challenge |
+| `security` | `device_link_ttl_seconds` | `120` | TTL challenge |
 
 Pas de nouvelle permission : confirm = `iam.device.update` (AUTH-R). Start / poll = `AllowAny`.
 
@@ -321,7 +322,7 @@ Pas de nouvelle permission : confirm = `iam.device.update` (AUTH-R). Start / pol
 | 69 | confirm `backup_code` | 400 `MFA_BACKUP_NOT_ALLOWED` |
 | 69 | TOTP faux | 401 AUTH-05 ; waiter toujours `PENDING` |
 | 69 | TOTP OK | téléphone `linked` ; 1re poll waiter = tokens ; 2e poll = 410 |
-| 69 | TTL 91 s | 410 des deux côtés |
+| 69 | TTL 121 s | 410 des deux côtés |
 | 69 | même `device_uuid` que le téléphone | 400 `DEVICE_LINK_SELF` |
 | 69 | uuid déjà chez un autre user | 409 |
 | 29 | 1er uuid via QR | `suspicious=true` + `DEVICE_NEW` |
@@ -335,13 +336,13 @@ Pas de nouvelle permission : confirm = `iam.device.update` (AUTH-R). Start / pol
 
 ## 6. Acceptation AUTH-J
 
-- [ ] Nouvel écran : QR affiché ; **aucun** JWT tant que AUTH-69 n’a pas validé un TOTP
-- [ ] Après scan, l’UI téléphone **demande** Google Authenticator (pas un skip)
-- [ ] Les deux QR (Authenticator vs 2ᵉ appareil) ne se confondent pas
-- [ ] Tokens uniquement au waiter, une fois
-- [ ] AUTH-29 / jailbreak / compromis : même pipeline que `complete_login`
-- [ ] CRYPTO-A : le nouvel `device_id` publie ses clés après le lien
-- [ ] SIRH non modifié
+- [x] Nouvel écran : QR affiché ; **aucun** JWT tant que AUTH-69 n’a pas validé un TOTP
+- [x] Après scan, l’UI téléphone **demande** Google Authenticator (pas un skip)
+- [x] Les deux QR (Authenticator vs 2ᵉ appareil) ne se confondent pas
+- [x] Tokens uniquement au waiter, une fois
+- [x] AUTH-29 / jailbreak / compromis : même pipeline que `complete_login`
+- [ ] CRYPTO-A : le nouvel `device_id` publie ses clés après le lien (hors AUTH-J)
+- [x] SIRH non modifié
 
 ---
 

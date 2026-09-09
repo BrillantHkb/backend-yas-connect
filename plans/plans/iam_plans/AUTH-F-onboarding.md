@@ -1,7 +1,8 @@
 # AUTH-F — Première connexion & conformité (AUTH-37 … 42)
 
+**Statut :** à faire — lab [00-jour-7-auth-f.md](../00-jour-7-auth-f.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
-**Préalable :** Phase 0 + **AUTH-A** + **AUTH-C** (JWT seulement après TOTP).  
+**Préalable :** Phase 0 + **AUTH-A** + **AUTH-C** (JWT seulement après TOTP) + jours 1–6 **clos**.  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md).  
 **Models :** [code/iam_models.py](../code/iam_models.py).
 

@@ -291,5 +291,5 @@ API admin (approve, reset MFA) : JWT **après** verify.
 
 ## Après le jour 4
 
-Jour 5 : [00-jour-5-auth-e.md](00-jour-5-auth-e.md) — **AUTH-E** (liste / rename / push / trusted / jailbreak / révocation).  
-Puis **AUTH-J** (QR 2ᵉ écran `yasconnect://…` + TOTP déjà enrollé).
+Jour 5 : [00-jour-5-auth-e.md](00-jour-5-auth-e.md) — **AUTH-E** (liste / rename / push / trusted / jailbreak / révocation) **clos**.  
+Jour 6 : [00-jour-6-auth-j.md](00-jour-6-auth-j.md) — **AUTH-J** (QR 2ᵉ écran `yasconnect://…` + TOTP déjà enrollé).

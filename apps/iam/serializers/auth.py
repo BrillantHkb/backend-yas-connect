@@ -1,23 +1,8 @@
-"""Serializers AUTH-A : device obligatoire, email XOR username."""
+"""Serializers AUTH-A / AUTH-C : login, refresh, MFA, user public."""
 
 from rest_framework import serializers
 
-
-class DeviceSpecSerializer(serializers.Serializer):
-    """Corps device (AUTH-11/12). Le client web stocke device_uuid dans localStorage."""
-
-    device_uuid = serializers.CharField(max_length=128)  # ID install, obligatoire
-    device_name = serializers.CharField(
-        max_length=128, required=False, allow_blank=True, default=""
-    )
-    platform = serializers.ChoiceField(choices=["IOS", "ANDROID", "WEB", "DESKTOP", "OTHER"])
-    model = serializers.CharField(max_length=128, required=False, allow_blank=True, default="")
-    os_version = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
-    app_version = serializers.CharField(max_length=32, required=False, allow_blank=True, default="")
-    push_token = serializers.CharField(required=False, allow_blank=True, default="")  # FCM / APNs
-    device_fingerprint = serializers.CharField(
-        max_length=255, required=False, allow_null=True, default=None
-    )
+from apps.iam.serializers.devices import DeviceSpecSerializer
 
 
 class LoginSerializer(serializers.Serializer):
