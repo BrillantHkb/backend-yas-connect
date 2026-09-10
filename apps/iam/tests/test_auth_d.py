@@ -7,6 +7,7 @@ from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from apps.annuaire.models import Segment, SegmentType
+from apps.iam.helpers.compliance import close_gates
 from apps.iam.helpers.mfa import login_until_jwt, post_mfa_verify
 from apps.iam.models import AuditLog, Device, Region, Role, Session, User
 from apps.iam.services.ldap_service import AdIdentity, DirectoryUnavailable, LdapBindFailed
@@ -54,13 +55,15 @@ def segment(db):
 
 @pytest.fixture
 def admin_ok(admin_role):
-    return User.objects.create_user(
-        email="admin@yas.tg",
-        password="Admin123!",
-        username="admin.yas",
-        role=admin_role,
-        first_name="Admin",
-        last_name="YAS",
+    return close_gates(
+        User.objects.create_user(
+            email="admin@yas.tg",
+            password="Admin123!",
+            username="admin.yas",
+            role=admin_role,
+            first_name="Admin",
+            last_name="YAS",
+        )
     )
 
 

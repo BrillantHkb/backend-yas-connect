@@ -125,3 +125,45 @@ def device_link_hit(ip: str | None) -> None:
         cache.incr(key)
     except ValueError:
         cache.set(key, 1, START_WINDOW)
+
+
+def _forgot_ident_key(ident: str) -> str:
+    value = ident.strip().lower()
+    kind = "email" if "@" in value else "username"
+    return f"pwdforgot:attempts:{kind}:{value}"
+
+
+def _forgot_ip_key(ip: str) -> str:
+    return f"pwdforgot:attempts:ip:{ip}"
+
+
+def is_forgot_limited(ident: str) -> bool:
+    """True si trop de forgot sur cet identifiant (AUTH-50)."""
+    current = cache.get(_forgot_ident_key(ident), 0)
+    return current >= settings.YAS_PASSWORD_FORGOT_RATE_LIMIT
+
+
+def is_forgot_limited_ip(ip: str | None) -> bool:
+    """True si trop de forgot sur cette IP. Ignoré si IP inconnue."""
+    if not ip:
+        return False
+    current = cache.get(_forgot_ip_key(ip), 0)
+    return current >= settings.YAS_PASSWORD_FORGOT_RATE_LIMIT_IP
+
+
+def forgot_hit(ident: str, ip: str | None) -> None:
+    """Incrémente ident + IP (fenêtre YAS_PASSWORD_FORGOT_WINDOW_SECONDS)."""
+    window = settings.YAS_PASSWORD_FORGOT_WINDOW_SECONDS
+    ident_cache = _forgot_ident_key(ident)
+    cache.add(ident_cache, 0, window)
+    try:
+        cache.incr(ident_cache)
+    except ValueError:
+        cache.set(ident_cache, 1, window)
+    if ip:
+        ip_cache = _forgot_ip_key(ip)
+        cache.add(ip_cache, 0, window)
+        try:
+            cache.incr(ip_cache)
+        except ValueError:
+            cache.set(ip_cache, 1, window)

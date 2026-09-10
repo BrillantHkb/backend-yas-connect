@@ -10,6 +10,37 @@ from apps.iam.models import Session
 from apps.iam.services.token_service import decode_access_token
 
 
+def session_user_from_bearer(request):
+    """User IAM si Bearer access valide + session active. Sinon None (pas d’exception).
+
+    DRF pose request.user dans la vue, pas dans Django MIDDLEWARE : le middleware
+    CGU réutilise ce décodage. Token absent / invalide / expiré → None (la vue 401).
+    """
+    header = request.META.get("HTTP_AUTHORIZATION") or ""
+    if not header.startswith("Bearer "):
+        return None
+    raw = header[len("Bearer ") :].strip()
+    if not raw:
+        return None
+    try:
+        payload = decode_access_token(raw)  # signature + exp + iss
+    except jwt.InvalidTokenError:
+        return None
+    if payload.get("typ") != "access":
+        return None
+    try:
+        jti = UUID(str(payload["jti"]))
+    except (KeyError, ValueError):
+        return None
+    try:
+        session = Session.objects.select_related("user").get(access_jti=jti)
+    except Session.DoesNotExist:
+        return None
+    if not session.is_active:
+        return None
+    return session.user
+
+
 class YasJWTAuthentication(BaseAuthentication):
     """Branche DRF : Authorization: Bearer <jwt>. Login / refresh / health restent AllowAny."""
 

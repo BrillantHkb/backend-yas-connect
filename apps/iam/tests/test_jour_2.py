@@ -4,6 +4,7 @@ import pytest
 from django.test import Client
 from rest_framework.test import APIClient
 
+from apps.iam.helpers.compliance import close_gates
 from apps.iam.models import Role, User
 
 ADMIN_PASSWORD = "Admin123!"
@@ -31,24 +32,28 @@ def roles(db):
 @pytest.fixture
 def user_ok(roles):
     user_role, _ = roles
-    return User.objects.create_user(
-        email="jean.dupont@yas.tg",
-        password=USER_PASSWORD,
-        username="jean.dupont",
-        role=user_role,
+    return close_gates(
+        User.objects.create_user(
+            email="jean.dupont@yas.tg",
+            password=USER_PASSWORD,
+            username="jean.dupont",
+            role=user_role,
+        )
     )
 
 
 @pytest.fixture
 def admin_ok(roles):
     _, admin_role = roles
-    return User.objects.create_user(
-        email="admin@yas.tg",
-        password=ADMIN_PASSWORD,
-        username="admin.yas",
-        role=admin_role,
-        first_name="Admin",
-        last_name="YAS",
+    return close_gates(
+        User.objects.create_user(
+            email="admin@yas.tg",
+            password=ADMIN_PASSWORD,
+            username="admin.yas",
+            role=admin_role,
+            first_name="Admin",
+            last_name="YAS",
+        )
     )
 
 

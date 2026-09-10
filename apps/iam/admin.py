@@ -45,10 +45,20 @@ class UserAdmin(admin.ModelAdmin):
         "pending_approval",
         "is_locked",
         "last_login",
+        "tos_version",
     )
     list_filter = ("is_active", "pending_approval", "is_locked", "role")
     search_fields = ("email", "username", "first_name", "last_name", "matricule")
-    readonly_fields = ("id", "password", "last_login", "first_login", "created_at", "updated_at")
+    readonly_fields = (
+        "id",
+        "password",
+        "last_login",
+        "first_login",
+        "tos_accepted_at",
+        "onboarding_completed_at",
+        "created_at",
+        "updated_at",
+    )
     raw_id_fields = ("role", "region")
     ordering = ("email",)
 

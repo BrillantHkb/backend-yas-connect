@@ -1,6 +1,6 @@
 # AUTH-F — Première connexion & conformité (AUTH-37 … 42)
 
-**Statut :** à faire — lab [00-jour-7-auth-f.md](../00-jour-7-auth-f.md).  
+**Statut :** clos (2026-09-09) — lab [00-jour-7-auth-f.md](../00-jour-7-auth-f.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** + **AUTH-C** (JWT seulement après TOTP) + jours 1–6 **clos**.  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md).  
@@ -349,15 +349,15 @@ def complete_onboarding(*, user) -> None:
 
 ## 5. Acceptation
 
-- [ ] `first_login` timestamp via `complete_login` (AUTH-A **et** AUTH-B)
-- [ ] Wizard = `onboarding_completed_at` (pas un booléen `first_login`)
-- [ ] CGU : `tos_accepted_at` + `tos_version` ; refus = blocage API
-- [ ] Pas de changement MDP forcé (AUTH-39 abandonné)
-- [ ] Wizard langue / tz / notifs ; MFA déjà AUTH-C ; GET préremplit (PROF-22)
-- [ ] Middleware : CGU → onboarding
-- [ ] Seed test sans régression AUTH-A
-- [ ] Chaque vue JWT : `HasPermission` (AUTH-R) ; portes **après** le check perm
-- [ ] SIRH non modifié
+- [x] `first_login` timestamp via `complete_login` (AUTH-A **et** AUTH-B)
+- [x] Wizard = `onboarding_completed_at` (pas un booléen `first_login`)
+- [x] CGU : `tos_accepted_at` + `tos_version` ; refus = blocage API
+- [x] Pas de changement MDP forcé (AUTH-39 abandonné)
+- [x] Wizard langue / tz / notifs ; MFA déjà AUTH-C ; GET préremplit (PROF-22)
+- [x] Middleware : CGU → onboarding
+- [x] Seed test sans régression AUTH-A
+- [ ] Chaque vue JWT : `HasPermission` (AUTH-R) ; portes **après** le check perm — palier JWT `IsAuthenticated` ce jour
+- [x] SIRH non modifié
 
 ---
 

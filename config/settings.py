@@ -19,6 +19,13 @@ env = environ.Env(
     YAS_MFA_BACKUP_COUNT=(int, 10),
     YAS_BLOCK_JAILBREAK=(bool, True),
     YAS_DEVICE_LINK_TTL_SECONDS=(int, 120),
+    YAS_TOS_VERSION=(str, "2026-08-01"),
+    YAS_TOS_URL=(str, "https://connect.yas.tg/legal/cgu/2026-08-01"),
+    YAS_PASSWORD_HISTORY_N=(int, 5),
+    YAS_PASSWORD_RESET_TTL_SECONDS=(int, 600),
+    YAS_PASSWORD_FORGOT_RATE_LIMIT=(int, 3),
+    YAS_PASSWORD_FORGOT_RATE_LIMIT_IP=(int, 10),
+    YAS_PASSWORD_FORGOT_WINDOW_SECONDS=(int, 900),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 if os.environ.get("DATABASE_URL"):
@@ -55,6 +62,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",  # formulaires admin ; API DRF csrf_exempt
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "apps.iam.middlewares.compliance.ComplianceMiddleware",  # CGU puis wizard (JWT Bearer)
     "django.contrib.messages.middleware.MessageMiddleware",
 ]
 
@@ -112,17 +120,21 @@ SPECTACULAR_SETTINGS = {
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/api/v1",
+    "SORT_OPERATIONS": False,  # ordre = urlpatterns (parcours auth → me → admin)
     "TAGS": [
         {"name": "Santé", "description": "Liveness / base"},
         {
             "name": "Auth",
-            "description": "Login AUTH-A / LDAP / inscription / MFA AUTH-C / lien QR AUTH-J",
+            "description": (
+                "Login AUTH-A / LDAP / inscription / MFA AUTH-C / lien QR AUTH-J / MDP AUTH-G"
+            ),
         },
-        {"name": "Admin", "description": "Approbation RH + reset MFA + appareils (rôle ADMIN)"},
+        {"name": "Me", "description": "Profil JWT AUTH-F : gates CGU + wizard première connexion"},
         {
             "name": "Devices",
             "description": "Mes appareils AUTH-E + confirmer un lien QR AUTH-J",
         },
+        {"name": "Admin", "description": "Approbation RH + reset MFA + appareils (rôle ADMIN)"},
         {"name": "Directory", "description": "Dropdowns publics inscription (régions / segments)"},
     ],
     "SECURITY": [{"bearerAuth": []}],
@@ -168,6 +180,15 @@ YAS_MFA_ISSUER = "YAS Connect"
 YAS_BLOCK_JAILBREAK = env("YAS_BLOCK_JAILBREAK")
 # AUTH-J : TTL challenge QR 2ᵉ appareil (cache). Prod multi-workers = Redis.
 YAS_DEVICE_LINK_TTL_SECONDS = env("YAS_DEVICE_LINK_TTL_SECONDS")
+# AUTH-F : version CGU en vigueur (bump → re-accept, wizard non rejoué).
+YAS_TOS_VERSION = env("YAS_TOS_VERSION")
+YAS_TOS_URL = env("YAS_TOS_URL")
+# AUTH-G : anti-réemploi, TTL ticket reset, rate-limit forgot (jamais 429).
+YAS_PASSWORD_HISTORY_N = env("YAS_PASSWORD_HISTORY_N")
+YAS_PASSWORD_RESET_TTL_SECONDS = env("YAS_PASSWORD_RESET_TTL_SECONDS")
+YAS_PASSWORD_FORGOT_RATE_LIMIT = env("YAS_PASSWORD_FORGOT_RATE_LIMIT")
+YAS_PASSWORD_FORGOT_RATE_LIMIT_IP = env("YAS_PASSWORD_FORGOT_RATE_LIMIT_IP")
+YAS_PASSWORD_FORGOT_WINDOW_SECONDS = env("YAS_PASSWORD_FORGOT_WINDOW_SECONDS")
 
 # Vide = skip envoi (lab). Mailhog plus tard ; verify-email ne bloque pas.
 EMAIL_HOST = env("EMAIL_HOST", default="")

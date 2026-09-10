@@ -8,6 +8,7 @@ from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from apps.annuaire.models import Segment, SegmentType
+from apps.iam.helpers.compliance import close_gates
 from apps.iam.helpers.mfa import login_until_jwt, post_mfa_verify, totp_now
 from apps.iam.models import AuditLog, Device, LoginHistory, OtpSecret, Region, Role, Session, User
 from apps.iam.services.ldap_service import AdIdentity
@@ -58,25 +59,29 @@ def segment(db):
 
 @pytest.fixture
 def user_ok(role):
-    return User.objects.create_user(
-        email="jean.dupont@yas.tg",
-        password=PASSWORD,
-        username="jean.dupont",
-        role=role,
-        first_name="Jean",
-        last_name="Dupont",
+    return close_gates(
+        User.objects.create_user(
+            email="jean.dupont@yas.tg",
+            password=PASSWORD,
+            username="jean.dupont",
+            role=role,
+            first_name="Jean",
+            last_name="Dupont",
+        )
     )
 
 
 @pytest.fixture
 def admin_ok(admin_role):
-    return User.objects.create_user(
-        email="admin@yas.tg",
-        password=ADMIN_PASSWORD,
-        username="admin.yas",
-        role=admin_role,
-        first_name="Admin",
-        last_name="YAS",
+    return close_gates(
+        User.objects.create_user(
+            email="admin@yas.tg",
+            password=ADMIN_PASSWORD,
+            username="admin.yas",
+            role=admin_role,
+            first_name="Admin",
+            last_name="YAS",
+        )
     )
 
 

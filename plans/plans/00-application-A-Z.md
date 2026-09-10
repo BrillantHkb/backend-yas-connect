@@ -766,8 +766,10 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 | 1c | `apps.iam` | **AUTH-C** (19–24) | `otp_secrets`. TOTP obligatoire chaque login **et** après `register/ad`. Lab : [00-jour-4-auth-c.md](00-jour-4-auth-c.md) **clos**. |
 | 1e | `apps.iam` | **AUTH-E** (27–36) | `devices` : liste, **push_token**, trusted, jailbreak. Lab : [00-jour-5-auth-e.md](00-jour-5-auth-e.md) **clos**. |
 | 1e2 | `apps.iam` | **AUTH-J** (67–69) | QR 2ᵉ appareil + TOTP Authenticator. Cache Redis, 0 table. Lab : [00-jour-6-auth-j.md](00-jour-6-auth-j.md) **clos**. |
-| 1f | `apps.iam` | **AUTH-F** (37–42) | CGU + wizard. Lab : [00-jour-7-auth-f.md](00-jour-7-auth-f.md). |
-| 1g–1i | `apps.iam` | **AUTH-G…I** | MDP, sessions, lock. |
+| 1f | `apps.iam` | **AUTH-F** (37–42) | CGU + wizard. Lab : [00-jour-7-auth-f.md](00-jour-7-auth-f.md) **clos**. |
+| 1g | `apps.iam` | **AUTH-G** (43–50) | MDP app (change + forgot TOTP). Lab : [00-jour-8-auth-g.md](00-jour-8-auth-g.md) **clos**. |
+| 1h | `apps.iam` | **AUTH-H** (51–60) | Sessions / logout / idle. Lab : [00-jour-9-auth-h.md](00-jour-9-auth-h.md). |
+| 1i | `apps.iam` | **AUTH-I** | Sécurité compte (logins, lock). |
 | 1j | `apps.iam` | **AUTH-R** | Seed USER/ADMIN, `HasPermission`. |
 | 1k | `apps.iam` | **ADMIN-A** | Lifecycle, audit, `region`. |
 | 2 | `apps.iam` + `apps.media` | **PROF-A** | `/me`, avatar (scan SKIPPED lab). |

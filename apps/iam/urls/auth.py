@@ -5,6 +5,11 @@ from django.urls import path
 from apps.iam.views.auth import LdapLoginView, LoginView, RefreshView
 from apps.iam.views.device_link import DeviceLinkStartView, DeviceLinkStatusView
 from apps.iam.views.mfa import BackupRegenView, MfaVerifyView
+from apps.iam.views.password import (
+    PasswordForgotView,
+    PasswordResetVerifyView,
+    PasswordResetView,
+)
 from apps.iam.views.register import (
     CheckAdView,
     RegisterAdView,
@@ -34,4 +39,11 @@ urlpatterns = [
         DeviceLinkStatusView.as_view(),
         name="device-link-status",
     ),
+    path("password/forgot", PasswordForgotView.as_view(), name="password-forgot"),
+    path(
+        "password/reset/verify",
+        PasswordResetVerifyView.as_view(),
+        name="password-reset-verify",  # avant password/reset
+    ),
+    path("password/reset", PasswordResetView.as_view(), name="password-reset"),
 ]

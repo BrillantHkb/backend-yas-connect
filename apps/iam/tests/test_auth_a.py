@@ -4,6 +4,7 @@ from django.conf import settings
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
+from apps.iam.helpers.compliance import close_gates
 from apps.iam.helpers.mfa import login_until_jwt, post_mfa_verify
 from apps.iam.models import Device, LoginHistory, RefreshToken, Role, Session, User
 from apps.iam.services.token_service import hash_refresh_token
@@ -32,13 +33,15 @@ def role(db):
 
 @pytest.fixture
 def user_ok(role):
-    return User.objects.create_user(
-        email="jean.dupont@yas.tg",
-        password=PASSWORD,
-        username="jean.dupont",
-        role=role,
-        first_name="Jean",
-        last_name="Dupont",
+    return close_gates(
+        User.objects.create_user(
+            email="jean.dupont@yas.tg",
+            password=PASSWORD,
+            username="jean.dupont",
+            role=role,
+            first_name="Jean",
+            last_name="Dupont",
+        )
     )
 
 

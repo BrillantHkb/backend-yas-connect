@@ -10,6 +10,12 @@ from apps.iam.serializers.auth import (
     RefreshSerializer,
     UserPublicSerializer,
 )
+from apps.iam.serializers.compliance import (
+    OnboardingEnvelopeSerializer,
+    OnboardingPatchSerializer,
+    TosAcceptSerializer,
+    TosEnvelopeSerializer,
+)
 from apps.iam.serializers.devices import (
     DeviceCurrentPatchSerializer,
     DeviceLinkConfirmSerializer,
@@ -43,11 +49,15 @@ __all__ = [
     "MfaChallengeEnvelopeSerializer",
     "MfaChallengeSerializer",
     "MfaVerifySerializer",
+    "OnboardingEnvelopeSerializer",
+    "OnboardingPatchSerializer",
     "RefreshSerializer",
     "RegisterAdSerializer",
     "RegisterLocalSerializer",
     "RejectUserSerializer",
     "ResendVerificationSerializer",
+    "TosAcceptSerializer",
+    "TosEnvelopeSerializer",
     "UserPublicSerializer",
     "VerifyEmailSerializer",
 ]

@@ -1,5 +1,6 @@
 # AUTH-G — Mot de passe (AUTH-43 … 50)
 
+**Statut :** clos (2026-09-09) — lab [00-jour-8-auth-g.md](../00-jour-8-auth-g.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** + **AUTH-C** (TOTP Google Authenticator) + **AUTH-D** (`enforce_password_policy`).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md).  
@@ -53,7 +54,7 @@
 | Reset | Pose `used_at` ; ticket used / expiré / révoqué → **400** `INVALID_TOKEN` |
 | Nouveau forgot | Révoque les tickets unused du user |
 | Reset ≠ unlock | `is_locked` / disabled / pending : forgot 200 no-op ; verify 400 générique |
-| Logout | AUTH-43 : `logout_others` défaut **false**. AUTH-49 : `logout_all` défaut **true** |
+| Logout | AUTH-43 : `logout_others` défaut **true**. AUTH-49 : `logout_all` défaut **true** |
 | MFA après reset | Prochain **login** = TOTP encore (AUTH-C). Le reset n’est **pas** un login |
 | Portes AUTH-F | `/me/password` bloqué si CGU / wizard KO. Forgot / verify / reset = **public** (pas de RBAC) |
 | RBAC | `POST /me/password` : `HasPermission` `iam.password.change` ([AUTH-R](AUTH-R-roles-permissions.md)) |
@@ -73,7 +74,7 @@
 {
   "old_password": "Secret123!",
   "new_password": "SecretApp456!",
-  "logout_others": false
+  "logout_others": true
 }
 ```
 
@@ -86,7 +87,7 @@
 
 `SAME_PASSWORD` si `new_password` = `old_password`.  
 Mauvais ancien : **400**.  
-`logout_others=true` : sessions **sauf** la courante (`revoke_reason=PASSWORD_CHANGE`).
+`logout_others` défaut **true** : sessions **sauf** la courante (`revoke_reason=PASSWORD_CHANGE`). Passer `false` pour garder les autres appareils.
 
 ### `POST /api/v1/auth/password/forgot` (AUTH-46/50, public)
 
@@ -373,17 +374,16 @@ def verify_reset_mfa(*, ident_email, ident_username, otp=None, backup_code=None,
 
 ## Critères d’acceptation
 
-- [ ] Changement connecté : ancien + nouveau ; jamais le hash en JSON
-- [ ] Politique = `system_settings` ; AUTH-D et AUTH-G partagent `password_policy.py`
-- [ ] Anti-réemploi N hashes + hash courant
-- [ ] Forgot : 200 unique ; **zéro** envoi mail/SMS/appel
-- [ ] Preuve reset = Google Authenticator (TOTP AUTH-C) ou code secours
-- [ ] Ticket opaque after TOTP : hashé, one-shot, TTL
-- [ ] Reset : `logout_all` défaut true ; prochain login encore TOTP
-- [ ] Rate-limit identifiant **et** IP ; forgot jamais 429
-- [ ] Pas de changement MDP AD
-- [ ] `POST /me/password` = `iam.password.change` ; forgot / verify / reset publics (AUTH-R)
-- [ ] Spec seulement
+- [x] Changement connecté : ancien + nouveau ; jamais le hash en JSON
+- [x] Politique = `system_settings` ; AUTH-D et AUTH-G partagent `password_policy.py`
+- [x] Anti-réemploi N hashes + hash courant
+- [x] Forgot : 200 unique ; **zéro** envoi mail/SMS/appel
+- [x] Preuve reset = Google Authenticator (TOTP AUTH-C) ou code secours
+- [x] Ticket opaque after TOTP : hashé, one-shot, TTL
+- [x] Reset : `logout_all` défaut true ; prochain login encore TOTP
+- [x] Rate-limit identifiant **et** IP ; forgot jamais 429
+- [x] Pas de changement MDP AD
+- [ ] `POST /me/password` = `iam.password.change` ; forgot / verify / reset publics (AUTH-R) — palier JWT `IsAuthenticated` ce jour
 
 ---
 

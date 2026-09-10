@@ -29,8 +29,9 @@ class LoginMethod(models.TextChoices):
 
 
 class ResetChannel(models.TextChoices):
-    """Canal du forgot-password (hors AUTH-01)."""
+    """Canal du forgot-password. AUTH-G n’écrit que TOTP (pas EMAIL/SMS/APPEL)."""
 
+    TOTP = "TOTP"  # Google Authenticator (AUTH-47)
     SMS = "SMS"
     EMAIL = "EMAIL"
     APPEL = "APPEL"
@@ -179,6 +180,9 @@ class User(AbstractBaseUser):
     is_locked = models.BooleanField(default=False)  # True → 403 ACCOUNT_LOCKED
     last_login = models.DateTimeField(null=True, blank=True)  # écrit AUTH-01
     first_login = models.DateTimeField(null=True, blank=True)  # 1er succès AUTH-01
+    tos_accepted_at = models.DateTimeField(null=True, blank=True)  # AUTH-40 : quand les CGU
+    tos_version = models.CharField(max_length=32, null=True, blank=True)  # quelle version
+    onboarding_completed_at = models.DateTimeField(null=True, blank=True)  # AUTH-42 wizard fini
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

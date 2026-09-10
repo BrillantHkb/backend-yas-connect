@@ -26,6 +26,6 @@ urlpatterns = [
     ),
     path("api/v1/auth/", include("apps.iam.urls")),  # urls/auth.py via package __init__
     path("api/v1/admin/", include("apps.iam.urls.admin")),  # JWT API, distinct de /admin/
-    path("api/v1/me/", include("apps.iam.urls.me")),  # AUTH-E appareils, JWT
+    path("api/v1/me/", include("apps.iam.urls.me")),  # AUTH-E appareils + AUTH-F CGU/wizard
     path("api/v1/directory/", include("apps.annuaire.urls")),  # publics, pas de Bearer
 ]

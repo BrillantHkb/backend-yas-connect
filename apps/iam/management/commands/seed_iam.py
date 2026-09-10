@@ -1,6 +1,8 @@
 """Seed lab : USER + jean.dupont (AUTH-A) ; ADMIN + admin@yas.tg (jour 2 /admin/)."""
 
+from django.conf import settings
 from django.core.management.base import BaseCommand
+from django.utils import timezone
 
 from apps.iam.models import Region, Role, User
 
@@ -54,11 +56,13 @@ class Command(BaseCommand):
         )
 
     def _ensure_user(self, *, email, username, password, role, first_name, last_name):
-        """Idempotent : ne recrée pas si l’email existe déjà."""
-        if User.objects.filter(email=email).exists():
+        """Idempotent : ne recrée pas si l’email existe déjà. Portes AUTH-F fermées (lab)."""
+        existing = User.objects.filter(email=email).first()
+        if existing is not None:
+            self._close_gates_if_open(existing)
             self.stdout.write(f"User déjà présent : {email}")
             return
-        User.objects.create_user(
+        user = User.objects.create_user(
             email=email,
             password=password,
             username=username,
@@ -67,4 +71,22 @@ class Command(BaseCommand):
             last_name=last_name,
             # ldap_dn reste NULL : un user AD ne se seed pas, uniquement register/ad.
         )
+        self._close_gates_if_open(user)
         self.stdout.write(self.style.SUCCESS(f"User créé : {email}"))
+
+    def _close_gates_if_open(self, user):
+        """Pose CGU + wizard si NULL (lab déjà seedé avant AUTH-F)."""
+        now = timezone.now()
+        fields = []
+        if user.tos_accepted_at is None:
+            user.tos_accepted_at = now
+            fields.append("tos_accepted_at")
+        if not user.tos_version:
+            user.tos_version = settings.YAS_TOS_VERSION
+            fields.append("tos_version")
+        if user.onboarding_completed_at is None:
+            user.onboarding_completed_at = now
+            fields.append("onboarding_completed_at")
+        if fields:
+            user.save(update_fields=[*fields, "updated_at"])
+            self.stdout.write(f"Portes AUTH-F fermées : {user.email}")

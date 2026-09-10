@@ -440,15 +440,20 @@ def complete_login(*, user, ip, user_agent, device_spec, ident_key, login_method
     }
 
 
-def _force_logout_user(*, user, reason: str) -> None:
-    """Vol de refresh (AUTH-10) : tue toutes les sessions actives de l’user."""
+def _force_logout_user(*, user, reason: str, except_session_id=None) -> None:
+    """Tue les sessions actives (+ refresh). AUTH-43 : except_session_id = courante."""
     now = timezone.now()
-    Session.objects.filter(user=user, is_active=True).update(
+    sessions = Session.objects.filter(user=user, is_active=True)
+    tokens = RefreshToken.objects.filter(user=user, revoked_at__isnull=True)
+    if except_session_id is not None:
+        sessions = sessions.exclude(pk=except_session_id)
+        tokens = tokens.exclude(session_id=except_session_id)
+    sessions.update(
         is_active=False,
         revoked_at=now,
         revoke_reason=reason,
     )
-    RefreshToken.objects.filter(user=user, revoked_at__isnull=True).update(
+    tokens.update(
         revoked_at=now,
         revoked_reason=reason,
     )

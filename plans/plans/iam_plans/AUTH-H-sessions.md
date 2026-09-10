@@ -1,5 +1,6 @@
 # AUTH-H — Sessions, refresh, déconnexion (AUTH-51 … 60)
 
+**Statut :** à faire — lab [00-jour-9-auth-h.md](../00-jour-9-auth-h.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** (session + `POST /refresh`) + **AUTH-C** (refresh **sans** OTP).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md).  
@@ -214,13 +215,16 @@ Job `scheduled_jobs` : `session_reaper`, cron `*/5 * * * *`, handler `apps.iam.j
 
 ## 2. Fichiers
 
+Chemins **lab** (voir [00-jour-9-auth-h.md](../00-jour-9-auth-h.md)) — pas de `views_session.py` à la racine IAM :
+
 ```
 apps/iam/services/session_service.py   # revoke_sessions (partagé G/E/H)
-apps/iam/services/token_service.py     # rotate_refresh (delta AUTH-A)
-apps/iam/services/jti_blacklist.py     # Redis AUTH-59
+apps/iam/services/token_service.py     # issue_refresh : cap session.expires_at
+apps/iam/services/jti_blacklist.py     # cache Django AUTH-59
 apps/iam/jobs.py                       # reap_sessions
-apps/iam/views_session.py
-apps/iam/authentication.py             # idle + absolu + blacklist + heartbeat debounce
+apps/iam/views/sessions.py
+apps/iam/serializers/sessions.py
+apps/iam/middlewares/authentication.py # idle + absolu + blacklist + heartbeat debounce
 apps/config/                           # seed job + settings
 ```
 

@@ -151,7 +151,7 @@ Première surface « app ». Toutes les vues métier suivantes s’appuient sur 
 
 | # | Méthode | Chemin | Acteur | Permission | Rôles | Plan | Sert à | Spécificités |
 |---|---------|--------|--------|------------|------|------|--------|--------------|
-| 21 | `POST` | `/api/v1/me/password` | Collaborateur | `iam.password.change` | USER, ADMIN | AUTH-G-43 | Changer le MDP app (ancien + nouveau) | Bloqué si CGU/wizard KO. Option `logout_others`. Pas le MDP AD. |
+| 21 | `POST` | `/api/v1/me/password` | Collaborateur | `iam.password.change` | USER, ADMIN | AUTH-G-43 | Changer le MDP app (ancien + nouveau) | Bloqué si CGU/wizard KO. `logout_others` défaut true. Pas le MDP AD. |
 | 22 | `POST` | `/api/v1/auth/password/forgot` | Public | `AllowAny` | — | AUTH-G-46 | Démarrer un reset MDP app | Toujours 200. Preuve = TOTP, pas mail/SMS. |
 | 23 | `POST` | `/api/v1/auth/password/reset/verify` | Public | `AllowAny` | — | AUTH-G-47/48 | Prouver TOTP / backup → ticket | Ne consomme pas le ticket. Sans MFA → même 400. |
 | 24 | `POST` | `/api/v1/auth/password/reset` | Public | `AllowAny` | — | AUTH-G-49 | Poser le nouveau MDP avec le ticket | Politique + historique. `logout_all` défaut true. Ne déverrouille pas. |

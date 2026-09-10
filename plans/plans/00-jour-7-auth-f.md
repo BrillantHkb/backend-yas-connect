@@ -1,9 +1,9 @@
 # Jour 7 — AUTH-F (CGU + wizard première connexion)
 
-**Statut :** à faire.  
+**Statut :** clos (2026-09-09).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jours 0–6 **clos** ([jour 1](00-jour-1-auth-a.md) … [jour 6](00-jour-6-auth-j.md)).  
-JWT après MFA (jour 4) **déjà** émis. `first_login` **déjà** posé dans `complete_login`. Il n’y a **pas** encore de portes CGU / wizard : un JWT ouvre `/me/devices*` tout de suite.
+JWT après MFA (jour 4) **déjà** émis. `first_login` **déjà** posé dans `complete_login`. Portes CGU / wizard **livrées** : JWT OK, métier 403 tant que CGU puis wizard pas faits.
 
 **MVP** ([MVP-fonctionnalites-roles.md](MVP-fonctionnalites-roles.md) §1 — *Entrer dans l’application*) :
 
@@ -11,18 +11,17 @@ JWT après MFA (jour 4) **déjà** émis. `first_login` **déjà** posé dans `c
 | Fonction MVP                                    | Ticket     | Statut              |
 | ----------------------------------------------- | ---------- | ------------------- |
 | Connexion + MFA + appareils + QR 2ᵉ écran       | A–E, J     | **fait** (jours 1–6) |
-| **Conditions d’utilisation**                    | **AUTH-F** | **ce jour** (CGU)   |
-| **Premier paramétrage** (langue / fuseau / son) | **AUTH-F** | **ce jour** (wizard) |
-| Mot de passe oublié / changer MDP               | AUTH-G     | plus tard           |
-| Déconnexion                                     | AUTH-H     | plus tard           |
+| **Conditions d’utilisation**                    | **AUTH-F** | **fait** (ce jour)  |
+| **Premier paramétrage** (langue / fuseau / son) | **AUTH-F** | **fait** (ce jour)  |
+| Mot de passe oublié / changer MDP               | AUTH-G     | [jour 8](00-jour-8-auth-g.md) |
+| Déconnexion                                     | AUTH-H     | [jour 9](00-jour-9-auth-h.md) |
 
 
 **À quoi ça sert (MVP) :** après le 1er TOTP, l’app **n’ouvre pas** le chat tant que la personne n’a pas accepté les règles YAS et choisi langue / fuseau / sonnerie. Session JWT **oui** ; métier **non**.
 
 **Plan métier (code à coller) :** [AUTH-F-onboarding.md](iam_plans/AUTH-F-onboarding.md) (AUTH-37 … 42). AUTH-39 (MDP forcé) **abandonné**.
 
-**Déjà en base :** `users.first_login`, `users.language` / `timezone`, `user_preferences` (langue, tz, `notification_sound`).  
-**Pas encore en base :** `tos_accepted_at`, `tos_version`, `onboarding_completed_at` (AUTH-F dit « déjà dans iam_models » — **absents** de `apps/iam/models.py` aujourd’hui → **migration additive**).
+**Livré :** `users.tos_accepted_at`, `tos_version`, `onboarding_completed_at` (migration `0003_auth_f_tos_onboarding`). `GET /me` + `gates` ; middleware CGU → wizard ; seed jean/admin portes fermées.
 
 **Objectif du jour :**
 
@@ -218,15 +217,15 @@ Compte **neuf** (register local ou user test sans CGU) : login + MFA → JWT.
 
 ## Checklist jour 7
 
-- [ ] Migration `tos_*` + `onboarding_completed_at` (pas `down -v`)
-- [ ] `.env` `YAS_TOS_VERSION` / `YAS_TOS_URL` ; seed jean + admin portes fermées
-- [ ] `GET /me` + `gates` ; tos accept ; onboarding PATCH + complete
-- [ ] Middleware : exact `/me` ; métier 403 ; refresh OK
-- [ ] `first_login` inchangé dans `complete_login` ; AUTH-39 absent
-- [ ] Fixtures A/C/E/J portes fermées ; `test_auth_f.py` + régression verts
-- [ ] `/api/docs/` documente `/me`, tos, onboarding
-- [ ] `/admin/` cookie et `/health` intacts
-- [ ] SIRH non modifié
+- [x] Migration `tos_*` + `onboarding_completed_at` (pas `down -v`)
+- [x] `.env` `YAS_TOS_VERSION` / `YAS_TOS_URL` ; seed jean + admin portes fermées
+- [x] `GET /me` + `gates` ; tos accept ; onboarding PATCH + complete
+- [x] Middleware : exact `/me` ; métier 403 ; refresh OK
+- [x] `first_login` inchangé dans `complete_login` ; AUTH-39 absent
+- [x] Fixtures A/C/E/J portes fermées ; `test_auth_f.py` + régression verts
+- [x] `/api/docs/` documente `/me`, tos, onboarding
+- [x] `/admin/` cookie et `/health` intacts
+- [x] SIRH non modifié
 
 ---
 
@@ -248,4 +247,4 @@ Compte **neuf** (register local ou user test sans CGU) : login + MFA → JWT.
 
 ## Après le jour 7
 
-Jour suivant (A→Z **1g**) : **AUTH-G** — mot de passe (changement + oubli via Authenticator).
+Jour 8 : [00-jour-8-auth-g.md](00-jour-8-auth-g.md) — **AUTH-G** (changement MDP connecté + oubli via Google Authenticator).

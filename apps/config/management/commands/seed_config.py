@@ -8,6 +8,18 @@ from django.utils import timezone
 
 from apps.config.models import ScheduledJob, SystemSetting
 
+# AUTH-G : politique MDP (même défauts que enforce_password_policy AUTH-D).
+SECURITY_SETTINGS = [
+    ("password_min_length", 10, "int"),
+    ("password_max_length", 128, "int"),
+    ("password_require_upper", True, "bool"),
+    ("password_require_lower", True, "bool"),
+    ("password_require_digit", True, "bool"),
+    ("password_require_special", True, "bool"),
+    ("password_history_n", 5, "int"),
+    ("password_reset_ttl_seconds", 600, "int"),
+]
+
 LDAP_SETTINGS = [
     ("uri", "ldap://10.228.15.100:389", "string", False),  # STARTTLS obligatoire (pas LDAP clair)
     ("bind_dn", "CN=App Mission,OU=COMPTES SERVICE,DC=TOGOCOM,DC=INT", "string", False),
@@ -21,6 +33,19 @@ class Command(BaseCommand):
     help = "Clés LDAP (system_settings) + job ldap_sync_users. Pas de secret dans .env."
 
     def handle(self, *args, **options):
+        for key, value, value_type in SECURITY_SETTINGS:
+            _, created = SystemSetting.objects.update_or_create(
+                category="security",
+                setting_key=key,
+                defaults={
+                    "setting_value": value,
+                    "value_type": value_type,
+                    "is_sensitive": False,
+                    "editable": True,
+                },
+            )
+            action = "créé" if created else "à jour"
+            self.stdout.write(f"security.{key} {action}")
         for key, value, value_type, sensitive in LDAP_SETTINGS:
             if key == "bind_password":
                 # Secret : créé une fois (placeholder), jamais écrasé par un re-seed.

@@ -59,6 +59,21 @@ def hash_mfa_token(raw: str) -> str:
     ).hexdigest()
 
 
+def mfa_ready(user: User) -> bool:
+    """True seulement si enroll fini (enabled + verified_at). Seed = 0 ligne."""
+    return _mfa_ready(user)
+
+
+def verify_totp(user: User, otp: str) -> bool:
+    """Preuve Authenticator (AUTH-C / AUTH-G)."""
+    return _verify_totp(user, otp)
+
+
+def consume_backup(user: User, raw: str) -> bool:
+    """Consomme un code secours (AUTH-22 / AUTH-G)."""
+    return _consume_backup(user, raw)
+
+
 def _mfa_ready(user: User) -> bool:
     """True seulement si enroll fini (enabled + verified_at). Seed = 0 ligne."""
     try:

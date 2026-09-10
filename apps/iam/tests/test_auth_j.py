@@ -4,6 +4,7 @@ import pytest
 from django.core.cache import cache
 from rest_framework.test import APIClient
 
+from apps.iam.helpers.compliance import close_gates
 from apps.iam.helpers.mfa import login_until_jwt, totp_now
 from apps.iam.models import AuditLog, Device, LoginHistory, LoginMethod, Role, Session, User
 
@@ -29,23 +30,27 @@ def role(db):
 
 @pytest.fixture
 def user_ok(role):
-    return User.objects.create_user(
-        email="jean.dupont@yas.tg",
-        password=PASSWORD,
-        username="jean.dupont",
-        role=role,
-        first_name="Jean",
-        last_name="Dupont",
+    return close_gates(
+        User.objects.create_user(
+            email="jean.dupont@yas.tg",
+            password=PASSWORD,
+            username="jean.dupont",
+            role=role,
+            first_name="Jean",
+            last_name="Dupont",
+        )
     )
 
 
 @pytest.fixture
 def other_user(role):
-    return User.objects.create_user(
-        email="marie@yas.tg",
-        password=PASSWORD,
-        username="marie.koevi",
-        role=role,
+    return close_gates(
+        User.objects.create_user(
+            email="marie@yas.tg",
+            password=PASSWORD,
+            username="marie.koevi",
+            role=role,
+        )
     )
 
 
