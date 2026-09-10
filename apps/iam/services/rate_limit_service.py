@@ -167,3 +167,38 @@ def forgot_hit(ident: str, ip: str | None) -> None:
             cache.incr(ip_cache)
         except ValueError:
             cache.set(ip_cache, 1, window)
+
+
+def _email_resend_user_key(user_id) -> str:
+    return f"emailresend:attempts:user:{user_id}"
+
+
+def _email_resend_ip_key(ip: str) -> str:
+    return f"emailresend:attempts:ip:{ip}"
+
+
+def is_email_resend_limited(user_id, ip: str | None) -> bool:
+    """True si trop de POST /me/email/resend (AUTH-66)."""
+    if cache.get(_email_resend_user_key(user_id), 0) >= settings.YAS_EMAIL_RESEND_RATE_LIMIT:
+        return True
+    if not ip:
+        return False
+    return cache.get(_email_resend_ip_key(ip), 0) >= settings.YAS_EMAIL_RESEND_RATE_LIMIT
+
+
+def email_resend_hit(user_id, ip: str | None) -> None:
+    """Incrémente user + IP (fenêtre YAS_EMAIL_RESEND_WINDOW_SECONDS)."""
+    window = settings.YAS_EMAIL_RESEND_WINDOW_SECONDS
+    user_cache = _email_resend_user_key(user_id)
+    cache.add(user_cache, 0, window)
+    try:
+        cache.incr(user_cache)
+    except ValueError:
+        cache.set(user_cache, 1, window)
+    if ip:
+        ip_cache = _email_resend_ip_key(ip)
+        cache.add(ip_cache, 0, window)
+        try:
+            cache.incr(ip_cache)
+        except ValueError:
+            cache.set(ip_cache, 1, window)

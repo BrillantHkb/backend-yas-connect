@@ -1,9 +1,10 @@
-"""AUTH-16 : coupe / rétablit is_active selon l’état logon AD. Users sans ldap_dn intouchés."""
+"""AUTH-16 LDAP + AUTH-H session_reaper + AUTH-I account_unlock_reaper."""
 
 import uuid
 
 from apps.iam.models import AuditLog, User
 from apps.iam.services.ldap_service import iter_ad_logon_state
+from apps.iam.services.session_service import reap_sessions as _reap_sessions
 
 
 def sync_ldap_accounts() -> None:
@@ -23,6 +24,18 @@ def sync_ldap_accounts() -> None:
             user.is_active = True
             user.save(update_fields=["is_active", "updated_at"])
             _audit(user, "USER_LDAP_ENABLE", old=False, new=True, reason="USABLE")
+
+
+def reap_sessions() -> int:
+    """AUTH-H : INACTIVITY / EXPIRED. Handler scheduled_jobs session_reaper."""
+    return _reap_sessions()
+
+
+def unlock_expired_locks() -> int:
+    """AUTH-I : is_locked et locked_at + TTL ≤ now. Handler account_unlock_reaper."""
+    from apps.iam.services.lock_service import unlock_expired
+
+    return unlock_expired()
 
 
 def _audit(user, action: str, *, old: bool, new: bool, reason: str) -> None:

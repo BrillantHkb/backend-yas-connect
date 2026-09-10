@@ -1,5 +1,6 @@
 # AUTH-R — Rôles & permissions (AUTH-R01 … R10)
 
+**Statut :** à faire — lab [00-jour-11-auth-r.md](../00-jour-11-auth-r.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** (`users.role_id` unique, pas de `user_roles`) + tickets déjà décrits (C/D/E/F/G/H/I, PROF-A).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md).  
@@ -511,11 +512,15 @@ sequenceDiagram
 
 ## 2. Fichiers
 
+Chemins **lab** (arbo actuelle `views/` / `middlewares/` / `serializers/`) — pas les stubs plats ci-dessous.
+
 ```
-apps/iam/permissions.py          # HasPermission, user_has_permission
+apps/iam/middlewares/permissions.py   # HasPermission (+ IsAdminRole inutilisé sur l’API)
 apps/iam/services/rbac_service.py
-apps/iam/views_admin_rbac.py
-apps/iam/management/commands/seed_iam.py   # étendu
+apps/iam/views/admin_rbac.py
+apps/iam/serializers/rbac.py
+apps/iam/urls/admin.py                # étendre
+apps/iam/management/commands/seed_iam.py
 ```
 
 Invalider cache `rbac:role:{id}` après R08 / delete permission.
@@ -573,14 +578,16 @@ Invalider cache `rbac:role:{id}` après R08 / delete permission.
 
 ## Critères d’acceptation
 
+**Lab [00-jour-11-auth-r.md](../00-jour-11-auth-r.md) :** vues JWT **existantes** + R06–R09. PROF / PRES / ADMIN-A métier / ANNUAIRE write = **seed des codes seulement** (branchement HTTP = jours 12+).
+
 - [ ] Convention codes respectée ; colonne `resource`
 - [ ] Seed USER (self) / ADMIN (tout) + matrice
 - [ ] `HasPermission` sur **toute** vue JWT ; attribut manquant = 403
-- [ ] AUTH-F, G (`/me/password`), H, PROF-A, E `/me`, I `/me`, C regen branchés
+- [ ] AUTH-F, G (`/me/password`), H, E `/me`, I `/me`, C regen branchés (PROF-A : jour 13)
 - [ ] CRUD rôles R06 : list/get/create/patch/delete + gardes system / in-use + audit
 - [ ] R08 : **ajouter** (POST) / **retirer** (DELETE) / remplacer (PUT) ; `ADMIN_PERMS_FROZEN` ; audit
 - [ ] Changement rôle user + garde dernier ADMIN
-- [ ] D05, E admin, I unlock/logins, C24, **ADMIN-A** (user lifecycle / audit / region) branchés
+- [ ] D05, E admin, I unlock/logins, C24 branchés ; **ADMIN-A** lifecycle = jour 12
 - [ ] Seed 58 `is_system` (27 self + 31 admin)
 - [ ] Spec seulement
 

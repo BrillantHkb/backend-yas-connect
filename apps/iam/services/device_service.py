@@ -8,8 +8,9 @@ from django.conf import settings
 from django.utils import timezone
 
 from apps.iam.exceptions import AuthAPIError
-from apps.iam.models import AuditLog, Device, RefreshToken, Session
+from apps.iam.models import AuditLog, Device, Session
 from apps.iam.services.notify_stub import emit_device_new
+from apps.iam.services.session_service import kill_session_rows
 
 MSG_COMPROMISED = "Appareil signalé compromis."
 MSG_JAILBROKEN = "Appareil non autorisé (root/jailbreak)."
@@ -44,12 +45,8 @@ def upsert_device(*, user, spec: dict, ip) -> tuple[Device, bool]:
 
 def revoke_active_sessions_for_device(*, device) -> None:
     """AUTH-12 : avant d’INSÉRER la nouvelle session, tue celles du même appareil."""
-    now = timezone.now()
-    Session.objects.filter(device=device, is_active=True).update(
-        is_active=False,
-        revoked_at=now,
-        revoke_reason="NEW_LOGIN_SAME_DEVICE",
-    )
+    qs = Session.objects.filter(device=device, is_active=True)
+    kill_session_rows(qs, reason="NEW_LOGIN_SAME_DEVICE")
 
 
 def jailbreak_blocked(*, device: Device) -> bool:
@@ -80,16 +77,8 @@ def on_new_device(*, user, device, ip) -> None:
 
 def kill_device(*, device: Device, reason: str) -> None:
     """AUTH-33/34 : sessions + refresh + push vide + untrust. Ligne conservée."""
-    now = timezone.now()
-    Session.objects.filter(device=device, is_active=True).update(
-        is_active=False,
-        revoked_at=now,
-        revoke_reason=reason,
-    )
-    RefreshToken.objects.filter(session__device=device, revoked_at__isnull=True).update(
-        revoked_at=now,
-        revoked_reason=reason,
-    )
+    qs = Session.objects.filter(device=device, is_active=True)
+    kill_session_rows(qs, reason=reason)
     device.push_token = ""
     device.trusted = False
     if reason == "DEVICE_COMPROMISED":

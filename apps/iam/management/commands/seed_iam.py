@@ -5,6 +5,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 
 from apps.iam.models import Region, Role, User
+from apps.iam.services.rbac_service import seed_rbac
 
 TEST_EMAIL = "jean.dupont@yas.tg"
 TEST_USERNAME = "jean.dupont"
@@ -35,6 +36,7 @@ class Command(BaseCommand):
             code="ADMIN",
             defaults={"name": "Administrateur", "level": 100, "is_system": True},
         )
+        seed_rbac()
         for code, name in REGIONS:
             Region.objects.get_or_create(code=code, defaults={"name": name})
             self.stdout.write(f"Région {code}")

@@ -56,7 +56,8 @@ def issue_refresh(*, session: Session, user, ip) -> str:
     raw = secrets.token_urlsafe(48)  # opaque, pas un JWT
     jti = session.refresh_jti  # déjà posé à la création / rotation de session
     now = timezone.now()
-    exp = now + timedelta(seconds=settings.YAS_JWT_REFRESH_TTL_SECONDS)  # 7 jours
+    refresh_exp = now + timedelta(seconds=settings.YAS_JWT_REFRESH_TTL_SECONDS)  # 7 j
+    exp = min(refresh_exp, session.expires_at)  # AUTH-H : capé par le plafond session
     digest = hash_refresh_token(raw)
     RefreshToken.objects.create(
         session=session,

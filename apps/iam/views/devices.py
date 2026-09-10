@@ -1,12 +1,10 @@
-"""AUTH-E : /me/devices* (JWT) + admin compromise (JWT + ADMIN)."""
+"""AUTH-E : /me/devices* (JWT + iam.device.*) + admin (iam.device.manage)."""
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.iam.exceptions import AuthAPIError
-from apps.iam.middlewares.permissions import IsAdminRole
 from apps.iam.serializers.devices import (
     DeviceCurrentPatchSerializer,
     DeviceListEnvelopeSerializer,
@@ -46,7 +44,7 @@ def _current_device(request):
 class DeviceListView(APIView):
     """GET /api/v1/me/devices — soi uniquement."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.device.read"
 
     @extend_schema(
         tags=["Devices"],
@@ -64,7 +62,7 @@ class DeviceListView(APIView):
 class DeviceCurrentPatchView(APIView):
     """PATCH /api/v1/me/devices/current — heartbeat session."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.device.update"
 
     @extend_schema(
         tags=["Devices"],
@@ -91,7 +89,7 @@ class DeviceCurrentPatchView(APIView):
 class DevicePatchView(APIView):
     """PATCH /api/v1/me/devices/{id} — rename / trusted."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.device.update"
 
     @extend_schema(
         tags=["Devices"],
@@ -125,7 +123,7 @@ class DevicePatchView(APIView):
 class DeviceRevokeView(APIView):
     """POST /api/v1/me/devices/{id}/revoke — kill + untrust. Relogin OK."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.device.revoke"
 
     @extend_schema(
         tags=["Devices"],
@@ -142,7 +140,7 @@ class DeviceRevokeView(APIView):
 class DeviceCompromiseView(APIView):
     """POST /api/v1/me/devices/{id}/compromise — pas l’appareil courant."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.device.compromise"
 
     @extend_schema(
         tags=["Devices"],
@@ -164,7 +162,7 @@ class DeviceCompromiseView(APIView):
 class AdminDeviceCompromiseView(APIView):
     """POST /api/v1/admin/devices/{id}/compromise — y compris courant cible."""
 
-    permission_classes = [IsAuthenticated, IsAdminRole]
+    required_permission = "iam.device.manage"
 
     @extend_schema(
         tags=["Admin"],
@@ -181,7 +179,7 @@ class AdminDeviceCompromiseView(APIView):
 class AdminDeviceClearCompromiseView(APIView):
     """POST /api/v1/admin/devices/{id}/clear-compromise — pas de trusted auto."""
 
-    permission_classes = [IsAuthenticated, IsAdminRole]
+    required_permission = "iam.device.manage"
 
     @extend_schema(
         tags=["Admin"],

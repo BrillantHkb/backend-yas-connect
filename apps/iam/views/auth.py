@@ -64,7 +64,10 @@ class RefreshView(APIView):
             400: OpenApiResponse(description="VALIDATION_ERROR"),
             401: OpenApiResponse(description="INVALID_REFRESH ou FORCE_LOGOUT (réutilisation)"),
         },
-        description="Rotation : nouvel access + nouvel refresh. L’ancien hash passe en ROTATED.",
+        description=(
+            "Rotation : nouvel access + nouvel refresh. Idle 7 j / plafond 30 j. "
+            "L’ancien hash passe en ROTATED. Réuse → 401 FORCE_LOGOUT. Pas d’OTP."
+        ),
     )
     def post(self, request):
         serializer = RefreshSerializer(data=request.data)

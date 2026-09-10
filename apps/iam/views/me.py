@@ -1,7 +1,6 @@
 """GET /api/v1/me — profil public + gates AUTH-F. Toujours 200 si JWT OK."""
 
 from drf_spectacular.utils import extend_schema
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -14,7 +13,7 @@ from apps.iam.services.compliance_service import gates_payload
 class MeView(APIView):
     """GET /api/v1/me — pas PROF-A (avatar / display_name plus tard)."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.profile.read"
 
     @extend_schema(
         tags=["Me"],

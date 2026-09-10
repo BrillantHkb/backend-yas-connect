@@ -2,6 +2,6 @@
 
 from apps.iam.middlewares.authentication import YasJWTAuthentication
 from apps.iam.middlewares.compliance import ComplianceMiddleware
-from apps.iam.middlewares.permissions import IsAdminRole
+from apps.iam.middlewares.permissions import HasPermission, IsAdminRole
 
-__all__ = ["ComplianceMiddleware", "IsAdminRole", "YasJWTAuthentication"]
+__all__ = ["ComplianceMiddleware", "HasPermission", "IsAdminRole", "YasJWTAuthentication"]

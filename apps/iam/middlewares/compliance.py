@@ -1,8 +1,10 @@
-"""Portes AUTH-F : JWT OK mais métier 403 TOS puis ONBOARDING. JSON hors handler DRF."""
+"""Portes AUTH-F : après HasPermission (DRF). Middleware Django = pass-through."""
 
-from django.http import JsonResponse
+import re
 
-from apps.iam.middlewares.authentication import session_user_from_bearer
+from rest_framework.permissions import BasePermission
+
+from apps.iam.exceptions import AuthAPIError
 from apps.iam.services.compliance_service import (
     MSG_ONBOARDING_REQUIRED,
     MSG_TOS_REQUIRED,
@@ -10,19 +12,9 @@ from apps.iam.services.compliance_service import (
     tos_ok,
 )
 
-# Préfixes publics : pas de Bearer requis (login, health, docs, QR waiter).
-_PUBLIC_PREFIXES = (
-    "/health",
-    "/api/schema",
-    "/api/docs",
-    "/admin",
-    "/api/v1/auth/login",
-    "/api/v1/auth/refresh",
-    "/api/v1/auth/mfa",
-    "/api/v1/auth/register",
-    "/api/v1/auth/device-link",
-    "/api/v1/auth/password",  # AUTH-G forgot / verify / reset (public)
-    "/api/v1/directory",
+_DEVICE_LOGOUT = re.compile(
+    r"^/api/v1/me/devices/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+    r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}/logout$"
 )
 
 
@@ -34,18 +26,12 @@ def _norm(path: str) -> str:
 
 
 def _is_or_under(path: str, prefix: str) -> bool:
-    """path == prefix ou path sous prefix/ (après normalisation)."""
     p = _norm(path)
     pre = _norm(prefix)
     return p == pre or p.startswith(pre + "/")
 
 
-def _is_public(path: str) -> bool:
-    return any(_is_or_under(path, p) for p in _PUBLIC_PREFIXES)
-
-
 def _is_me_root(path: str) -> bool:
-    """GET /api/v1/me seulement — ne pas ouvrir /me/devices."""
     return _norm(path) == "/api/v1/me"
 
 
@@ -58,33 +44,60 @@ def _is_onboarding(path: str) -> bool:
 
 
 def _is_heartbeat(request) -> bool:
-    """PATCH /me/devices/current autorisé pendant les portes (session vivante)."""
     return request.method == "PATCH" and _norm(request.path) == "/api/v1/me/devices/current"
 
 
-def _deny(code: str, message: str) -> JsonResponse:
-    """Le handler DRF ne s’applique pas ici : JSON {success, code, message}."""
-    return JsonResponse({"success": False, "code": code, "message": message}, status=403)
+def _is_auth_logout(request) -> bool:
+    return request.method == "POST" and _is_or_under(request.path, "/api/v1/auth/logout")
+
+
+def _is_me_sessions(path: str) -> bool:
+    return _is_or_under(path, "/api/v1/me/sessions")
+
+
+def _is_device_logout(request) -> bool:
+    return request.method == "POST" and bool(_DEVICE_LOGOUT.match(_norm(request.path)))
+
+
+def _is_session_allowlist(request) -> bool:
+    return (
+        _is_auth_logout(request)
+        or _is_me_sessions(request.path)
+        or _is_device_logout(request)
+    )
+
+
+class ComplianceGates(BasePermission):
+    """TOS / onboarding après HasPermission. Allowlist inchangée (AUTH-F / H)."""
+
+    def has_permission(self, request, view):
+        if request.method == "OPTIONS":
+            return True
+        user = request.user
+        if user is None or not getattr(user, "is_authenticated", False):
+            return True
+        path = request.path
+        if (
+            _is_me_root(path)
+            or _is_tos(path)
+            or _is_heartbeat(request)
+            or _is_session_allowlist(request)
+        ):
+            return True
+        if not tos_ok(user):
+            raise AuthAPIError(403, "TOS_REQUIRED", MSG_TOS_REQUIRED)
+        if _is_onboarding(path):
+            return True
+        if not onboarding_ok(user):
+            raise AuthAPIError(403, "ONBOARDING_REQUIRED", MSG_ONBOARDING_REQUIRED)
+        return True
 
 
 class ComplianceMiddleware:
-    """Après AuthenticationMiddleware Django. Décode le Bearer comme YasJWTAuthentication."""
+    """AUTH-R : les 403 CGU sont dans ComplianceGates (après HasPermission)."""
 
     def __init__(self, get_response):
         self.get_response = get_response
 
     def __call__(self, request):
-        if _is_public(request.path):
-            return self.get_response(request)  # login / health / docs / waiter QR
-        user = session_user_from_bearer(request)
-        if user is None:
-            return self.get_response(request)  # pas de JWT ou invalide → vue 401
-        if _is_me_root(request.path) or _is_tos(request.path) or _is_heartbeat(request):
-            return self.get_response(request)  # gates + accept CGU + heartbeat
-        if not tos_ok(user):
-            return _deny("TOS_REQUIRED", MSG_TOS_REQUIRED)
-        if _is_onboarding(request.path):
-            return self.get_response(request)  # wizard seulement après CGU
-        if not onboarding_ok(user):
-            return _deny("ONBOARDING_REQUIRED", MSG_ONBOARDING_REQUIRED)
         return self.get_response(request)

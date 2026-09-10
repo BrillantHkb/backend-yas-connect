@@ -10,10 +10,10 @@ from apps.iam.exceptions import AuthAPIError
 def api_exception_handler(exc, context):
     """Handler DRF (settings EXCEPTION_HANDLER). AuthAPIError en premier (401/403 métier)."""
     if isinstance(exc, AuthAPIError):
-        return Response(
-            {"success": False, "code": exc.code, "message": exc.message},
-            status=exc.status_code,
-        )
+        body = {"success": False, "code": exc.code, "message": exc.message}
+        extra = getattr(exc, "extra", None) or {}
+        body.update(extra)
+        return Response(body, status=exc.status_code)
 
     response = drf_exception_handler(exc, context)  # ValidationError, AuthenticationFailed, …
     if response is None:

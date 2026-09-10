@@ -1,7 +1,7 @@
 """Vues AUTH-C : verify public ; regen JWT (session déjà MFA)."""
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -49,7 +49,7 @@ class MfaVerifyView(APIView):
 class BackupRegenView(APIView):
     """POST /api/v1/auth/mfa/backup-codes/regenerate — JWT déjà MFA."""
 
-    permission_classes = [IsAuthenticated]  # AUTH-R : iam.mfa.regenerate plus tard
+    required_permission = "iam.mfa.regenerate"
 
     @extend_schema(
         tags=["Auth"],

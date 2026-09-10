@@ -18,19 +18,41 @@ from apps.iam.views.devices import (
 )
 from apps.iam.views.me import MeView
 from apps.iam.views.password import PasswordChangeView
+from apps.iam.views.security import EmailChangeView, EmailResendView, LoginHistoryView
+from apps.iam.views.sessions import (
+    DeviceSessionsLogoutView,
+    HeartbeatView,
+    SessionListView,
+    SessionLogoutView,
+)
 
 urlpatterns = [
     path("", MeView.as_view(), name="me"),  # GET /api/v1/me/ (et /me via APPEND_SLASH)
     path("password", PasswordChangeView.as_view(), name="me-password"),  # AUTH-G, avant devices
+    path("email", EmailChangeView.as_view(), name="me-email"),  # AUTH-I, avant email/resend
+    path("email/resend", EmailResendView.as_view(), name="me-email-resend"),
+    path("security/logins", LoginHistoryView.as_view(), name="me-security-logins"),
     path("tos", TosView.as_view(), name="me-tos"),
     path("tos/accept", TosAcceptView.as_view(), name="me-tos-accept"),
     path("onboarding", OnboardingView.as_view(), name="me-onboarding"),
     path("onboarding/complete", OnboardingCompleteView.as_view(), name="me-onboarding-complete"),
+    path("sessions", SessionListView.as_view(), name="me-sessions"),
+    path(
+        "sessions/current/heartbeat",
+        HeartbeatView.as_view(),
+        name="me-sessions-heartbeat",  # avant sessions/<uuid>
+    ),
+    path("sessions/<uuid:pk>/logout", SessionLogoutView.as_view(), name="me-session-logout"),
     path("devices", DeviceListView.as_view(), name="me-devices"),
     path("devices/current", DeviceCurrentPatchView.as_view(), name="me-devices-current"),
     path("devices/link", DeviceLinkConfirmView.as_view(), name="me-devices-link"),  # avant <uuid>
     path("devices/<uuid:pk>", DevicePatchView.as_view(), name="me-devices-patch"),
     path("devices/<uuid:pk>/revoke", DeviceRevokeView.as_view(), name="me-devices-revoke"),
+    path(
+        "devices/<uuid:pk>/logout",
+        DeviceSessionsLogoutView.as_view(),
+        name="me-devices-logout",
+    ),
     path(
         "devices/<uuid:pk>/compromise",
         DeviceCompromiseView.as_view(),

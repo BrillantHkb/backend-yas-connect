@@ -1,5 +1,6 @@
 # AUTH-I — Sécurité compte & historique (AUTH-61 … 66)
 
+**Statut :** clos (2026-09-10) — lab [00-jour-10-auth-i.md](../00-jour-10-auth-i.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** (`login_history`, `is_locked`) + **AUTH-D** (verify inscription) + **AUTH-E** (nouveau device).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md).  
@@ -227,12 +228,15 @@ Job : `account_unlock_reaper` cron `*/5 * * * *` — `is_locked` et `locked_at +
 
 ## 2. Fichiers
 
+Chemins **lab** (voir [00-jour-10-auth-i.md](../00-jour-10-auth-i.md)) — pas de `views_security.py` à la racine IAM :
+
 ```
 apps/iam/services/lock_service.py
 apps/iam/services/email_verification_service.py   # D04 + change
-apps/iam/services/geo_service.py                  # stub / MaxMind
-apps/iam/views_security.py
-apps/iam/jobs.py                                  # unlock_reaper + geo_enrich
+apps/iam/services/geo_service.py                  # stub / MaxMind plus tard
+apps/iam/views/security.py
+apps/iam/serializers/security.py
+apps/iam/jobs.py                                  # unlock_expired_locks
 ```
 
 ```python
@@ -337,14 +341,14 @@ Delta AUTH-A / AUTH-B : après MDP/bind OK, `lazy_unlock` **avant** le 403 `ACCO
 
 ## Critères d’acceptation
 
-- [ ] Historique consultable (me + admin) : date, IP, geo nullable, device, succès / motif
-- [ ] Suspect : nouveau device **ou** nouveau pays ; pas de blocage login
-- [ ] Lock auto N=5 échecs MDP/bind connus ; 403 seulement si secret OK
-- [ ] Unlock admin audité ; auto 30 min
-- [ ] Verify email unique service (register + change) ; LDAP sans change email
-- [ ] Resend rate-limité
-- [ ] `/me/security/logins` = `iam.login.read` ; `/me/email*` = `iam.email.change` (AUTH-R)
-- [ ] Spec seulement
+- [x] Historique consultable (me + admin) : date, IP, geo nullable, device, succès / motif
+- [x] Suspect : nouveau device **ou** nouveau pays ; pas de blocage login
+- [x] Lock auto N=5 échecs MDP/bind connus ; 403 seulement si secret OK
+- [x] Unlock admin audité ; auto 30 min
+- [x] Verify email unique service (register + change) ; LDAP sans change email
+- [x] Resend rate-limité
+- [ ] `/me/security/logins` = `iam.login.read` ; `/me/email*` = `iam.email.change` (AUTH-R) — lab [00-jour-11-auth-r.md](../00-jour-11-auth-r.md)
+- [x] SIRH non modifié
 
 ---
 

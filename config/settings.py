@@ -26,6 +26,14 @@ env = environ.Env(
     YAS_PASSWORD_FORGOT_RATE_LIMIT=(int, 3),
     YAS_PASSWORD_FORGOT_RATE_LIMIT_IP=(int, 10),
     YAS_PASSWORD_FORGOT_WINDOW_SECONDS=(int, 900),
+    YAS_SESSION_IDLE_SECONDS=(int, 604800),
+    YAS_SESSION_ABSOLUTE_SECONDS=(int, 2592000),
+    YAS_SESSION_HEARTBEAT_MIN_SECONDS=(int, 60),
+    YAS_LOCK_AFTER_FAILURES=(int, 5),
+    YAS_LOCK_DURATION_SECONDS=(int, 1800),
+    YAS_EMAIL_RESEND_RATE_LIMIT=(int, 3),
+    YAS_EMAIL_RESEND_WINDOW_SECONDS=(int, 900),
+    YAS_RBAC_CACHE_TTL_SECONDS=(int, 60),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 if os.environ.get("DATABASE_URL"):
@@ -106,7 +114,10 @@ PASSWORD_HASHERS = [
 
 REST_FRAMEWORK = {
     "DEFAULT_AUTHENTICATION_CLASSES": ["apps.iam.middlewares.authentication.YasJWTAuthentication"],
-    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "apps.iam.middlewares.permissions.HasPermission",
+        "apps.iam.middlewares.compliance.ComplianceGates",
+    ],
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
@@ -126,10 +137,14 @@ SPECTACULAR_SETTINGS = {
         {
             "name": "Auth",
             "description": (
-                "Login AUTH-A / LDAP / inscription / MFA AUTH-C / lien QR AUTH-J / MDP AUTH-G"
+                "Login AUTH-A / LDAP / inscription / MFA AUTH-C / lien QR AUTH-J / "
+                "MDP AUTH-G / logout AUTH-H"
             ),
         },
-        {"name": "Me", "description": "Profil JWT AUTH-F : gates CGU + wizard première connexion"},
+        {
+            "name": "Me",
+            "description": "Profil JWT AUTH-F : gates CGU + wizard ; sessions AUTH-H",
+        },
         {
             "name": "Devices",
             "description": "Mes appareils AUTH-E + confirmer un lien QR AUTH-J",
@@ -189,6 +204,16 @@ YAS_PASSWORD_RESET_TTL_SECONDS = env("YAS_PASSWORD_RESET_TTL_SECONDS")
 YAS_PASSWORD_FORGOT_RATE_LIMIT = env("YAS_PASSWORD_FORGOT_RATE_LIMIT")
 YAS_PASSWORD_FORGOT_RATE_LIMIT_IP = env("YAS_PASSWORD_FORGOT_RATE_LIMIT_IP")
 YAS_PASSWORD_FORGOT_WINDOW_SECONDS = env("YAS_PASSWORD_FORGOT_WINDOW_SECONDS")
+# AUTH-H : idle 7 j, plafond session 30 j (pas le TTL access 15 min), debounce heartbeat.
+YAS_SESSION_IDLE_SECONDS = env("YAS_SESSION_IDLE_SECONDS")
+YAS_SESSION_ABSOLUTE_SECONDS = env("YAS_SESSION_ABSOLUTE_SECONDS")
+YAS_SESSION_HEARTBEAT_MIN_SECONDS = env("YAS_SESSION_HEARTBEAT_MIN_SECONDS")
+# AUTH-I : lock auto N échecs / TTL ; resend change-email 429 (pas le resend inscription).
+YAS_LOCK_AFTER_FAILURES = env("YAS_LOCK_AFTER_FAILURES")
+YAS_LOCK_DURATION_SECONDS = env("YAS_LOCK_DURATION_SECONDS")
+YAS_EMAIL_RESEND_RATE_LIMIT = env("YAS_EMAIL_RESEND_RATE_LIMIT")
+YAS_EMAIL_RESEND_WINDOW_SECONDS = env("YAS_EMAIL_RESEND_WINDOW_SECONDS")
+YAS_RBAC_CACHE_TTL_SECONDS = env("YAS_RBAC_CACHE_TTL_SECONDS")
 
 # Vide = skip envoi (lab). Mailhog plus tard ; verify-email ne bloque pas.
 EMAIL_HOST = env("EMAIL_HOST", default="")

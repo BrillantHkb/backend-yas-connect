@@ -1,6 +1,6 @@
 # AUTH-H — Sessions, refresh, déconnexion (AUTH-51 … 60)
 
-**Statut :** à faire — lab [00-jour-9-auth-h.md](../00-jour-9-auth-h.md).  
+**Statut :** clos (2026-09-10) — lab [00-jour-9-auth-h.md](../00-jour-9-auth-h.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** (session + `POST /refresh`) + **AUTH-C** (refresh **sans** OTP).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md).  

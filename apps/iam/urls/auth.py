@@ -17,11 +17,15 @@ from apps.iam.views.register import (
     ResendVerificationView,
     VerifyEmailView,
 )
+from apps.iam.views.security import EmailVerifyView
+from apps.iam.views.sessions import LogoutAllView, LogoutView
 
 urlpatterns = [
     path("login", LoginView.as_view(), name="login"),
     path("login/ldap", LdapLoginView.as_view(), name="login-ldap"),  # AUTH-B, pas de JIT
     path("refresh", RefreshView.as_view(), name="refresh"),
+    path("logout", LogoutView.as_view(), name="logout"),
+    path("logout-all", LogoutAllView.as_view(), name="logout-all"),
     path("mfa/verify", MfaVerifyView.as_view(), name="mfa-verify"),  # AUTH-C, public
     path(
         "mfa/backup-codes/regenerate",
@@ -32,6 +36,7 @@ urlpatterns = [
     path("register/ad", RegisterAdView.as_view(), name="register-ad"),
     path("register", RegisterLocalView.as_view(), name="register"),
     path("register/verify-email", VerifyEmailView.as_view(), name="register-verify-email"),
+    path("email/verify", EmailVerifyView.as_view(), name="email-verify"),  # AUTH-I alias D04
     path("register/resend-verification", ResendVerificationView.as_view(), name="register-resend"),
     path("device-link/start", DeviceLinkStartView.as_view(), name="device-link-start"),
     path(

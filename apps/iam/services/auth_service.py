@@ -15,7 +15,13 @@ from apps.iam.services.device_service import (
     revoke_active_sessions_for_device,
     upsert_device,
 )
+from apps.iam.services.jti_blacklist import blacklist_jti
 from apps.iam.services.password_service import verify_dummy, verify_password
+from apps.iam.services.session_service import (
+    revoke_sessions,
+    session_absolute_seconds,
+    session_dead,
+)
 from apps.iam.services.token_service import (
     hash_refresh_token,
     issue_refresh,
@@ -111,10 +117,10 @@ def _history(
     device=None,
     login_method=LoginMethod.PASSWORD,
     suspicious: bool = False,
-) -> None:
+) -> LoginHistory:
     """INSERT login_history. device_id seulement au succès (pas d’upsert device avant MDP OK)."""
     browser, browser_version = parse_user_agent(user_agent)
-    LoginHistory.objects.create(
+    return LoginHistory.objects.create(
         user=user,  # NULL si identifiant inconnu
         device=device,
         session=session,
@@ -129,14 +135,10 @@ def _history(
     )
 
 
-def login(*, email, username, password, ip, user_agent: str, device_spec: dict) -> dict:
-    """Ordre AUTH-A : rate-limit → lookup → MDP → 403 compte → begin_mfa (pas de JWT)."""
-    email = normalize_email(email) if email else None
-    username = username.strip() if username else None
-
-    ident_key = email or username  # un seul identifiant (le serializer a déjà validé)
-    # AUTH-06 : trop d’essais → même 401 que MDP faux (pas 429)
-    if rate_limit_service.is_limited(ident_key) or rate_limit_service.is_limited_ip(ip):
+def _guard_login_rate_limit(*, ident_key, ip, user_agent, skip_ident: bool, login_method) -> None:
+    """AUTH-06. skip_ident si user déjà locké (sinon 403 ACCOUNT_LOCKED jamais atteint)."""
+    ident_blocked = (not skip_ident) and rate_limit_service.is_limited(ident_key)
+    if ident_blocked or rate_limit_service.is_limited_ip(ip):
         _history(
             user=None,
             email=ident_key,
@@ -144,12 +146,29 @@ def login(*, email, username, password, ip, user_agent: str, device_spec: dict) 
             success=False,
             reason="RATE_LIMITED",
             user_agent=user_agent,
+            login_method=login_method,
         )
         raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID)
+    rate_limit_service.hit(ident_key, ip)
 
-    rate_limit_service.hit(ident_key, ip)  # compte cette tentative (succès ou échec)
 
+def login(*, email, username, password, ip, user_agent: str, device_spec: dict) -> dict:
+    """Ordre AUTH-I : lookup → rate-limit (skip ident si locké) → MDP → lazy_unlock → 403 → MFA."""
+    from apps.iam.services.lock_service import lazy_unlock, maybe_lock_after_failure
+
+    email = normalize_email(email) if email else None
+    username = username.strip() if username else None
+
+    ident_key = email or username  # un seul identifiant (le serializer a déjà validé)
     user = _get_user(email=email, username=username)
+    _guard_login_rate_limit(
+        ident_key=ident_key,
+        ip=ip,
+        user_agent=user_agent,
+        skip_ident=bool(user is not None and user.is_locked),
+        login_method=LoginMethod.PASSWORD,
+    )
+
     if user is None:
         verify_dummy(password)  # AUTH-05 : même durée qu’un check Argon2 réel
         _history(
@@ -171,6 +190,7 @@ def login(*, email, username, password, ip, user_agent: str, device_spec: dict) 
             reason="INVALID_CREDENTIALS",
             user_agent=user_agent,
         )
+        maybe_lock_after_failure(user)
         raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID)
 
     # AUTH-03 / 04 : 403 seulement après MDP OK
@@ -196,6 +216,7 @@ def login(*, email, username, password, ip, user_agent: str, device_spec: dict) 
         )
         raise AuthAPIError(403, "ACCOUNT_DISABLED", "Compte désactivé.")
 
+    lazy_unlock(user)
     if user.is_locked:
         _history(
             user=user,
@@ -234,22 +255,15 @@ def login_ldap(*, email, username, password, ip, user_agent: str, device_spec: d
     username = username.strip() if username else None
 
     ident_key = email or username
-    # Même 401 AUTH-05 que MDP faux (pas 429 : pas d’énumération throttle)
-    if rate_limit_service.is_limited(ident_key) or rate_limit_service.is_limited_ip(ip):
-        _history(
-            user=None,
-            email=ident_key,
-            ip=ip,
-            success=False,
-            reason="RATE_LIMITED",
-            user_agent=user_agent,
-            login_method=LoginMethod.LDAP,
-        )
-        raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID)
-
-    rate_limit_service.hit(ident_key, ip)
-
     user = _get_user(email=email, username=username)
+    _guard_login_rate_limit(
+        ident_key=ident_key,
+        ip=ip,
+        user_agent=user_agent,
+        skip_ident=bool(user is not None and user.is_locked),
+        login_method=LoginMethod.LDAP,
+    )
+
     if user is None:
         verify_dummy(password)  # timing AUTH-05 ; on ne contacte pas l’AD
         _history(
@@ -297,6 +311,9 @@ def login_ldap(*, email, username, password, ip, user_agent: str, device_spec: d
             user_agent=user_agent,
             login_method=LoginMethod.LDAP,
         )
+        from apps.iam.services.lock_service import maybe_lock_after_failure
+
+        maybe_lock_after_failure(user)
         raise AuthAPIError(401, "INVALID_CREDENTIALS", MSG_INVALID) from exc
 
     # 403 YAS seulement après bind AD OK (pas les bits UAC)
@@ -324,6 +341,9 @@ def login_ldap(*, email, username, password, ip, user_agent: str, device_spec: d
         )
         raise AuthAPIError(403, "ACCOUNT_DISABLED", "Compte désactivé.")
 
+    from apps.iam.services.lock_service import lazy_unlock
+
+    lazy_unlock(user)
     if user.is_locked:
         _history(
             user=user,
@@ -399,7 +419,7 @@ def complete_login(*, user, ip, user_agent, device_spec, ident_key, login_method
         ip_address=ip,
         user_agent=user_agent or "",
         last_activity=now,
-        expires_at=now + timedelta(seconds=settings.YAS_JWT_ACCESS_TTL_SECONDS),
+        expires_at=now + timedelta(seconds=session_absolute_seconds()),
         is_active=True,
         login_method=login_method,
     )
@@ -410,7 +430,7 @@ def complete_login(*, user, ip, user_agent, device_spec, ident_key, login_method
         user.first_login = now  # 1er succès seulement
     user.save(update_fields=["last_login", "first_login", "updated_at"])
 
-    _history(
+    row = _history(
         user=user,
         email=user.email,
         ip=ip,
@@ -421,6 +441,18 @@ def complete_login(*, user, ip, user_agent, device_spec, ident_key, login_method
         login_method=login_method,
         suspicious=created,  # AUTH-29 : 1er uuid seulement
     )
+    from apps.iam.services.geo_service import lookup as lookup_geo
+    from apps.iam.services.lock_service import mark_suspicious
+
+    geo = lookup_geo(ip)
+    if geo:
+        country = geo.get("country")
+        city = geo.get("city")
+        if country or city:
+            row.country = country
+            row.city = city
+            row.save(update_fields=["country", "city"])
+    mark_suspicious(history=row)
     rate_limit_service.reset(ident_key)  # succès : on oublie les échecs de cet identifiant
 
     token = sign_access_token(
@@ -441,26 +473,12 @@ def complete_login(*, user, ip, user_agent, device_spec, ident_key, login_method
 
 
 def _force_logout_user(*, user, reason: str, except_session_id=None) -> None:
-    """Tue les sessions actives (+ refresh). AUTH-43 : except_session_id = courante."""
-    now = timezone.now()
-    sessions = Session.objects.filter(user=user, is_active=True)
-    tokens = RefreshToken.objects.filter(user=user, revoked_at__isnull=True)
-    if except_session_id is not None:
-        sessions = sessions.exclude(pk=except_session_id)
-        tokens = tokens.exclude(session_id=except_session_id)
-    sessions.update(
-        is_active=False,
-        revoked_at=now,
-        revoke_reason=reason,
-    )
-    tokens.update(
-        revoked_at=now,
-        revoked_reason=reason,
-    )
+    """Tue les sessions actives (+ refresh + JTI). AUTH-43 : except_session_id = courante."""
+    revoke_sessions(user=user, reason=reason, except_session_id=except_session_id)
 
 
 def refresh(*, raw: str, ip) -> dict:
-    """Rotation AUTH-10 : nouvel access + nouvel refresh. Ancien hash = ROTATED."""
+    """Rotation AUTH-10 / AUTH-H : nouvel access + refresh. Ancien hash = ROTATED."""
     digest = hash_refresh_token(raw)
     row = (
         RefreshToken.objects.select_related(
@@ -478,8 +496,10 @@ def refresh(*, raw: str, ip) -> dict:
 
     now = timezone.now()
     session = row.session
-    if (not session.is_active) or row.expires_at <= now:
+    if session_dead(session, now) or row.expires_at <= now:
         raise AuthAPIError(401, "INVALID_REFRESH", "Session expirée. Reconnectez-vous.")
+
+    blacklist_jti(session.access_jti, ttl=settings.YAS_JWT_ACCESS_TTL_SECONDS)
 
     row.rotated_at = now
     row.revoked_at = now
@@ -488,13 +508,10 @@ def refresh(*, raw: str, ip) -> dict:
 
     access_jti = uuid.uuid4()
     refresh_jti = uuid.uuid4()
-    session.access_jti = access_jti  # l’ancien JWT access devient invalide (jti plus en base)
+    session.access_jti = access_jti  # l’ancien JWT access ne matche plus access_jti
     session.refresh_jti = refresh_jti
     session.last_activity = now
-    session.expires_at = now + timedelta(seconds=settings.YAS_JWT_ACCESS_TTL_SECONDS)
-    session.save(
-        update_fields=["access_jti", "refresh_jti", "last_activity", "expires_at", "updated_at"]
-    )
+    session.save(update_fields=["access_jti", "refresh_jti", "last_activity", "updated_at"])
     new_raw = issue_refresh(session=session, user=session.user, ip=ip)
     token = sign_access_token(
         user_id=session.user.id,

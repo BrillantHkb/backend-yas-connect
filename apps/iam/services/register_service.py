@@ -2,24 +2,20 @@
 
 from __future__ import annotations
 
-import hashlib
 import logging
 import re
-import secrets
 import unicodedata
 import uuid
-from datetime import timedelta
 
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db import models
-from django.utils import timezone
 
 from apps.annuaire.models import Segment
 from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import AuditLog, EmailVerification, LoginMethod, Region, Role, User
 from apps.iam.services import rate_limit_service
 from apps.iam.services.auth_service import MSG_INVALID
+from apps.iam.services.email_verification_service import issue_email_verification
+from apps.iam.services.email_verification_service import verify_email as verify_email_token
 from apps.iam.services.ldap_service import (
     AdIdentity,
     DirectoryUnavailable,
@@ -97,34 +93,13 @@ def suggest_username(first_name: str, last_name: str) -> str:
     return candidate
 
 
-def _hash_email_token(raw: str) -> str:
-    """On ne stocke jamais le token clair (comme le refresh AUTH-A)."""
-    return hashlib.sha256(raw.encode("utf-8")).hexdigest()
-
-
 def _issue_email_verification(user: User) -> tuple[str, bool]:
-    raw = secrets.token_urlsafe(32)
-    EmailVerification.objects.create(
-        user=user,
+    """D04 : ticket REGISTER. Délègue au service AUTH-I."""
+    return issue_email_verification(
+        user,
         email=user.email,
-        token_hash=_hash_email_token(raw),
+        purpose=EmailVerification.Purpose.REGISTER,
     )
-    sent = False
-    if settings.EMAIL_HOST:
-        # Vide en lab = skip ; Mailhog plus tard. Non bloquant.
-        try:
-            send_mail(
-                subject="YAS Connect — confirmez votre e-mail",
-                message=f"Token de vérification : {raw}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[user.email],
-                fail_silently=True,
-            )
-            sent = True
-        except Exception:
-            logger.warning("Envoi e-mail vérification ignoré", exc_info=True)
-            sent = False
-    return raw, sent
 
 
 def check_ad(*, email, username, password, ip) -> dict:
@@ -288,18 +263,8 @@ def register_local(*, email, password, profile: dict, ip) -> dict:
 
 
 def verify_email(*, token: str) -> None:
-    """D04 : pose verified_at. N’active jamais le compte (RH ou AD+MFA)."""
-    digest = _hash_email_token(token)
-    row = EmailVerification.objects.filter(token_hash=digest).select_related("user").first()
-    if row is None:
-        raise AuthAPIError(400, "INVALID_TOKEN", "Token invalide ou expiré.")
-    if row.verified_at is not None:
-        return  # 200 idempotent
-    ttl = timedelta(hours=settings.EMAIL_VERIFICATION_TTL_HOURS)
-    if row.created_at + ttl < timezone.now():
-        raise AuthAPIError(400, "INVALID_TOKEN", "Token invalide ou expiré.")
-    row.verified_at = timezone.now()
-    row.save(update_fields=["verified_at"])
+    """D04 / AUTH-I : REGISTER ou EMAIL_CHANGE (même hash SHA-256)."""
+    verify_email_token(token=token)
 
 
 def resend_verification(*, email: str, ip) -> None:

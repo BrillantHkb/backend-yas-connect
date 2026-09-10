@@ -1,9 +1,9 @@
 # Jour 9 — AUTH-H (sessions, logout, idle)
 
-**Statut :** à faire.  
+**Statut :** clos (2026-09-10).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jours 0–8 **clos** ([jour 1](00-jour-1-auth-a.md) … [jour 8](00-jour-8-auth-g.md)).  
-Refresh + rotation + `FORCE_LOGOUT` **déjà** livrés (jour 1). `_force_logout_user` **déjà** utilisé par AUTH-G / MFA reset. Routes logout / liste / idle / blacklist JTI **à livrer**.
+Refresh + rotation + `FORCE_LOGOUT` **déjà** livrés (jour 1). Logout / liste / idle / plafond 30 j / blacklist JTI **livrés**.
 
 **MVP** ([MVP-fonctionnalites-roles.md](MVP-fonctionnalites-roles.md) §1 — *Entrer dans l’application*) :
 
@@ -12,8 +12,8 @@ Refresh + rotation + `FORCE_LOGOUT` **déjà** livrés (jour 1). `_force_logout_
 | ----------------------------------------------- | ---------- | ---------------------- |
 | Connexion + MFA + appareils + QR + CGU/wizard   | A–F, J     | **fait** (jours 1–7)   |
 | Changer / oublier son mot de passe              | AUTH-G     | **fait** (jour 8)      |
-| **Déconnexion (un appareil ou tous)**           | **AUTH-H** | **ce jour**            |
-| Sécurité compte (logins, lock)                  | AUTH-I     | plus tard              |
+| **Déconnexion (un appareil ou tous)**           | **AUTH-H** | **fait** (ce jour)     |
+| Sécurité compte (logins, lock)                  | AUTH-I     | **fait** (jour 10)     |
 
 
 **À quoi ça sert (MVP) :** l’user coupe **cet** ordi, **cet** appareil, ou **partout**, sans ticket helpdesk. Un refresh volé tue tout (`FORCE_LOGOUT`, déjà là). Une session trop vieille (idle 7 j / plafond 30 j) meurt toute seule.
@@ -21,16 +21,9 @@ Refresh + rotation + `FORCE_LOGOUT` **déjà** livrés (jour 1). `_force_logout_
 **Plan métier (code à coller) :** [AUTH-H-sessions.md](iam_plans/AUTH-H-sessions.md) (AUTH-51 … 60).  
 Chemins lab = ce fichier (`views/sessions.py`, pas `views_session.py` à la racine IAM).
 
-**Déjà en base / code :**
+**Livré :** `POST /auth/logout` + `/logout-all` ; `GET /me/sessions` ; logout session / appareil ; heartbeat. `expires_at` = 30 j au login (refresh ne recollera plus 15 min). Job `session_reaper`. Blacklist JTI cache.
 
-- `POST /api/v1/auth/refresh` : rotation, ancien `ROTATED`, réuse → `_force_logout_user` + **401 `FORCE_LOGOUT`**
-- `request.yas_session` posé par `YasJWTAuthentication` (commentaire AUTH-H)
-- `_force_logout_user(*, except_session_id=)` dans `auth_service.py` (PASSWORD_*, MFA_RESET, REFRESH_REUSE)
-- Cache Django : Redis si `REDIS_URL`, sinon `LocMemCache` (déjà AUTH-06 / AUTH-J)
-
-**Pas encore :** routes HTTP logout / liste / heartbeat session ; `sessions.expires_at` = **15 min** (TTL access) et le refresh **recolle** ce champ à 15 min ; idle ; job `session_reaper` ; blacklist JTI.
-
-**Objectif du jour :**
+**Objectif du jour (fait) :**
 
 1. `expires_at` = durée **absolue** de session (`login_at` + 30 j). Access 15 min = claim JWT `exp` **seulement**. Refresh **ne plus** recoller `expires_at`.
 2. `POST /auth/logout`, `/logout-all` ; `GET /me/sessions` ; logout session / appareil ; heartbeat `last_activity`.
@@ -312,18 +305,18 @@ pytest apps/iam/tests/test_auth_h.py apps/iam/tests/test_auth_a.py apps/iam/test
 
 ## Checklist jour 9
 
-- [ ] `sessions.expires_at` = 30 j au login ; refresh **ne** recollera **pas** 15 min
-- [ ] `POST /auth/logout` / `logout-all` ; liste ; logout session / device
-- [ ] Device logout ≠ AUTH-E revoke (push / trusted intacts)
-- [ ] Idle 7 j + plafond 30 j (JWT + refresh + job `session_reaper`)
-- [ ] Blacklist JTI cache ; Redis down → skip, pas 503
-- [ ] Heartbeat debounce 60 s ; pas `users.status`
-- [ ] Refresh sans TOTP ; réuse → `FORCE_LOGOUT` (régression A)
-- [ ] Compliance : logout / sessions / heartbeat pendant CGU/wizard ; **pas** `/me/devices` liste
-- [ ] AUTH-G `_force_logout_user` passe par `revoke_sessions` + blacklist
-- [ ] `test_auth_h.py` + régression A/G/F verts
-- [ ] `/api/docs/` documente les nouvelles routes
-- [ ] SIRH non modifié
+- [x] `sessions.expires_at` = 30 j au login ; refresh **ne** recollera **pas** 15 min
+- [x] `POST /auth/logout` / `logout-all` ; liste ; logout session / device
+- [x] Device logout ≠ AUTH-E revoke (push / trusted intacts)
+- [x] Idle 7 j + plafond 30 j (JWT + refresh + job `session_reaper`)
+- [x] Blacklist JTI cache ; Redis down → skip, pas 503
+- [x] Heartbeat debounce 60 s ; pas `users.status`
+- [x] Refresh sans TOTP ; réuse → `FORCE_LOGOUT` (régression A)
+- [x] Compliance : logout / sessions / heartbeat pendant CGU/wizard ; **pas** `/me/devices` liste
+- [x] AUTH-G `_force_logout_user` passe par `revoke_sessions` + blacklist
+- [x] `test_auth_h.py` + régression A/G/F verts
+- [x] `/api/docs/` documente les nouvelles routes
+- [x] SIRH non modifié
 
 ---
 
@@ -346,4 +339,5 @@ pytest apps/iam/tests/test_auth_h.py apps/iam/tests/test_auth_a.py apps/iam/test
 
 ## Après le jour 9
 
-Jour suivant (A→Z **1i**) : **AUTH-I** — sécurité compte (historique de connexions, lock).
+Jour 10 : [00-jour-10-auth-i.md](00-jour-10-auth-i.md) — **AUTH-I** **clos**.  
+Jour 11 : [00-jour-11-auth-r.md](00-jour-11-auth-r.md) — **AUTH-R** (`HasPermission`).

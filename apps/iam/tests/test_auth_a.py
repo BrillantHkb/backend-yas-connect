@@ -182,7 +182,9 @@ def test_rate_limit_sixth_attempt(api, user_ok):
     )
     assert sixth.status_code == 401
     assert sixth.data["code"] == "INVALID_CREDENTIALS"
-    assert LoginHistory.objects.filter(failure_reason="RATE_LIMITED").exists()
+    user_ok.refresh_from_db()
+    assert user_ok.is_locked is True
+    # AUTH-I : lock skip ident → plus de RATE_LIMITED sur le 6e d’un compte connu
 
 
 @pytest.mark.django_db

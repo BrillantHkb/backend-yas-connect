@@ -81,21 +81,22 @@ class Region(models.Model):
 
 
 class Permission(models.Model):
-    """Droit atomique (module + action). Vide en AUTH-01 ; seed RBAC plus tard."""
+    """Droit atomique. code = {module}.{resource}.{action} (AUTH-R)."""
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    code = models.CharField(max_length=64, unique=True, db_index=True)  # ex. msg.send
+    code = models.CharField(max_length=96, unique=True, db_index=True)  # iam.user.approve
     name = models.CharField(max_length=128)
     description = models.TextField(blank=True, default="")
-    module = models.CharField(max_length=64)  # domaine (messaging, iam, …)
-    action = models.CharField(max_length=64)  # verbe (send, read, …)
+    module = models.CharField(max_length=64)  # domaine (iam, media, annuaire)
+    resource = models.CharField(max_length=64)  # 2e segment (user, device, role)
+    action = models.CharField(max_length=64)  # verbe (read, manage, approve)
     is_system = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
         db_table = "permissions"
-        unique_together = [("module", "action")]  # une action unique par module
+        unique_together = [("module", "resource", "action")]
 
 
 class UserManager(BaseUserManager):
@@ -110,6 +111,9 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
         UserPreference.objects.get_or_create(user=user)  # 1-1 obligatoire
         PrivacySetting.objects.get_or_create(user=user)
+        from apps.iam.services.rbac_service import ensure_system_matrix
+
+        ensure_system_matrix(role)  # USER/ADMIN vides → seed self / tout (tests A–I)
         return user
 
     def create_user(self, email, password, username, role, **extra):
@@ -178,6 +182,7 @@ class User(AbstractBaseUser):
     is_active = models.BooleanField(default=True)  # False → 403 ACCOUNT_DISABLED (si pas pending)
     pending_approval = models.BooleanField(default=False)  # True → 403 ACCOUNT_PENDING (AUTH-D03)
     is_locked = models.BooleanField(default=False)  # True → 403 ACCOUNT_LOCKED
+    locked_at = models.DateTimeField(null=True, blank=True)  # AUTH-I : début du verrou (NULL = lock manuel sans TTL)
     last_login = models.DateTimeField(null=True, blank=True)  # écrit AUTH-01
     first_login = models.DateTimeField(null=True, blank=True)  # 1er succès AUTH-01
     tos_accepted_at = models.DateTimeField(null=True, blank=True)  # AUTH-40 : quand les CGU
@@ -364,8 +369,8 @@ class Session(models.Model):
     ip_address = models.GenericIPAddressField(null=True, blank=True, unpack_ipv4=True)
     user_agent = models.TextField(blank=True, default="")
     login_at = models.DateTimeField(auto_now_add=True)
-    last_activity = models.DateTimeField()  # sliding ; MAJ middleware JWT
-    expires_at = models.DateTimeField(db_index=True)  # fin de l’access
+    last_activity = models.DateTimeField()  # sliding idle AUTH-H ; MAJ JWT / heartbeat
+    expires_at = models.DateTimeField(db_index=True)  # plafond session (login + 30 j)
     is_active = models.BooleanField(default=True, db_index=True)  # False = logout / kill
     revoked_at = models.DateTimeField(null=True, blank=True)
     revoke_reason = models.CharField(max_length=64, null=True, blank=True)
@@ -459,7 +464,7 @@ class LoginHistory(models.Model):
         max_length=16, choices=LoginMethod.choices, default=LoginMethod.PASSWORD
     )
     success = models.BooleanField(db_index=True)
-    suspicious = models.BooleanField(default=False)  # AUTH-29 1er UUID ; AUTH-I pays plus tard
+    suspicious = models.BooleanField(default=False)  # AUTH-29 1er UUID ; AUTH-I nouveau pays
     failure_reason = models.CharField(
         max_length=64,
         choices=FailureReason.choices,
@@ -542,7 +547,11 @@ class OtpSecret(models.Model):
 
 
 class EmailVerification(models.Model):
-    """Confirmation d’adresse. 0 ligne AUTH-01."""
+    """Confirmation d’adresse (inscription D04 ou changement AUTH-I)."""
+
+    class Purpose(models.TextChoices):
+        REGISTER = "REGISTER"
+        EMAIL_CHANGE = "EMAIL_CHANGE"
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.ForeignKey(
@@ -551,8 +560,15 @@ class EmailVerification(models.Model):
         related_name="email_verifications",
     )
     email = models.EmailField(max_length=254)  # adresse à confirmer
-    token_hash = models.TextField()
+    token_hash = models.TextField(unique=True)  # SHA-256 du token clair (jamais le clair)
+    purpose = models.CharField(
+        max_length=16,
+        choices=Purpose.choices,
+        default=Purpose.REGISTER,
+    )
+    expires_at = models.DateTimeField()  # created_at + EMAIL_VERIFICATION_TTL_HOURS
     verified_at = models.DateTimeField(null=True, blank=True)
+    revoked_at = models.DateTimeField(null=True, blank=True)  # resend / nouveau ticket
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

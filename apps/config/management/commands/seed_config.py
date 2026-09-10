@@ -18,6 +18,11 @@ SECURITY_SETTINGS = [
     ("password_require_special", True, "bool"),
     ("password_history_n", 5, "int"),
     ("password_reset_ttl_seconds", 600, "int"),
+    ("session_idle_seconds", 604800, "int"),
+    ("session_absolute_seconds", 2592000, "int"),
+    ("session_heartbeat_min_seconds", 60, "int"),
+    ("lock_after_failures", 5, "int"),
+    ("lock_duration_seconds", 1800, "int"),
 ]
 
 LDAP_SETTINGS = [
@@ -87,3 +92,29 @@ class Command(BaseCommand):
             },
         )
         self.stdout.write(self.style.SUCCESS("Job ldap_sync_users OK"))
+
+        ScheduledJob.objects.update_or_create(
+            job_name="session_reaper",
+            defaults={
+                "module": "IAM",
+                "cron_expression": "*/5 * * * *",
+                "interval_seconds": None,
+                "handler": "apps.iam.jobs.reap_sessions",
+                "enabled": True,
+                "next_execution": croniter("*/5 * * * *", now).get_next(datetime),
+            },
+        )
+        self.stdout.write(self.style.SUCCESS("Job session_reaper OK"))
+
+        ScheduledJob.objects.update_or_create(
+            job_name="account_unlock_reaper",
+            defaults={
+                "module": "IAM",
+                "cron_expression": "*/5 * * * *",
+                "interval_seconds": None,
+                "handler": "apps.iam.jobs.unlock_expired_locks",
+                "enabled": True,
+                "next_execution": croniter("*/5 * * * *", now).get_next(datetime),
+            },
+        )
+        self.stdout.write(self.style.SUCCESS("Job account_unlock_reaper OK"))

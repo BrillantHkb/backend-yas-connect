@@ -1,7 +1,7 @@
 """AUTH-G : changement JWT + forgot / verify / reset publics. Pas HasPermission."""
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -27,7 +27,7 @@ from apps.iam.services.password_service import (
 class PasswordChangeView(APIView):
     """POST /api/v1/me/password — JWT, portes AUTH-F."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.password.change"
 
     @extend_schema(
         tags=["Me"],

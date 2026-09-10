@@ -1,7 +1,6 @@
-"""AUTH-F : CGU + wizard. JWT + IsAuthenticated (pas HasPermission)."""
+"""AUTH-F : CGU + wizard. JWT + iam.tos.manage / iam.onboarding.manage."""
 
 from drf_spectacular.utils import OpenApiResponse, extend_schema
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -23,7 +22,7 @@ from apps.iam.services.compliance_service import (
 class TosView(APIView):
     """GET /api/v1/me/tos — version + URL courantes."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.tos.manage"
 
     @extend_schema(
         tags=["Me"],
@@ -37,7 +36,7 @@ class TosView(APIView):
 class TosAcceptView(APIView):
     """POST /api/v1/me/tos/accept — body { version }."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.tos.manage"
 
     @extend_schema(
         tags=["Me"],
@@ -58,7 +57,7 @@ class TosAcceptView(APIView):
 class OnboardingView(APIView):
     """GET + PATCH /api/v1/me/onboarding — prefs, pas onboarding_completed_at."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.onboarding.manage"
 
     @extend_schema(
         tags=["Me"],
@@ -89,7 +88,7 @@ class OnboardingView(APIView):
 class OnboardingCompleteView(APIView):
     """POST /api/v1/me/onboarding/complete — body vide. Exige CGU."""
 
-    permission_classes = [IsAuthenticated]
+    required_permission = "iam.onboarding.manage"
 
     @extend_schema(
         tags=["Me"],

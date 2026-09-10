@@ -1,7 +1,7 @@
 """AUTH-J : start / poll publics ; confirm JWT (téléphone déjà MFA)."""
 
 from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
-from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -81,7 +81,7 @@ class DeviceLinkStatusView(APIView):
 class DeviceLinkConfirmView(APIView):
     """POST /api/v1/me/devices/link — téléphone JWT. TOTP obligatoire, pas de backup."""
 
-    permission_classes = [IsAuthenticated]  # AUTH-R → iam.device.update
+    required_permission = "iam.device.update"
 
     @extend_schema(
         tags=["Devices"],
