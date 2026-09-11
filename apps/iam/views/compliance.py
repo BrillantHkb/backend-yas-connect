@@ -62,7 +62,7 @@ class OnboardingView(APIView):
     @extend_schema(
         tags=["Me"],
         responses={200: OnboardingEnvelopeSerializer},
-        description="Prérempli language / timezone / notification_sound (fr / Lomé / true).",
+        description="Prérempli depuis user_preferences (même JSON que GET /me/preferences).",
     )
     def get(self, request):
         return Response({"success": True, "data": onboarding_payload(request.user)})

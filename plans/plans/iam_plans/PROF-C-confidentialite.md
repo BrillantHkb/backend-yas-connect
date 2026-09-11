@@ -1,5 +1,6 @@
 # PROF-C — Confidentialité / masquage (PROF-23 … 30)
 
+**Statut :** à faire — lab [00-jour-15-prof-c.md](../00-jour-15-prof-c.md).
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **PROF-A** (lecture collègue déjà masquée) + **PROF-B** (souhait ≠ privacy) + **AUTH-R**.  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) (`privacy_settings`).  
@@ -154,14 +155,18 @@ Aucune table nouvelle. `privacy_settings` déjà 1-1.
 
 ## 1. Fichiers
 
+Chemins **lab** (arbo `views/` / `serializers/`) — pas les stubs plats du backlog :
+
 ```
-apps/iam/serializers_privacy.py
-apps/iam/views_privacy.py
-apps/iam/services/privacy_service.py   # aussi utilisé par PROF-02 (lecture)
+apps/iam/services/privacy_service.py   # nouveau — serialize / PATCH
+apps/iam/serializers/privacy.py        # nouveau
+apps/iam/views/privacy.py              # nouveau
+apps/iam/urls/me.py                    # path("privacy")
+apps/iam/tests/test_prof_c.py          # nouveau
 ```
 
-Delta AUTH-R : seed `iam.privacy.read` / `iam.privacy.update`.  
-PROF-02 : **aucun** changement de contrat si le service de masque est déjà branché ; tests d’écriture ici.
+PROF-02 (masque collègue) : **déjà** dans `profile_service.serialize_colleague` — **ne pas** recoder.  
+Delta AUTH-R : perms `iam.privacy.read` / `iam.privacy.update` **déjà** seedées (jour 11).
 
 ---
 
@@ -200,7 +205,7 @@ PROF-02 : **aucun** changement de contrat si le service de masque est déjà bra
 - [ ] 26–27 distincts des souhaits PROF-B
 - [ ] 28–30 persistés ; enforcement hors incrément
 - [ ] `HasPermission` `iam.privacy.read` / `.update` ; seed USER
-- [ ] Spec seulement
+- [ ] Spec + lab [00-jour-15-prof-c.md](../00-jour-15-prof-c.md)
 
 ---
 
@@ -211,5 +216,6 @@ PROF-02 : **aucun** changement de contrat si le service de masque est déjà bra
 - **PROF-A-02** : lecture masquée **déjà** spécifiée ; cet incrément = **écriture**.
 - **PROF-B-20/21** : souhait prefs ; ici `*_enabled`.
 - **AUTH-R** : +2 perms self (`iam.privacy.*`).
+- **PROF-B lab :** `GET /me` **garde** le bloc `privacy` (lecture). L’écran confidentialité **écrit** via `/me/privacy`.
 - **Messaging / appels / groupes** : consommeront 26–30.
 - **PRES-A** : `online_status_visibility` filtre GET **et** WS `USER_STATUS_CHANGED`.

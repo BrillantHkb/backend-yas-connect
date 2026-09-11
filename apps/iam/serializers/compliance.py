@@ -4,7 +4,8 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from rest_framework import serializers
 
-from apps.iam.serializers.auth import UserPublicSerializer
+from apps.iam.serializers.prefs import PreferencesPublicSerializer
+from apps.iam.serializers.profile import ProfileMeUserSerializer
 
 
 class TosAcceptSerializer(serializers.Serializer):
@@ -38,7 +39,7 @@ class GatesSerializer(serializers.Serializer):
 
 
 class MeDataSerializer(serializers.Serializer):
-    user = UserPublicSerializer()
+    user = ProfileMeUserSerializer()
     gates = GatesSerializer()
 
 
@@ -57,12 +58,6 @@ class TosEnvelopeSerializer(serializers.Serializer):
     data = TosPublicSerializer()
 
 
-class OnboardingDataSerializer(serializers.Serializer):
-    language = serializers.CharField()
-    timezone = serializers.CharField()
-    notification_sound = serializers.BooleanField()
-
-
 class OnboardingEnvelopeSerializer(serializers.Serializer):
     success = serializers.BooleanField()
-    data = OnboardingDataSerializer()
+    data = PreferencesPublicSerializer()

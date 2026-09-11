@@ -9,6 +9,7 @@ htmlcov/
 .coverage
 staticfiles/
 /media/
+var/
 *.egg-info/
 dist/
 build/

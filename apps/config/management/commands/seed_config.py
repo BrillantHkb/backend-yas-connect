@@ -33,6 +33,10 @@ LDAP_SETTINGS = [
     ("timeout_seconds", 5, "int", False),
 ]
 
+PROFILE_SETTINGS = [
+    ("job_title_self_edit", False, "bool"),
+]
+
 
 class Command(BaseCommand):
     help = "Clés LDAP (system_settings) + job ldap_sync_users. Pas de secret dans .env."
@@ -78,6 +82,20 @@ class Command(BaseCommand):
             )
             action = "créé" if created else "à jour"
             self.stdout.write(f"ldap.{key} {action}")
+
+        for key, value, value_type in PROFILE_SETTINGS:
+            _, created = SystemSetting.objects.update_or_create(
+                category="profile",
+                setting_key=key,
+                defaults={
+                    "setting_value": value,
+                    "value_type": value_type,
+                    "is_sensitive": False,
+                    "editable": True,
+                },
+            )
+            action = "créé" if created else "à jour"
+            self.stdout.write(f"profile.{key} {action}")
 
         now = timezone.now()
         ScheduledJob.objects.update_or_create(

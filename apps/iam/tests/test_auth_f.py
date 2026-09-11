@@ -79,6 +79,8 @@ def test_me_gates_open_for_new_user(api, user_fresh):
     assert gates["tos_current_version"] == settings.YAS_TOS_VERSION
     assert gates["first_login_at"] is not None
     assert r.data["data"]["user"]["email"] == user_fresh.email
+    assert "role" not in r.data["data"]["user"]
+    assert r.data["data"]["user"]["display_name"] == user_fresh.get_full_name()
 
 
 @pytest.mark.django_db

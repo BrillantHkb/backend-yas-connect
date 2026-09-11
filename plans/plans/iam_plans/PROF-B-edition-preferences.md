@@ -1,5 +1,6 @@
 # PROF-B — Édition & préférences (PROF-15 … 22)
 
+**Statut :** clos (2026-09-11) — lab [00-jour-14-prof-b.md](../00-jour-14-prof-b.md).
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **PROF-A** (`PATCH /me` identité) + **AUTH-F** (wizard) + **AUTH-R** (`HasPermission`).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) (`users`, `user_preferences`) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md).  
@@ -52,7 +53,7 @@
 | Préremplissage | Même sérialiseur que GET `/me/preferences`. Valeurs = ligne actuelle (seed / RH / D02 / wizard partiel) |
 | Portes AUTH-F | `GET /me/onboarding` autorisé si wizard KO. `GET/PATCH /me/preferences` **après** CGU + wizard |
 | RBAC | JWT + `HasPermission` ([AUTH-R](AUTH-R-roles-permissions.md)) |
-| GET `/me` | Ajoute `editable` (quelles clés le client peut envoyer) |
+| GET `/me` | Ajoute `editable` (quelles clés le client peut envoyer) : **`phone`** toujours true, **`matricule`** toujours false, `job_title` gated |
 
 
 ---
@@ -76,11 +77,13 @@ En plus du payload PROF-A :
     "last_name": true,
     "username": true,
     "phone": true,
+    "matricule": false,
     "job_title": false
   }
 }
 ```
 
+`phone` toujours `true` (PROF-10). `matricule` toujours `false` (RH, PROF-06) — clé **présente** pour que le client masque le champ.  
 `job_title` suit `profile.job_title_self_edit`. Le client masque le champ si `false`.  
 **Pas** de bloc `preferences` ici (écran réglages = endpoint dédié).
 
@@ -199,15 +202,22 @@ Aucune table nouvelle. `user_preferences` déjà 1-1.
 
 ## 1. Fichiers
 
+Chemins **lab** (arbo `views/` / `serializers/`) — pas les stubs plats du backlog :
+
 ```
-apps/iam/serializers_prefs.py
-apps/iam/views_prefs.py              # GET/PATCH /me/preferences
-apps/iam/services/prefs_service.py   # partagé AUTH-F wizard
+apps/iam/services/prefs_service.py     # nouveau
+apps/iam/serializers/prefs.py          # nouveau
+apps/iam/views/prefs.py                # nouveau
+apps/iam/urls/me.py                    # path("preferences")
+apps/iam/services/profile_service.py   # editable + job_title gated
+apps/iam/views/compliance.py           # GET onboarding = serialize_preferences
+apps/config/management/commands/seed_config.py  # profile.job_title_self_edit
+apps/iam/tests/test_prof_b.py          # nouveau
 ```
 
 Delta AUTH-F : `OnboardingView.get` → `serialize_preferences`.  
 Delta PROF-A : `editable` + garde `job_title`.  
-Delta AUTH-R : seed `iam.prefs.read` / `iam.prefs.update` (`audience=self`).
+Delta AUTH-R : perms `iam.prefs.read` / `iam.prefs.update` **déjà** seedées (jour 11).
 
 ---
 
@@ -222,7 +232,7 @@ Delta AUTH-R : seed `iam.prefs.read` / `iam.prefs.update` (`audience=self`).
 | 15 | PATCH `job_title` flag false | 400 `FIELD_FORBIDDEN` |
 | 15 | flag true + `job_title` | 200 ; GET `/me` reflète |
 | 15 | PATCH `language` sur `/me` | 400 → prefs |
-| 15 | GET `/me` `editable.job_title` | `false` par défaut |
+| 15 | GET `/me` `editable` | `phone=true`, `matricule=false`, `job_title=false` par défaut |
 | 16 | PATCH prefs `language=en` | 200 ; `users.language=en` |
 | 16 | `language=de` | 400 `INVALID_LANGUAGE` |
 | 17 | tz IANA OK | 200 ; `users.timezone` aligné |
@@ -244,12 +254,12 @@ Delta AUTH-R : seed `iam.prefs.read` / `iam.prefs.update` (`audience=self`).
 
 ## Critères d’acceptation
 
-- [ ] Whitelist `/me` + `editable` ; `job_title` gated par setting (défaut false)
-- [ ] GET/PATCH `/me/preferences` : 6 champs catalogue ; langue / tz alignés sur `users`
-- [ ] Souhait 20/21 ≠ colonnes privacy
-- [ ] Wizard : GET préremplit ; PATCH onboarding réutilise le service prefs
-- [ ] `HasPermission` `iam.prefs.read` / `iam.prefs.update` ; seed USER
-- [ ] Spec seulement
+- [x] Whitelist `/me` + `editable` ; `job_title` gated par setting (défaut false)
+- [x] GET/PATCH `/me/preferences` : 6 champs catalogue ; langue / tz alignés sur `users`
+- [x] Souhait 20/21 ≠ colonnes privacy
+- [x] Wizard : GET préremplit ; PATCH onboarding réutilise le service prefs
+- [x] `HasPermission` `iam.prefs.read` / `iam.prefs.update` ; seed USER
+- [x] Spec + lab [00-jour-14-prof-b.md](../00-jour-14-prof-b.md)
 
 ---
 
@@ -261,4 +271,5 @@ Delta AUTH-R : seed `iam.prefs.read` / `iam.prefs.update` (`audience=self`).
 - **PROF-10** : phone inchangé (toujours).
 - **AUTH-F-38** : ajout `GET /me/onboarding` ; écriture 3 champs inchangée.
 - **AUTH-R** : +2 perms self (`iam.prefs.*`).
+- **PROF-A lab :** `GET /me` **garde** `preferences` + `privacy` (déjà AUTH-F / jour 13). L’écran réglages **écrit** via `/me/preferences`.
 - **Privacy** : [PROF-C](PROF-C-confidentialite.md) (`privacy_settings`).

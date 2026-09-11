@@ -31,8 +31,9 @@ def _is_or_under(path: str, prefix: str) -> bool:
     return p == pre or p.startswith(pre + "/")
 
 
-def _is_me_root(path: str) -> bool:
-    return _norm(path) == "/api/v1/me"
+def _is_me_root_get(request) -> bool:
+    """GET /me seulement (PATCH /me et avatar passent les portes AUTH-F)."""
+    return request.method == "GET" and _norm(request.path) == "/api/v1/me"
 
 
 def _is_tos(path: str) -> bool:
@@ -83,7 +84,7 @@ class ComplianceGates(BasePermission):
             return True
         path = request.path
         if (
-            _is_me_root(path)
+            _is_me_root_get(request)
             or _is_tos(path)
             or _is_heartbeat(request)
             or _is_session_allowlist(request)

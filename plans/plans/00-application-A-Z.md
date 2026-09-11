@@ -772,8 +772,9 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 | 1i | `apps.iam` | **AUTH-I** (61–66) | Historique / lock. Lab : [00-jour-10-auth-i.md](00-jour-10-auth-i.md) **clos**. |
 | 1j | `apps.iam` | **AUTH-R** | Seed USER/ADMIN, `HasPermission`. Lab : [00-jour-11-auth-r.md](00-jour-11-auth-r.md) **clos**. |
 | 1k | `apps.iam` | **ADMIN-A** | Lifecycle, audit, `region`. Lab : [00-jour-12-admin-a.md](00-jour-12-admin-a.md) **clos**. |
-| 2 | `apps.iam` + `apps.media` | **PROF-A** | `/me`, avatar (scan SKIPPED lab). Lab : [00-jour-13-prof-a.md](00-jour-13-prof-a.md). |
-| 2b–2c | `apps.iam` | **PROF-B / PROF-C** | Prefs + privacy. |
+| 2 | `apps.iam` + `apps.media` | **PROF-A** | `/me`, avatar (scan SKIPPED lab). Lab : [00-jour-13-prof-a.md](00-jour-13-prof-a.md) **clos**. |
+| 2b | `apps.iam` | **PROF-B** | Prefs + `editable` + `job_title` gated. Lab : [00-jour-14-prof-b.md](00-jour-14-prof-b.md) **clos**. |
+| 2c | `apps.iam` | **PROF-C** | Écriture `privacy_settings`. Lab : [00-jour-15-prof-c.md](00-jour-15-prof-c.md). |
 | 2d | `apps.iam` + `apps.realtime` | **PRES-A** | Présence Redis + WS. |
 | 2e | `apps.iam` + `apps.annuaire` | **ANNUAIRE-A** | People-picker `GET /users`. Seed types + `YAS` **déjà** jour 3 (AUTH-D). |
 | **2x** | — | **[CRYPTO-00](crypto_plans/CRYPTO-00-modele-chiffrement.md)** | Décision 1 page. **0 table.** Clés HTTP = phase **3c**. |

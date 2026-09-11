@@ -1,1 +1,1 @@
-"""Vues médias : plus tard (MEDIA-A)."""
+"""Vues médias : avatar PROF-A + lecture fichier."""

@@ -1,6 +1,6 @@
 # PROF-A — Identité & affichage (PROF-01 … 14)
 
-**Statut :** à faire — lab [00-jour-13-prof-a.md](../00-jour-13-prof-a.md).  
+**Statut :** clos (2026-09-11) — lab [00-jour-13-prof-a.md](../00-jour-13-prof-a.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A…I** (JWT, portes AUTH-F, change email AUTH-65). Tables Annuaire / Médias **déjà créées** (souvent 0 ligne).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) · [Médias](../../catalogues/MEDIA-catalogue-tables.md).  
@@ -297,14 +297,14 @@ apps/media/urls.py
 
 ## Critères d’acceptation
 
-- [ ] `/me` : identité + org résolue ; **pas** de `role` ; pas de secrets ; `iam.profile.read`
-- [ ] Collègue : privacy photo / last seen / online ; 404 si inactif ; `iam.profile.read_other`
-- [ ] Avatar upload / replace / clear ; MIME + taille
-- [ ] Nom / username / phone éditables ; matricule / job (défaut) / rôle / segment / email en PATCH `/me` refusés
-- [ ] Prefs langue / tz / toggles = [PROF-B](PROF-B-edition-preferences.md)
-- [ ] Email change = AUTH-I
-- [ ] Manager / dir / dept **via Annuaire**, pas `users.manager_id`
-- [ ] Spec + lab [00-jour-13-prof-a.md](../00-jour-13-prof-a.md)
+- [x] `/me` : identité + org résolue ; **pas** de `role` ; pas de secrets ; `iam.profile.read`
+- [x] Collègue : privacy photo / last seen / online ; 404 si inactif ; `iam.profile.read_other`
+- [x] Avatar upload / replace / clear ; MIME + taille
+- [x] Nom / username / phone éditables ; matricule / job (défaut) / rôle / segment / email en PATCH `/me` refusés
+- [x] Prefs langue / tz / toggles = [PROF-B](PROF-B-edition-preferences.md)
+- [x] Email change = AUTH-I
+- [x] Manager / dir / dept **via Annuaire**, pas `users.manager_id`
+- [x] Spec + lab [00-jour-13-prof-a.md](../00-jour-13-prof-a.md)
 
 ---
 

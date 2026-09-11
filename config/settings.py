@@ -34,6 +34,8 @@ env = environ.Env(
     YAS_EMAIL_RESEND_RATE_LIMIT=(int, 3),
     YAS_EMAIL_RESEND_WINDOW_SECONDS=(int, 900),
     YAS_RBAC_CACHE_TTL_SECONDS=(int, 60),
+    YAS_AVATAR_MAX_BYTES=(int, 2097152),
+    YAS_MEDIA_AVATAR_SCAN_SKIP=(bool, True),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 if os.environ.get("DATABASE_URL"):
@@ -105,6 +107,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+MEDIA_ROOT = BASE_DIR / "var" / "media"
+MEDIA_URL = "/media/"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 PASSWORD_HASHERS = [
@@ -214,6 +218,8 @@ YAS_LOCK_DURATION_SECONDS = env("YAS_LOCK_DURATION_SECONDS")
 YAS_EMAIL_RESEND_RATE_LIMIT = env("YAS_EMAIL_RESEND_RATE_LIMIT")
 YAS_EMAIL_RESEND_WINDOW_SECONDS = env("YAS_EMAIL_RESEND_WINDOW_SECONDS")
 YAS_RBAC_CACHE_TTL_SECONDS = env("YAS_RBAC_CACHE_TTL_SECONDS")
+YAS_AVATAR_MAX_BYTES = env("YAS_AVATAR_MAX_BYTES")
+YAS_MEDIA_AVATAR_SCAN_SKIP = env("YAS_MEDIA_AVATAR_SCAN_SKIP")
 
 # Vide = skip envoi (lab). Mailhog plus tard ; verify-email ne bloque pas.
 EMAIL_HOST = env("EMAIL_HOST", default="")

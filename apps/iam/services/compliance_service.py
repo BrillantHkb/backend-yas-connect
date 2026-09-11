@@ -72,16 +72,10 @@ def accept_tos(*, user: User, version: str) -> None:
 
 
 def onboarding_payload(user: User) -> dict:
-    """GET wizard : prérempli prefs (défauts fr / Lomé / true), jamais un formulaire vide."""
-    prefs = getattr(user, "preferences", None)
-    language = (prefs.language if prefs else None) or user.language or "fr"
-    tz = (prefs.timezone if prefs else None) or user.timezone or "Africa/Lome"
-    sound = prefs.notification_sound if prefs is not None else True
-    return {
-        "language": language,
-        "timezone": tz,
-        "notification_sound": sound,
-    }
+    """GET wizard = même JSON que GET /me/preferences (PROF-22)."""
+    from apps.iam.services.prefs_service import serialize_preferences
+
+    return serialize_preferences(user)
 
 
 def patch_onboarding(
@@ -91,23 +85,19 @@ def patch_onboarding(
     timezone_name: str | None = None,
     notification_sound: bool | None = None,
 ) -> dict:
-    """AUTH-38 : prefs + users.language/timezone. Ne pose pas onboarding_completed_at."""
-    prefs = user.preferences
-    user_fields = []
+    """AUTH-38 : seulement 3 champs, via prefs_service. Ne pose pas onboarding_completed_at."""
+    from apps.iam.services.prefs_service import apply_preference_updates, serialize_preferences
+
+    data = {}
     if language is not None:
-        user.language = language
-        prefs.language = language
-        user_fields.extend(["language"])
+        data["language"] = language
     if timezone_name is not None:
-        user.timezone = timezone_name
-        prefs.timezone = timezone_name
-        user_fields.append("timezone")
+        data["timezone"] = timezone_name
     if notification_sound is not None:
-        prefs.notification_sound = notification_sound
-    if user_fields:
-        user.save(update_fields=[*user_fields, "updated_at"])
-    prefs.save()
-    return onboarding_payload(user)
+        data["notification_sound"] = notification_sound
+    if not data:
+        return serialize_preferences(user)
+    return apply_preference_updates(user=user, data=data, audit=False)
 
 
 def complete_onboarding(*, user: User) -> None:
