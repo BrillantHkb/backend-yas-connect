@@ -1,6 +1,6 @@
 # AUTH-R — Rôles & permissions (AUTH-R01 … R10)
 
-**Statut :** à faire — lab [00-jour-11-auth-r.md](../00-jour-11-auth-r.md).  
+**Statut :** clos (2026-09-10) — lab [00-jour-11-auth-r.md](../00-jour-11-auth-r.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** (`users.role_id` unique, pas de `user_roles`) + tickets déjà décrits (C/D/E/F/G/H/I, PROF-A).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md).  
@@ -580,16 +580,16 @@ Invalider cache `rbac:role:{id}` après R08 / delete permission.
 
 **Lab [00-jour-11-auth-r.md](../00-jour-11-auth-r.md) :** vues JWT **existantes** + R06–R09. PROF / PRES / ADMIN-A métier / ANNUAIRE write = **seed des codes seulement** (branchement HTTP = jours 12+).
 
-- [ ] Convention codes respectée ; colonne `resource`
-- [ ] Seed USER (self) / ADMIN (tout) + matrice
-- [ ] `HasPermission` sur **toute** vue JWT ; attribut manquant = 403
-- [ ] AUTH-F, G (`/me/password`), H, E `/me`, I `/me`, C regen branchés (PROF-A : jour 13)
-- [ ] CRUD rôles R06 : list/get/create/patch/delete + gardes system / in-use + audit
-- [ ] R08 : **ajouter** (POST) / **retirer** (DELETE) / remplacer (PUT) ; `ADMIN_PERMS_FROZEN` ; audit
-- [ ] Changement rôle user + garde dernier ADMIN
-- [ ] D05, E admin, I unlock/logins, C24 branchés ; **ADMIN-A** lifecycle = jour 12
-- [ ] Seed 58 `is_system` (27 self + 31 admin)
-- [ ] Spec seulement
+- [x] Convention codes respectée ; colonne `resource`
+- [x] Seed USER (self) / ADMIN (tout) + matrice
+- [x] `HasPermission` sur **toute** vue JWT ; attribut manquant = 403
+- [x] AUTH-F, G (`/me/password`), H, E `/me`, I `/me`, C regen branchés (PROF-A : jour 13)
+- [x] CRUD rôles R06 : list/get/create/patch/delete + gardes system / in-use + audit
+- [x] R08 : **ajouter** (POST) / **retirer** (DELETE) / remplacer (PUT) ; `ADMIN_PERMS_FROZEN` ; audit
+- [x] Changement rôle user + garde dernier ADMIN
+- [x] D05, E admin, I unlock/logins, C24 branchés ; **ADMIN-A** lifecycle = [jour 12](../00-jour-12-admin-a.md)
+- [x] Seed 58 `is_system` (27 self + 31 admin)
+- [x] SIRH non modifié
 
 ---
 

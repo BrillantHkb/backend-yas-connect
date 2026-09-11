@@ -770,9 +770,9 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 | 1g | `apps.iam` | **AUTH-G** (43–50) | MDP app (change + forgot TOTP). Lab : [00-jour-8-auth-g.md](00-jour-8-auth-g.md) **clos**. |
 | 1h | `apps.iam` | **AUTH-H** (51–60) | Sessions / logout / idle. Lab : [00-jour-9-auth-h.md](00-jour-9-auth-h.md) **clos**. |
 | 1i | `apps.iam` | **AUTH-I** (61–66) | Historique / lock. Lab : [00-jour-10-auth-i.md](00-jour-10-auth-i.md) **clos**. |
-| 1j | `apps.iam` | **AUTH-R** | Seed USER/ADMIN, `HasPermission`. Lab : [00-jour-11-auth-r.md](00-jour-11-auth-r.md). |
-| 1k | `apps.iam` | **ADMIN-A** | Lifecycle, audit, `region`. Lab : [00-jour-12-admin-a.md](00-jour-12-admin-a.md) (après jour 11). |
-| 2 | `apps.iam` + `apps.media` | **PROF-A** | `/me`, avatar (scan SKIPPED lab). |
+| 1j | `apps.iam` | **AUTH-R** | Seed USER/ADMIN, `HasPermission`. Lab : [00-jour-11-auth-r.md](00-jour-11-auth-r.md) **clos**. |
+| 1k | `apps.iam` | **ADMIN-A** | Lifecycle, audit, `region`. Lab : [00-jour-12-admin-a.md](00-jour-12-admin-a.md) **clos**. |
+| 2 | `apps.iam` + `apps.media` | **PROF-A** | `/me`, avatar (scan SKIPPED lab). Lab : [00-jour-13-prof-a.md](00-jour-13-prof-a.md). |
 | 2b–2c | `apps.iam` | **PROF-B / PROF-C** | Prefs + privacy. |
 | 2d | `apps.iam` + `apps.realtime` | **PRES-A** | Présence Redis + WS. |
 | 2e | `apps.iam` + `apps.annuaire` | **ANNUAIRE-A** | People-picker `GET /users`. Seed types + `YAS` **déjà** jour 3 (AUTH-D). |

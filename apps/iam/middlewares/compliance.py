@@ -67,6 +67,11 @@ def _is_session_allowlist(request) -> bool:
     )
 
 
+def _is_admin_api(path: str) -> bool:
+    """ADMIN-A : JWT + HasPermission suffisent — pas de porte CGU/wizard."""
+    return _is_or_under(path, "/api/v1/admin")
+
+
 class ComplianceGates(BasePermission):
     """TOS / onboarding après HasPermission. Allowlist inchangée (AUTH-F / H)."""
 
@@ -82,6 +87,7 @@ class ComplianceGates(BasePermission):
             or _is_tos(path)
             or _is_heartbeat(request)
             or _is_session_allowlist(request)
+            or _is_admin_api(path)
         ):
             return True
         if not tos_ok(user):

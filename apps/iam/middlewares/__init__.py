@@ -1,7 +1,5 @@
-"""Auth JWT + permissions IAM (DRF, pas le MIDDLEWARE Django)."""
+"""Auth JWT + permissions IAM (DRF, pas le MIDDLEWARE Django).
 
-from apps.iam.middlewares.authentication import YasJWTAuthentication
-from apps.iam.middlewares.compliance import ComplianceMiddleware
-from apps.iam.middlewares.permissions import HasPermission, IsAdminRole
-
-__all__ = ["ComplianceMiddleware", "HasPermission", "IsAdminRole", "YasJWTAuthentication"]
+Imports via sous-modules (`authentication`, `permissions`, `compliance`)
+pour éviter un deadlock d’import au `runserver` (check Django + reloader).
+"""

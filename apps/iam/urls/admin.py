@@ -9,12 +9,19 @@ from apps.iam.views.admin_rbac import (
     RoleListCreateView,
     RolePermissionsView,
 )
+from apps.iam.views.admin_audit import AdminAuditLogListView
+from apps.iam.views.admin_regions import AdminRegionDetailView, AdminRegionListCreateView
 from apps.iam.views.admin_users import (
     AdminMfaResetView,
     AdminUserApproveView,
+    AdminUserDetailView,
+    AdminUserDisableView,
+    AdminUserEnableView,
     AdminUserListView,
     AdminUserLoginsView,
+    AdminUserPasswordView,
     AdminUserRejectView,
+    AdminUserRevokeAllView,
     AdminUserRoleView,
     AdminUserUnlockView,
 )
@@ -57,6 +64,30 @@ urlpatterns = [
         AdminUserRoleView.as_view(),
         name="admin-users-role",
     ),
+    path(
+        "users/<uuid:pk>/disable",
+        AdminUserDisableView.as_view(),
+        name="admin-users-disable",
+    ),
+    path(
+        "users/<uuid:pk>/enable",
+        AdminUserEnableView.as_view(),
+        name="admin-users-enable",
+    ),
+    path(
+        "users/<uuid:pk>/password",
+        AdminUserPasswordView.as_view(),
+        name="admin-users-password",
+    ),
+    path(
+        "users/<uuid:pk>/sessions/revoke-all",
+        AdminUserRevokeAllView.as_view(),
+        name="admin-users-revoke-all",
+    ),
+    path("users/<uuid:pk>", AdminUserDetailView.as_view(), name="admin-users-detail"),
+    path("audit-logs", AdminAuditLogListView.as_view(), name="admin-audit-logs"),
+    path("regions", AdminRegionListCreateView.as_view(), name="admin-regions"),
+    path("regions/<uuid:pk>", AdminRegionDetailView.as_view(), name="admin-regions-detail"),
     path(
         "devices/<uuid:pk>/compromise",
         AdminDeviceCompromiseView.as_view(),

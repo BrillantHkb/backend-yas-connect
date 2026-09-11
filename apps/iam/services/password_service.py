@@ -29,6 +29,7 @@ __all__ = [
     "request_reset",
     "reset_password",
     "rotate_password",
+    "set_password_with_history",
     "verify_dummy",
     "verify_password",
     "verify_reset_mfa",
@@ -120,6 +121,13 @@ def _revoke_unused_tickets(user: User) -> None:
     PasswordResetToken.objects.filter(
         user=user, used_at__isnull=True, revoked_at__isnull=True
     ).update(revoked_at=timezone.now())
+
+
+def set_password_with_history(user: User, new_password: str) -> None:
+    """Politique + history AUTH-G. Pas de logout (l’appelant révoque)."""
+    enforce_password_policy(new_password, email=user.email, username=user.username)
+    _assert_not_reused(user, new_password)
+    _archive_and_set(user, new_password)
 
 
 def rotate_password(

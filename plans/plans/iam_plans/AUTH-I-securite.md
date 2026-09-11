@@ -347,7 +347,7 @@ Delta AUTH-A / AUTH-B : après MDP/bind OK, `lazy_unlock` **avant** le 403 `ACCO
 - [x] Unlock admin audité ; auto 30 min
 - [x] Verify email unique service (register + change) ; LDAP sans change email
 - [x] Resend rate-limité
-- [ ] `/me/security/logins` = `iam.login.read` ; `/me/email*` = `iam.email.change` (AUTH-R) — lab [00-jour-11-auth-r.md](../00-jour-11-auth-r.md)
+- [x] `/me/security/logins` = `iam.login.read` ; `/me/email*` = `iam.email.change` (AUTH-R)
 - [x] SIRH non modifié
 
 ---

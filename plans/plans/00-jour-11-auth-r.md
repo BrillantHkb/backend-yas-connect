@@ -1,9 +1,9 @@
 # Jour 11 — AUTH-R (rôles & permissions)
 
-**Statut :** à faire.  
+**Statut :** clos (2026-09-10).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jours 0–10 **clos** ([jour 1](00-jour-1-auth-a.md) … [jour 10](00-jour-10-auth-i.md)).  
-Rôles `USER` / `ADMIN` **déjà** seedés. `users.role_id` unique. JWT claim `role` = **code** (affichage). Table `permissions` **vide**. `IsAdminRole` = `role.code == ADMIN`. Palier actuel JWT : `IsAuthenticated` (soi) / `IsAdminRole` (admin).
+Rôles `USER` / `ADMIN` **déjà** seedés. JWT claim `role` = **code**. **Livré :** 58 perms, `HasPermission`, CRUD rôles / matrice, `PATCH …/role`.
 
 **MVP** ([MVP-fonctionnalites-roles.md](MVP-fonctionnalites-roles.md) §1 — *Entrer dans l’application* / §9 comptes) :
 
@@ -12,7 +12,7 @@ Rôles `USER` / `ADMIN` **déjà** seedés. `users.role_id` unique. JWT claim `r
 | ----------------------------------------------- | ---------- | ---------------------- |
 | Connexion + MFA + appareils + QR + CGU/wizard   | A–F, J     | **fait** (jours 1–7)   |
 | MDP, déconnexion, historique, lock              | G–I        | **fait** (jours 8–10)  |
-| **Qui a le droit de faire quoi (HTTP)**         | **AUTH-R** | **ce jour**            |
+| **Qui a le droit de faire quoi (HTTP)**         | **AUTH-R** | **fait** (ce jour)     |
 | Lifecycle comptes (disable, kick, régions)      | ADMIN-A    | [jour 12](00-jour-12-admin-a.md) |
 
 
@@ -21,17 +21,9 @@ Rôles `USER` / `ADMIN` **déjà** seedés. `users.role_id` unique. JWT claim `r
 **Plan métier (code à coller) :** [AUTH-R-roles-permissions.md](iam_plans/AUTH-R-roles-permissions.md) (R01 … R10).  
 Chemins lab = ce fichier (`views/admin_rbac.py`, `middlewares/permissions.py` — **pas** `views_admin_rbac.py` ni `apps/iam/permissions.py` à la racine IAM).
 
-**Déjà en base / code :**
+**Livré :** `permissions.resource` ; seed 58 ; `HasPermission` + `ComplianceGates` ; CRUD `/admin/roles` ; matrice ; `PATCH …/role`. Migration `0006_auth_r_permission_resource`.
 
-- `Role`, `Permission`, `RolePermission` (UK `(role, permission)`)
-- Seed `USER` (level 0, `is_system`) + `ADMIN` (level 100) ; jean = USER, `admin@yas.tg` = ADMIN, portes AUTH-F fermées
-- JWT `role` = code ; **pas** la liste des permissions
-- Admin JWT : `IsAdminRole` (D05, C24, E admin, I unlock)
-- `/admin/` Django = cookie `is_staff` (**hors** `HasPermission`)
-
-**Pas encore :** colonne `permissions.resource` ; seed 58 codes ; `HasPermission` ; CRUD `/admin/roles` ; matrice add/remove/PUT ; `PATCH /admin/users/{id}/role`.
-
-**Objectif du jour :**
+**Objectif du jour (fait) :**
 
 1. Seed **58** permissions `is_system` (27 self + 31 admin, table AUTH-R §R03). USER ← self ; ADMIN ← toutes `is_system`.
 2. `HasPermission` DRF **fail-closed** : `required_permission` **obligatoire** sur **chaque** vue JWT → 403 `FORBIDDEN` + body `permission` = code manquant. **Plus** de `IsAuthenticated` seul ni `IsAdminRole` sur l’API.
@@ -367,18 +359,18 @@ Créer `NOC_LEAD`, add `iam.user.unlock`, assigner un user, unlock OK ; retirer 
 
 ## Checklist jour 11
 
-- [ ] Migration `resource` + UK + `code` 96
-- [ ] Seed 58 + USER self / ADMIN tout ; `ensure_system_matrix` pour les tests
-- [ ] `HasPermission` fail-closed + body `permission`
-- [ ] `ComplianceGates` **après** HasPermission ; middleware Django sans deny TOS
-- [ ] Toutes les vues JWT existantes : `required_permission` ; plus `IsAdminRole`
-- [ ] R06 CRUD rôles (gardes system / in-use)
-- [ ] R07 catalogue + custom
-- [ ] R08 add / remove / PUT ; `ADMIN_PERMS_FROZEN`
-- [ ] R09 `PATCH …/role` + `LAST_ADMIN`
-- [ ] Cache Redis 60 s ; Redis down → SQL
-- [ ] `test_auth_r.py` + régression A/C/D/E/F/G/H/I/J
-- [ ] SIRH non modifié
+- [x] Migration `resource` + UK + `code` 96
+- [x] Seed 58 + USER self / ADMIN tout ; `ensure_system_matrix` pour les tests
+- [x] `HasPermission` fail-closed + body `permission`
+- [x] `ComplianceGates` **après** HasPermission ; middleware Django sans deny TOS
+- [x] Toutes les vues JWT existantes : `required_permission` ; plus `IsAdminRole`
+- [x] R06 CRUD rôles (gardes system / in-use)
+- [x] R07 catalogue + custom
+- [x] R08 add / remove / PUT ; `ADMIN_PERMS_FROZEN`
+- [x] R09 `PATCH …/role` + `LAST_ADMIN`
+- [x] Cache Redis 60 s ; Redis down → SQL
+- [x] `test_auth_r.py` + régression A/C/D/E/F/G/H/I/J
+- [x] SIRH non modifié
 
 ---
 
@@ -433,7 +425,7 @@ Cadence actuelle : **1 ligne** [A→Z §4.1](00-application-A-Z.md) = **1 plan d
 | 27 | APPELS-D, E, G | §8 écran, enregistrement, CR auto |
 
 **Total : 28 plans (jours 0 à 27).**  
-Déjà clos : **11** (0–10). Restant : **17** (11–27).
+Déjà clos : **12** (0–11). Restant : **16** (12–27).
 
 Hors ce compteur (A→Z §4.2, *après* le MVP sonnant) : ANNUAIRE-B/C/D, MEDIA-F, APPELS-F, mentions / modération, social, IA.
 

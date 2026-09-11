@@ -1,5 +1,6 @@
 # PROF-A — Identité & affichage (PROF-01 … 14)
 
+**Statut :** à faire — lab [00-jour-13-prof-a.md](../00-jour-13-prof-a.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A…I** (JWT, portes AUTH-F, change email AUTH-65). Tables Annuaire / Médias **déjà créées** (souvent 0 ligne).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) · [Médias](../../catalogues/MEDIA-catalogue-tables.md).  
@@ -18,7 +19,7 @@
 
 | ID | Statut | Comportement | Écritures |
 |----|--------|--------------|-----------|
-| **PROF-01** | **Gardé** | `GET /me` : users + rôle libellé + org résolue (segment / chaîne) | lecture |
+| **PROF-01** | **Gardé** | `GET /me` : identité + org résolue. **Lab :** pas de `role` (claim JWT) | lecture |
 | **PROF-02** | **Gardé** | `GET /users/{id}` : même carte, **masquée** selon privacy du cible | lecture |
 | **PROF-03** | **Gardé** | Upload image → `media_files` (`IMAGE`, scan) → `users.avatar_id` | médias + `avatar_id` |
 | **PROF-04** | **Gardé** | Remplacer = nouvel upload. Supprimer = `avatar_id=NULL` (fichier **conservé**) | `avatar_id` |
@@ -88,7 +89,6 @@
       "matricule": "TG2026015",
       "job_title": "Ingénieur NOC",
       "avatar_url": "https://…/media/<uuid>",
-      "role": { "code": "USER", "name": "Collaborateur" },
       "region": { "id": "<uuid>", "code": "MARITIME", "name": "Maritime" },
       "org": {
         "segment": { "id": "<uuid>", "code": "NOC-LOME", "name": "NOC Lomé", "type": { "code": "SERVICE", "name": "Service" } },
@@ -106,6 +106,7 @@
 
 `email_pending` : adresse `EMAIL_CHANGE` unused si une demande AUTH-65 est en cours, sinon `null`.  
 `org` / `region` / `manager` : `null` si pas de FK.  
+**Lab :** pas de `role` sur `GET /me` (claim JWT). `role` reste sur `GET /users/{id}` et sur le JSON **login**.  
 **Jamais** : hash, `ldap_dn`, `is_locked`, tokens.
 
 ### `PATCH /api/v1/me` (PROF-05/07/10)
@@ -245,15 +246,23 @@ MEDIA_AVATAR_SCAN_SKIP=true
 
 ## 2. Fichiers
 
+Chemins **lab** (arbo `views/` / `services/`) — pas les stubs plats.
+
 ```
-apps/iam/serializers_profile.py
-apps/iam/views_profile.py          # GET/PATCH /me enrichi ; GET /users/{id}
+apps/iam/views/me.py                   # GET + PATCH /me (même vue AUTH-F)
+apps/iam/views/users.py                # GET /users/{id}
+apps/iam/serializers/profile.py
+apps/iam/services/profile_service.py
 apps/iam/services/org_resolver.py
+apps/iam/urls/me.py                    # + avatar
+apps/iam/urls/users.py
 apps/media/services/avatar_service.py
-apps/media/views_avatar.py
+apps/media/views/avatar.py
+apps/media/views/files.py
+apps/media/urls.py
 ```
 
-`GET /me` AUTH-F : **même** vue, payload `user` = PROF-01.
+`GET /me` AUTH-F : **même** vue, payload `user` = PROF-01 (+ prefs / privacy déjà là). `public_user` login **inchangé**.
 
 ---
 
@@ -264,7 +273,7 @@ apps/media/views_avatar.py
 
 | ID | Cas | Attendu |
 |----|-----|---------|
-| 01 | GET /me seed jean | `display_name`, `role.name`, `org` null si pas de segment |
+| 01 | GET /me seed jean | `display_name`, `org` null si pas de segment ; **pas** de `role` |
 | 02 | collègue photo NOBODY | `avatar_url` null ; nom visible |
 | 02 | CONTACTS, autre segment | photo masquée |
 | 02 | user pending | 404 |
@@ -277,7 +286,7 @@ apps/media/views_avatar.py
 | 08 | PATCH job_title (flag défaut false) | 400 `FIELD_FORBIDDEN` (PROF-B) |
 | 09 | PATCH email body /me | 400 (pointer AUTH-I) |
 | 10 | PATCH phone E.164 / null | 200 |
-| 11 | rôle dans GET | `USER` + libellé |
+| 11 | rôle dans GET `/users/{id}` | `USER` + libellé ; `/me` sans `role` |
 | 12–14 | segment + parents seed | `path`, manager = responsable |
 | — | LDAP PATCH phone | 200 |
 
@@ -288,14 +297,14 @@ apps/media/views_avatar.py
 
 ## Critères d’acceptation
 
-- [ ] `/me` : identité + rôle + org résolue ; pas de secrets ; `iam.profile.read`
+- [ ] `/me` : identité + org résolue ; **pas** de `role` ; pas de secrets ; `iam.profile.read`
 - [ ] Collègue : privacy photo / last seen / online ; 404 si inactif ; `iam.profile.read_other`
 - [ ] Avatar upload / replace / clear ; MIME + taille
 - [ ] Nom / username / phone éditables ; matricule / job (défaut) / rôle / segment / email en PATCH `/me` refusés
 - [ ] Prefs langue / tz / toggles = [PROF-B](PROF-B-edition-preferences.md)
 - [ ] Email change = AUTH-I
 - [ ] Manager / dir / dept **via Annuaire**, pas `users.manager_id`
-- [ ] Spec seulement
+- [ ] Spec + lab [00-jour-13-prof-a.md](../00-jour-13-prof-a.md)
 
 ---
 
@@ -305,7 +314,7 @@ apps/media/views_avatar.py
 
 - **AUTH-F** : `data.user` n’est plus un objet vide.
 - **AUTH-I** : seul chemin pour changer l’email.
-- **AUTH-R** : seul chemin pour changer le rôle (`PATCH /admin/users/{id}/role`). Vues PROF = `HasPermission` self (plus « JWT suffit »).
+- **AUTH-R** : seul chemin pour changer le rôle (`PATCH /admin/users/{id}/role`). **Lab :** `GET /me` n’expose pas `role` (claim JWT). `GET /users/{id}` oui.
 - **PROF-B** : prefs + whitelist `job_title` gated ; `GET /me` gagne `editable`.
 - **PROF-C** : écriture `privacy_settings` ; 23–25 déjà lus ici.
 - **PRES-A** : `status` API = **effective** + `badge` ; `last_login` sur `/me` seulement.

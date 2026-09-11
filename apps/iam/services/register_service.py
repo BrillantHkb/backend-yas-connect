@@ -283,28 +283,11 @@ def resend_verification(*, email: str, ip) -> None:
     _issue_email_verification(user)
 
 
-def _admin_user_row(u: User) -> dict:
-    """Liste admin : ldap_bound boolean seulement — jamais le DN."""
-    return {
-        "id": str(u.id),
-        "email": u.email,
-        "username": u.username,
-        "first_name": u.first_name,
-        "last_name": u.last_name,
-        "pending_approval": u.pending_approval,
-        "is_active": u.is_active,
-        "ldap_bound": bool(u.ldap_dn),
-        "created_at": u.created_at.isoformat(),
-    }
+def list_users(*, request=None, pending_only: bool = False) -> dict:
+    """Délègue ADM-01 (filtres + champs étendus). pending_only = file D05."""
+    from apps.iam.services.admin_user_service import list_users as _list
 
-
-def list_users(*, pending_only: bool = False) -> dict:
-    """Sans filtre : tous les users. pending_only=True : file RH D05."""
-    qs = User.objects.select_related("role").order_by("created_at")
-    if pending_only:
-        qs = qs.filter(pending_approval=True)
-    results = [_admin_user_row(u) for u in qs]
-    return {"count": len(results), "results": results}
+    return _list(request=request, pending_only=pending_only)
 
 
 def list_pending_users() -> dict:

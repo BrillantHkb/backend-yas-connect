@@ -1,5 +1,6 @@
 # ADMIN-A — Cycle de vie compte, audit, régions (ADM-01 … 08)
 
+**Statut :** clos (2026-09-11) — lab [00-jour-12-admin-a.md](../00-jour-12-admin-a.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-R** (`HasPermission`) + **AUTH-D** (D05 approve/reject) + **AUTH-G** (politique MDP) + **AUTH-H** (`revoke_sessions`) + **AUTH-I** (unlock).  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) (lecture `segment_id` à la création).  
@@ -178,11 +179,16 @@ Liste **publique** (inscription) = [ANNUAIRE-A](../annuaire_plans/ANNUAIRE-A-rec
 
 ## 1. Fichiers
 
+Chemins **lab** (arbo `views/` / `services/`) — pas les stubs plats.
+
 ```
-apps/iam/views_admin_users.py      # étendre D05
-apps/iam/views_admin_audit.py
-apps/iam/views_admin_regions.py
+apps/iam/views/admin_users.py          # étendre D05
+apps/iam/views/admin_audit.py
+apps/iam/views/admin_regions.py
 apps/iam/services/admin_user_service.py
+apps/iam/services/region_service.py
+apps/iam/serializers/admin_users.py
+apps/iam/urls/admin.py                 # étendre
 ```
 
 `complete_login` / AUTH-16 **inchangés** (`LDAP_MANAGED` évite le conflit enable YAS vs sync AD).
@@ -215,13 +221,13 @@ apps/iam/services/admin_user_service.py
 
 ## Critères d’acceptation
 
-- [ ] Liste admin ≠ seulement pending ; fiche sans secrets
-- [ ] Create RH USER ; disable/enable hors-AD ; LDAP géré par AD
-- [ ] Reset MDP admin + kick sessions
-- [ ] Lecture audit paginée
-- [ ] CRUD `region` + seed 5 régions TG
-- [ ] Rôles/perms **pas** recopiés (AUTH-R)
-- [ ] Perms seed ; spec seulement
+- [x] Liste admin ≠ seulement pending ; fiche sans secrets
+- [x] Create RH USER ; disable/enable hors-AD ; LDAP géré par AD
+- [x] Reset MDP admin + kick sessions
+- [x] Lecture audit paginée
+- [x] CRUD `region` + seed 5 régions TG (seed **déjà** jour 3)
+- [x] Rôles/perms **pas** recopiés (AUTH-R)
+- [x] Lab [00-jour-12-admin-a.md](../00-jour-12-admin-a.md) **clos**
 
 ---
 
