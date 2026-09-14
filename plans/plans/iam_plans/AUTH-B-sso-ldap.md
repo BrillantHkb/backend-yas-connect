@@ -81,6 +81,7 @@ Même body qu’AUTH-A (`LoginSerializer`) : exactement **un** identifiant `emai
     "os_version": "10.0",
     "app_version": "1.0.0",
     "push_token": "",
+    "voip_push_token": "",
     "device_fingerprint": null
   }
 }

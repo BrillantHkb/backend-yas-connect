@@ -19,6 +19,8 @@ from apps.iam.views.devices import (
 from apps.iam.views.me import MeView
 from apps.iam.views.password import PasswordChangeView
 from apps.iam.views.prefs import MePreferencesView
+from apps.iam.views.privacy import MePrivacyView
+from apps.iam.views.presence import MePresenceHeartbeatView, MePresenceView
 from apps.media.views.avatar import MeAvatarView
 from apps.iam.views.security import EmailChangeView, EmailResendView, LoginHistoryView
 from apps.iam.views.sessions import (
@@ -32,6 +34,13 @@ urlpatterns = [
     path("", MeView.as_view(), name="me"),  # GET+PATCH /api/v1/me/
     path("avatar", MeAvatarView.as_view(), name="me-avatar"),  # PROF-A, avant tout catch-all
     path("preferences", MePreferencesView.as_view(), name="me-preferences"),  # PROF-B
+    path("privacy", MePrivacyView.as_view(), name="me-privacy"),  # PROF-C, avant catch-all
+    path(
+        "presence/heartbeat",
+        MePresenceHeartbeatView.as_view(),
+        name="me-presence-heartbeat",  # PRES-A, avant presence
+    ),
+    path("presence", MePresenceView.as_view(), name="me-presence"),
     path("password", PasswordChangeView.as_view(), name="me-password"),  # AUTH-G, avant devices
     path("email", EmailChangeView.as_view(), name="me-email"),  # AUTH-I, avant email/resend
     path("email/resend", EmailResendView.as_view(), name="me-email-resend"),

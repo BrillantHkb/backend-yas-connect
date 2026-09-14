@@ -34,9 +34,9 @@ Hors HTTP : `python manage.py seed_media`.
 
 | # | Méthode | Chemin | Acteur | Permission | Rôles | Plan | Sert à | Spécificités |
 |---|---------|--------|--------|------------|------|------|--------|--------------|
-| 1 | `POST` | `/api/v1/media/uploads` | Collaborateur | `media.file.upload` | USER, ADMIN | A-01 | Init presign | Retourne URL PUT. |
-| 2 | `POST` | `/api/v1/media/uploads/{upload_id}/complete` | Collaborateur | `media.file.upload` | USER, ADMIN | A-01 | Finaliser upload | Checksum, scan async. |
-| 3 | `POST` | `/api/v1/media/upload` | Collaborateur | `media.file.upload` | USER, ADMIN | A-01 | Multipart direct | < 10 Mo. |
+| 1 | `POST` | `/api/v1/media/uploads` | Collaborateur | `media.file.upload` | USER, ADMIN | A-01 | Init presign | URL PUT unique. `size_bytes` > cap → 413 `FILE_TOO_LARGE`. |
+| 2 | `POST` | `/api/v1/media/uploads/{upload_id}/complete` | Collaborateur | `media.file.upload` | USER, ADMIN | A-01 | Finaliser upload | Checksum, scan async. Taille réelle > cap → 413. |
+| 3 | `POST` | `/api/v1/media/upload` | Collaborateur | `media.file.upload` | USER, ADMIN | A-01 | Multipart direct | < 10 Mo, tout ou rien. Cap MED-12. |
 | 4 | `GET` | `/api/v1/media/{id}` | Collaborateur | `media.file.read` | USER, ADMIN | A-09 | Métadonnées | ACL owner / conversation. |
 | 5 | `GET` | `/api/v1/media/{id}/download` | Collaborateur | `media.file.read` | USER, ADMIN | A-10 | Téléchargement | URL signée ; log. |
 | 6 | `DELETE` | `/api/v1/media/{id}` | Collaborateur | `media.file.delete` | USER, ADMIN | A-11 | Supprimer | 409 si référencé. |

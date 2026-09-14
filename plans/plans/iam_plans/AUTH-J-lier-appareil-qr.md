@@ -92,7 +92,7 @@ Préfixe `/api/v1`.
 Le client **affiche** `qr_payload` en QR. `waiter_secret` **jamais** dans le QR (reste en mémoire du waiter pour le poll).
 
 **429** rate-limit IP (défaut 10 / min).  
-`jailbreak` / `push_token` acceptés dans le spec ; appliqués au `complete_login` (AUTH-E-32/33).
+`jailbreak` / `push_token` / `voip_push_token` acceptés dans le spec ; appliqués au `complete_login` (AUTH-E-32/33/28b). Jeton absent = ne pas vider.
 
 ### `GET /api/v1/auth/device-link/{challenge_id}` (public)
 

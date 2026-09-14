@@ -4,7 +4,8 @@ App Django prévue : `apps.messaging`.
 Référence **IAM** (`users`, `devices`) et **Médias** (`media_files`). Pas de duplication de ces tables.
 
 **Légende « Renseigné par »** : User / Système — tables créées à la **phase 3** (module Messagerie).  
-**Pas de PostGIS** : type `LOCATION` = GPS dans `encrypted_content` ([CRYPTO-00](../plans/crypto_plans/CRYPTO-00-modele-chiffrement.md)). `lat`/`lng` en JSON clair → **400** `FIELD_FORBIDDEN`.
+**Pas de PostGIS** : type `LOCATION` = GPS dans `encrypted_content` ([CRYPTO-00](../plans/crypto_plans/CRYPTO-00-modele-chiffrement.md)). `lat`/`lng` en JSON clair → **400** `FIELD_FORBIDDEN`.  
+**Sondages** : fil `GROUP` seulement. `type=POLL` / body `poll` / forward vers `PRIVATE` → **400** `POLL_PRIVATE_FORBIDDEN`. Pas de sondage E2E 1-to-1 au MVP.
 
 Index : [INDEX-catalogue.md](INDEX-catalogue.md).
 
@@ -26,7 +27,7 @@ Index : [INDEX-catalogue.md](INDEX-catalogue.md).
 | `message_forwards` | Lien message source → message forwardé |
 | `pinned_messages` | Messages épinglés dans une conversation |
 | `message_mentions` | Mentions @user (source relationnelle) |
-| `message_polls` | Sondage lié à un message |
+| `message_polls` | Sondage lié à un message (**GROUP** seulement) |
 | `poll_options` | Options de vote |
 | `poll_votes` | Votes utilisateur |
 | `blocked_users` | Blocage user ↔ user |
@@ -254,6 +255,8 @@ UK `(message_id, mentioned_user_id)`.
 
 ## 11. `message_polls`
 
+Sondage d’un fil **`GROUP`** uniquement ([CRYPTO-00](../plans/crypto_plans/CRYPTO-00-modele-chiffrement.md)). Question et options en clair : le service compte les votes. Pas de ligne pour un message `PRIVATE`.
+
 | Attribut | Type PG | Contraintes | Rôle | Exemple | Cas d’usage | Renseigné par |
 |----------|---------|-------------|------|---------|-------------|---------------|
 | `id` | `uuid` | PK | | | | Système |
@@ -371,6 +374,7 @@ UK `(conversation_id, user_id)`. `visibility` / `locked` / `max_members` : édit
 | Contenu message | `encrypted_content` uniquement (pas de `content` clair) |
 | Édition | `message_edits.previous_encrypted_content` (`bytea`) — pas de `previous_content` clair |
 | Localisation | `type=LOCATION` ; GPS **dans le blob** ; pas de colonne geography |
+| Sondage | `type=POLL` **GROUP seulement** ; tables `message_polls` / `poll_options` / `poll_votes` en clair. `PRIVATE` → **400** `POLL_PRIVATE_FORBIDDEN`. Pas de blob sondage au MVP |
 | `conversations.encrypted` | `PRIVATE` → **toujours `true`** ; `GROUP`/`AI` → **`false`** ([CRYPTO-00](../plans/crypto_plans/CRYPTO-00-modele-chiffrement.md)) |
 | Pièces jointes | FK directe `messages.media_id` (pas de `message_attachments`) |
 | Archivage | `archived_conversations` + flag `conversation_members.archived` |

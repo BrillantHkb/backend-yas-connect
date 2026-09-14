@@ -52,4 +52,5 @@ Commande : `python manage.py seed_media` (idempotent).
 | Avatar collègue | `GET /users/{id}` privacy photo (PROF-A) |
 | Document confidentiel | `documents.confidential=true` → owner doc + admin |
 | Scan | `scan_status=INFECTED` → **403** `FILE_INFECTED` sauf admin |
+| Taille fichier | > `media.max_*_bytes` → **413** `FILE_TOO_LARGE` (MED-12) |
 | Quota | `storage_usage.used_bytes + size` ≤ `quota_bytes` sinon **413** |

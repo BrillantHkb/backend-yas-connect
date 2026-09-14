@@ -3,14 +3,14 @@
 **Produit :** YAS Connect uniquement.  
 **Source :** [NOTIF-R](NOTIF-R-roles-permissions.md) · [NOTIF-A](NOTIF-A-in-app-push.md).  
 **Préfixe HTTP :** `/api/v1`.  
-**Dépendances :** IAM (JWT, `devices.push_token`, prefs IAM), CRYPTO-00 (payload 1-to-1).
+**Dépendances :** IAM (JWT, `devices.push_token` / `voip_push_token`, prefs IAM), CRYPTO-00 (payload 1-to-1).
 
 **Permission** = `required_permission` (`HasPermission`).  
 **Rôles** = USER / ADMIN après `seed_notifications` + AUTH-R.
 
-**6 routes HTTP.** Pas de WebSocket dédié (événement optionnel sur le socket user existant).
+**6 routes HTTP inbox** + **1 route IAM** push-test (NOTIF-17). Pas de WebSocket dédié (événement optionnel sur le socket user existant).
 
-**Hors tableau :** `NotificationService.emit()` (hooks Messagerie / Appels / AUTH-E), worker FCM, `GET /health`, OpenAPI.
+**Hors tableau :** `NotificationService.emit()` (hooks Messagerie / Appels / AUTH-E), worker FCM/APNs (matrice [NOTIF-A](NOTIF-A-in-app-push.md)), `GET /health`, OpenAPI.
 
 ---
 
@@ -44,4 +44,4 @@ Hors HTTP : `python manage.py seed_notifications` (3 permissions).
 
 `urls` : `unread-count` et `read-all` **avant** `{id}` pour éviter le conflit.
 
-Token push : [IAM-routes](../iam_plans/IAM-routes.md) AUTH-E (PATCH device) — pas une route NOTIF.
+Token push + test : [IAM-routes](../iam_plans/IAM-routes.md) AUTH-E PATCH device + **#87** `POST /me/devices/current/push-test` (NOTIF-17) — pas une route sous `/notifications`.

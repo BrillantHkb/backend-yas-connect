@@ -225,3 +225,4 @@ UK `(user_id, storage_type)`.
 | `documents.owner_id` | Responsable GED ; `media_files.owner_id` = uploader technique |
 | Versions document | Chaque version = nouveau `media_files` + ligne `document_versions` |
 | AUTH-01 | Toutes les tables créées ; **0 ligne** jusqu’à PROF-A / upload métier |
+| Plafonds upload | `media.max_*_bytes` (MEDIA-A MED-12) ; **413** `FILE_TOO_LARGE`. **Pas** de reprise PUT au MVP |

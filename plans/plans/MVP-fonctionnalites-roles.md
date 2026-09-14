@@ -60,7 +60,7 @@ Deux QR différents : (1) **Google Authenticator** à la première connexion ; (
 
 | Fonction | À quoi ça sert |
 |----------|----------------|
-| Joindre une photo ou un fichier au message | Envoyer un schéma, une photo terrain, un PDF, sans passer par WhatsApp perso. |
+| Joindre une photo ou un fichier au message | Envoyer un schéma, une photo terrain, un PDF, sans passer par WhatsApp perso. Taille plafonnée (pas de reprise si le PUT casse). |
 | Photo de profil | Reconnaître les gens dans la liste, pas seulement un nom. |
 | Ouvrir / télécharger un fichier de la conversation | Relire plus tard ce qui a été partagé dans le fil. |
 | Supprimer un fichier que j’ai envoyé | Retirer une pièce jointe envoyée par erreur (dans la limite de ce que l’app autorise). |
@@ -114,7 +114,7 @@ Sans cette distinction : soit tout le monde (y compris le serveur) lit tout, soi
 | Message en direct | Voir arriver la réponse sans rafraîchir l’écran. |
 | Réaction emoji | Répondre d’un tap (« OK », « vu ») sans écrire un message. |
 | Transférer | Renvoyer un message dans un autre fil, sans le retaper. |
-| Sondage | Trancher à plusieurs (qui vient, quel créneau) sans dix messages « +1 ». |
+| Sondage | Trancher à plusieurs **dans un groupe** (qui vient, quel créneau) sans dix messages « +1 ». Pas en 1-to-1. |
 | Favoris | Retrouver plus tard un message important (consigne, numéro, photo terrain). |
 | Bloquer quelqu’un | Ne plus recevoir ses privés ni ses appels. |
 | « En train d’écrire… » | Savoir que l’autre compose, avant que le message arrive. |
@@ -177,6 +177,7 @@ Pas oublié : **reporté** pour d’abord faire sonner le téléphone et faire p
 - Organigramme éditable, compétences, diplômes  
 - Signaler un message / file de modération  
 - Mentions @, localisation sur carte, épingler un message dans le fil  
+- Reprise d’upload (multipart S3) — PUT unique au MVP  
 
 ---
 

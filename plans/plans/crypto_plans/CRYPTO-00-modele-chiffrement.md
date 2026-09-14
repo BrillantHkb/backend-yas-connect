@@ -26,10 +26,11 @@ Cette page fixe **qui peut lire quoi**. Elle ne décrit pas les primitives ni le
 |-------|--------|
 | Colonne corps | `messages.encrypted_content` (`bytea`) — **jamais** de `content` clair en PG |
 | Flag `conversations.encrypted` | `PRIVATE` : **toujours `true`** à la création. `GROUP` / `AI` : **`false`** (chiffrement transport + at-rest plateforme, pas E2E) |
-| Édition / sondages / localisation | Même régime que le fil : 1-to-1 = blob opaque ; groupe = service peut déchiffrer |
+| Édition / localisation | Même régime que le fil : 1-to-1 = blob opaque ; groupe = service peut déchiffrer |
+| Sondages | **GROUP seulement** (question / options / votes en clair, service lit). **PRIVATE = 400** `POLL_PRIVATE_FORBIDDEN`. Pas de blob sondage ni de sondage E2E au MVP |
 | PJ / avatars 1-to-1 | Client chiffre **avant** PUT MinIO ; `media_files.encrypted=true` ; serveur = ciphertext |
 | PJ / avatars groupe | Upload clair côté plateforme (scan, preview) ; `encrypted=false` sauf politique at-rest S3 |
-| Push / in-app (NOTIF) | 1-to-1 : titre/corps **génériques** (« Nouveau message ») — **interdit** de mettre le plaintext dans `payload` |
+| Push / in-app (NOTIF) | 1-to-1 : titre/corps **génériques** (« Nouveau message ») — **interdit** de mettre le plaintext dans `payload`. Identité d’appel (`caller_name` sur `CALL_INCOMING` / `CALL_CANCELLED`) **autorisée** — [NOTIF-A](../notif_plans/NOTIF-A-in-app-push.md) |
 | Recherche serveur | 1-to-1 : tags / métadonnées seulement. Groupe : recherche texte possible côté service |
 | CRYPTO-A | Bundles par **appareil** + `conversation_keys` (GROUP/AI) — [CRYPTO-A](CRYPTO-A-cles.md) |
 
@@ -40,13 +41,14 @@ Cette page fixe **qui peut lire quoi**. Elle ne décrit pas les primitives ni le
 - Stocker, logger ou renvoyer le plaintext d’un message 1-to-1
 - Déchiffrer `encrypted_content` / PJ E2E pour preview, STT, GED ou IA
 - Inclure le corps dans une notification, un webhook ou un audit
+- Créer ou stocker un sondage en 1-to-1 (question / options / votes)
 
 ---
 
 ## Alignement catalogues
 
-- Messagerie : pas de `content` ; `message_edits.previous_encrypted_content` ; GPS dans le blob (pas PostGIS message).
+- Messagerie : pas de `content` ; `message_edits.previous_encrypted_content` ; GPS dans le blob (pas PostGIS message). Sondages = tables claires **GROUP** ; pas de `POLL` en `PRIVATE`.
 - Médias : `scan_status` s’applique au **ciphertext** en 1-to-1 (ClamAV ne « voit » pas le clair) — acceptable MVP ; groupes = scan du clair.
-- Appels : signalisation LiveKit **hors** ce modèle (média temps réel ≠ chat). Enregistrement = [APPELS-E](../calls_plans/APPELS-E-enregistrements.md) (MVP, clés plateforme).
+- Appels : signalisation LiveKit **hors** ce modèle (média temps réel ≠ chat) — y compris le nom d’annuaire dans le payload push/WS. Enregistrement = [APPELS-E](../calls_plans/APPELS-E-enregistrements.md) (MVP, clés plateforme).
 
-**Hors incrément :** E2E groupes, sealed sender, backup seed phrase, SGX, search E2E (Sesame).
+**Hors incrément :** E2E groupes, sondage E2E 1-to-1, sealed sender, backup seed phrase, SGX, search E2E (Sesame).

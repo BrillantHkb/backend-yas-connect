@@ -21,7 +21,7 @@ Enums communs :
 
 - **`login_method`** : `PASSWORD` \| `LDAP` \| `SSO` \| `OTP` \| `REFRESH` \| `DEVICE_LINK` (`SSO` non livré AUTH-B ; `DEVICE_LINK` = AUTH-J)
 - **`reset_channel`** : `SMS` \| `EMAIL` \| `APPEL`
-- **`users.status`** : `ONLINE` \| `OFFLINE`
+- **`users.status`** : `ONLINE` \| `AWAY` \| `IN_MEETING` \| `OFFLINE`
 - **visibilité privacy** : `EVERYONE` \| `CONTACTS` \| `NOBODY`
 
 ---
@@ -113,7 +113,7 @@ UK `(role_id, permission_id)`.
 
 ## 5. `users`
 
-Présence = `status` (`ONLINE` / `OFFLINE`). **Login** = `is_active` / `is_locked` uniquement.  
+Présence = `status` (`ONLINE` / `AWAY` / `IN_MEETING` / `OFFLINE`) + liveness Redis. **Login** = `is_active` / `is_locked` uniquement — **ne pose pas** ONLINE.  
 Thème / last seen / appels → `privacy_settings` + `user_preferences`. Pas de `manager_id` (N+1 = org Annuaire). Pas de `user_roles`.
 
 | Attribut | Type PG | Contraintes | Rôle | Exemple | Cas d’usage | Renseigné par |
@@ -126,7 +126,8 @@ Thème / last seen / appels → `privacy_settings` + `user_preferences`. Pas de 
 | `matricule` | `varchar(32)` | UK, NULL | Matricule | `TG2026015` | Recherche | RH |
 | `phone` | `varchar(32)` | NULL | E.164 | `+22890…` | Appels / OTP SMS | RH / User |
 | `job_title` | `varchar(128)` | défaut `''` | Intitulé actuel | `Ingénieur NOC` | Carte profil | RH |
-| `status` | `varchar(16)` | NOT NULL, index, enum `ONLINE`/`OFFLINE`, défaut `OFFLINE` | Présence | `ONLINE` | Liste contacts, pastille | Présence WS / heartbeat |
+| `status` | `varchar(16)` | NOT NULL, index, enum `ONLINE`/`AWAY`/`IN_MEETING`/`OFFLINE`, défaut `OFFLINE` | Disponibilité sticky (`IN_MEETING`) ; le reste = effective Redis | `OFFLINE` | Pastille | PRES-A (pas le login) |
+| `status_message` | `varchar(140)` | défaut `''` | Légende sous la pastille | `Comité` | GET `/me` ; collègue si status visible | PRES-11 |
 | `language` | `varchar(8)` | défaut `fr` | Langue profil (peut ≠ prefs) | `fr` | Fallback i18n | RH / User |
 | `timezone` | `varchar(64)` | défaut `Africa/Lome` | Fuseau profil (peut ≠ prefs) | | Planning | RH / User |
 | `role_id` | `uuid` | FK `roles` PROTECT, NOT NULL | Rôle unique | `USER` | JWT, ACL | Seed / RH |
@@ -251,7 +252,8 @@ Index `(user_id, is_active)`.
 | `os_version` | `varchar(64)` | défaut `''` | Version OS | `14` | Compat | App |
 | `app_version` | `varchar(32)` | défaut `''` | Build app | `1.4.2` | Force update | App |
 | `device_fingerprint` | `varchar(255)` | NULL | Empreinte | hash | Anti-fraude | App |
-| `push_token` | `text` | défaut `''` | Token push | FCM ou APNs selon `platform` | NOTIF-A | App |
+| `push_token` | `text` | défaut `''` | Token push | FCM ou APNs **alert** selon `platform` | NOTIF-A | App |
+| `voip_push_token` | `text` | défaut `''` | Token APNs **VoIP** | iOS uniquement (`<bundle-id>.voip`) | NOTIF-A / AUTH-28b | App |
 | `ip_address` | `inet` | NULL | Dernière IP device | | SOC | App / login |
 | `last_location` | `varchar(255)` | NULL | Libellé lieu | `Lomé` | UI « dernière localisation » | App / GeoIP |
 | `trusted` | `boolean` | défaut `false` | Appareil de confiance | | **Non lu AUTH-C** (pas de skip MFA) | — |
@@ -262,7 +264,8 @@ Index `(user_id, is_active)`.
 | `updated_at` | `timestamptz` | NOT NULL | | | | Système |
 
 UK `(user_id, device_uuid)`.  
-Routage push (NOTIF-A) : `ANDROID` / `WEB` / `DESKTOP` → **FCM** ; `IOS` → **APNs** ; `OTHER` ou token vide → in-app seulement.
+Routage push (NOTIF-A) : `ANDROID` / `WEB` / `DESKTOP` → **FCM** via `push_token` ; `IOS` → APNs **alert** via `push_token` **et** APNs **VoIP** via `voip_push_token` (`CALL_INCOMING` / `CALL_CANCELLED`) ; `OTHER` ou jetons vides → in-app seulement.  
+Delta MOB-PUSH (2026-09-11) : colonne `voip_push_token` à porter au jour NOTIF-A. Heartbeat : jeton **absent = ne pas vider**. Revoke / compromis : vider **les deux**.
 
 ---
 

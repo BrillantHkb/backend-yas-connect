@@ -3,7 +3,7 @@ Coller dans apps/notifications/models.py.
 
 Source : catalogues/NOTIF-catalogue-tables.md
 Phase 3b : 2 tables. Dépend de iam (users).
-Push tokens : devices.push_token (AUTH-E), pas de FK ici.
+Push tokens : devices.push_token (FCM / APNs alert) + devices.voip_push_token (APNs VoIP iOS), pas de FK ici.
 """
 
 import uuid

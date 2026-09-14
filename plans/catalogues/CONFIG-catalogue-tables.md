@@ -43,7 +43,9 @@ Clés AUTH-H : `security.session_idle_seconds`, `session_absolute_seconds`, `ses
 Clés AUTH-I : `security.lock_after_failures`, `security.lock_duration_seconds` — [AUTH-I](../plans/iam_plans/AUTH-I-securite.md).  
 Clé AUTH-J : `security.device_link_ttl_seconds` (défaut `120`) — [AUTH-J](../plans/iam_plans/AUTH-J-lier-appareil-qr.md).  
 Clé PROF-B : `profile.job_title_self_edit` (bool, défaut `false`) — [PROF-B](../plans/iam_plans/PROF-B-edition-preferences.md).  
-Clés PRES-A : `presence.heartbeat_seconds`, `redis_ttl_seconds`, `away_after_seconds` — [PRES-A](../plans/iam_plans/PRES-A-presence.md).
+Clé APPELS-A : `calls.ring_timeout_seconds` (int, défaut `45`) — [APPELS-A](../plans/calls_plans/APPELS-A-cycle-vie.md) CALL-08 / MOB-PUSH #2.  
+Clés PRES-A : `presence.heartbeat_seconds`, `redis_ttl_seconds`, `away_after_seconds` — [PRES-A](../plans/iam_plans/PRES-A-presence.md).  
+Clés MEDIA-A (MED-12) : `media.max_image_bytes` (**10 MiB**), `max_audio_bytes` (**10 MiB**), `max_document_bytes` (**15 MiB**), `max_other_bytes` (**10 MiB**), `max_video_bytes` (**16 MiB**), `max_video_duration_seconds` (**90**) — [MEDIA-A](../plans/media_plans/MEDIA-A-upload-stockage.md). Pas de reprise PUT au MVP.
 
 Job AUTH-H : `session_reaper` (`*/5 * * * *`) — même table `scheduled_jobs` qu’AUTH-16.  
 Job AUTH-I : `account_unlock_reaper` (`*/5 * * * *`).

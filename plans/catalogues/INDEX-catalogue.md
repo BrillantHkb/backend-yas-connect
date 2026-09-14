@@ -123,7 +123,7 @@ Pas de GIN trgm sur `extracted_text` en AUTH-01 (ticket recherche GED ultérieur
 | `archived_conversations` | `(user, conversation)` UNIQUE | btree | archivage |
 | `conversation_settings` | `(conversation, user)` UNIQUE ; `custom_settings` | btree / **GIN jsonb** | mute / prefs |
 
-Pas de GIN trgm sur le corps message (contenu chiffré `bytea`). **Pas de PostGIS** messagerie : GPS dans `encrypted_content` (CRYPTO-00).
+Pas de GIN trgm sur le corps message (contenu chiffré `bytea`). **Pas de PostGIS** messagerie : GPS dans `encrypted_content` (CRYPTO-00). Sondages = tables claires **GROUP** ; pas de `POLL` en `PRIVATE`.
 
 ---
 

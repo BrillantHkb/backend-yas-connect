@@ -129,7 +129,7 @@ Owner. Kill cette session. `{id}` = session courante → même effet qu’AUTH-5
 
 `required_permission = iam.session.logout`.
 
-Owner. Kill **toutes** les sessions de cet appareil. **Ne pas** vider `push_token` / `trusted` (ça c’est AUTH-E-34).
+Owner. Kill **toutes** les sessions de cet appareil. **Ne pas** vider `push_token` / `voip_push_token` / `trusted` (ça c’est AUTH-E-34).
 
 ### `POST /api/v1/me/sessions/current/heartbeat` (AUTH-60, JWT)
 
@@ -338,7 +338,7 @@ Redis indisponible : **ignorer** la blacklist (ne pas 503) ; la session DB reste
 | 52 | refresh inconnu | 401 `INVALID_REFRESH` ; **pas** de kill global |
 | 53 | logout | session courante inactive ; autre appareil **intact** |
 | 54 | logout `session_id` distant | cette session morte ; courante OK |
-| 54 | logout `device_id` | sessions de l’appareil mortes ; `devices.trusted` / `push_token` **inchangés** |
+| 54 | logout `device_id` | sessions de l’appareil mortes ; `trusted` / `push_token` / `voip_push_token` **inchangés** |
 | 55 | logout-all | 0 session ; refresh tous révoqués |
 | 56 | liste | courante `is_current=true` ; pas de hash |
 | 57 | `last_activity` trop vieux | middleware 401 ; job pose `INACTIVITY` |

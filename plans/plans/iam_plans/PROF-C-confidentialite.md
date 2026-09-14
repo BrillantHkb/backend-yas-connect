@@ -1,6 +1,6 @@
 # PROF-C — Confidentialité / masquage (PROF-23 … 30)
 
-**Statut :** à faire — lab [00-jour-15-prof-c.md](../00-jour-15-prof-c.md).
+**Statut :** clos (2026-09-11) — lab [00-jour-15-prof-c.md](../00-jour-15-prof-c.md).
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **PROF-A** (lecture collègue déjà masquée) + **PROF-B** (souhait ≠ privacy) + **AUTH-R**.  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) (`privacy_settings`).  
@@ -200,12 +200,12 @@ Delta AUTH-R : perms `iam.privacy.read` / `iam.privacy.update` **déjà** seedé
 
 ## Critères d’acceptation
 
-- [ ] GET/PATCH `/me/privacy` : 8 champs catalogue
-- [ ] 23–25 : effet immédiat sur `GET /users/{id}` ; soi non masqué
-- [ ] 26–27 distincts des souhaits PROF-B
-- [ ] 28–30 persistés ; enforcement hors incrément
-- [ ] `HasPermission` `iam.privacy.read` / `.update` ; seed USER
-- [ ] Spec + lab [00-jour-15-prof-c.md](../00-jour-15-prof-c.md)
+- [x] GET/PATCH `/me/privacy` : 8 champs catalogue
+- [x] 23–25 : effet immédiat sur `GET /users/{id}` ; soi non masqué
+- [x] 26–27 distincts des souhaits PROF-B
+- [x] 28–30 persistés ; enforcement hors incrément
+- [x] `HasPermission` `iam.privacy.read` / `.update` ; seed USER
+- [x] Spec + lab [00-jour-15-prof-c.md](../00-jour-15-prof-c.md)
 
 ---
 

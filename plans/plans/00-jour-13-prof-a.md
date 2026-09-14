@@ -350,13 +350,13 @@ Cadence actuelle : **1 ligne** [A→Z §4.1](00-application-A-Z.md) = **1 plan d
 | 17     | ANNUAIRE-A                                     | §3 recherche collègue               |
 | 18     | CRYPTO-00                                      | §6 décision E2E                     |
 | 19     | MEDIA-R + MEDIA-A                              | §4 upload                           |
-| 20     | NOTIF-R + NOTIF-A                              | §5 alertes                          |
+| 20     | NOTIF-R + NOTIF-A                              | §5 alertes + MOB-PUSH (VoIP / worker) |
 | 21     | CRYPTO-R + CRYPTO-A                            | Clés HTTP                           |
 | 22     | MESSAGERIE-R, A, B                             | §7 1-to-1                           |
 | 23     | MESSAGERIE-C, D                                | §7 groupes + temps réel             |
 | 24     | MESSAGERIE-E (partiel), F, G                   | §7 enrichissements                  |
 | 25     | MEDIA-B, C, D, E                               | §4 album / vocal / coffre           |
-| 26     | APPELS-R, A, B, C                              | §8 appel 1-1                        |
+| 26     | APPELS-R, A, B, C                              | §8 appel 1-1 + `CALL_CANCELLED`     |
 | 27     | APPELS-D, E, G                                 | §8 écran / CR                       |
 
 

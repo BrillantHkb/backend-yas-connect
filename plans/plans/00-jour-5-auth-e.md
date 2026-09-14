@@ -1,6 +1,7 @@
 # Jour 5 — AUTH-E (appareils)
 
 **Statut :** clos (2026-09-09).  
+**Delta MOB-PUSH (2026-09-11) :** `voip_push_token` n’est **pas** un jour 5 bis. Colonne + heartbeat/revoke = **jour 20** ([NOTIF-A](notif_plans/NOTIF-A-in-app-push.md), [AUTH-E](iam_plans/AUTH-E-appareils.md) AUTH-28b).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jours 0–4 **clos** ([jour 1](00-jour-1-auth-a.md), [jour 2](00-jour-2-admin-swagger.md), [jour 3](00-jour-3-auth-b.md), [jour 4](00-jour-4-auth-c.md)).  
 `complete_login` upsert un `devices` après MFA. Liste, rename, push, trusted, jailbreak bloquant, révocation et alerte nouvel appareil sont **livrés**.
@@ -30,7 +31,7 @@ Table déjà en base : `devices` (`apps/iam/models.py` — `Device`). Colonnes `
 3. Admin : compromise / clear-compromise (`IsAdminRole`, comme D05).
 4. `login_history.suspicious` + `FailureReason` DEVICE_* (migration **additive**, pas `down -v`).
 
-**Hors jour 5 :** AUTH-J (QR `yasconnect://…`), AUTH-H (logout session **sans** vider push/trusted), AUTH-I (nouveau pays / GeoIP), NOTIF-A (push FCM réel), Play Integrity / DeviceCheck, `HasPermission` AUTH-R, DELETE `devices`.
+**Hors jour 5 :** AUTH-J (QR `yasconnect://…`), AUTH-H (logout session **sans** vider push/trusted/voip), AUTH-I (nouveau pays / GeoIP), NOTIF-A (push FCM/APNs réel **et** `voip_push_token`), Play Integrity / DeviceCheck, `HasPermission` AUTH-R, DELETE `devices`.
 
 ---
 
@@ -280,6 +281,7 @@ Second client `device_uuid=dev-2` → 2 lignes ; history du 2e verify `suspiciou
 - Renvoyer `push_token` en GET
 - Lire `trusted` pour skip MFA
 - E-mail / FCM réel (NOTIF-A)
+- Colonne `voip_push_token` (delta MOB-PUSH → jour 20)
 - GeoIP / nouveau pays (AUTH-I)
 - `docker compose down -v`
 
@@ -290,4 +292,5 @@ Second client `device_uuid=dev-2` → 2 lignes ; history du 2e verify `suspiciou
 ## Après le jour 5
 
 Jour 6 : [00-jour-6-auth-j.md](00-jour-6-auth-j.md) — **AUTH-J** (QR 2ᵉ écran `yasconnect://…` + TOTP déjà enrollé) **clos**.  
-Jour 7 : [00-jour-7-auth-f.md](00-jour-7-auth-f.md) — **AUTH-F** (CGU + wizard).
+Jour 7 : [00-jour-7-auth-f.md](00-jour-7-auth-f.md) — **AUTH-F** (CGU + wizard).  
+Jour 20 : NOTIF-A — migration `voip_push_token` + worker (delta MOB-PUSH, pas un retour jour 5).

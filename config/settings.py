@@ -46,6 +46,7 @@ DEBUG = env("DJANGO_DEBUG")
 ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1", "testserver"])
 
 INSTALLED_APPS = [
+    "daphne",  # ASGI ; avant staticfiles (PRES-A)
     "django.contrib.admin",  # /admin/ lab (jour 2)
     "django.contrib.contenttypes",
     "django.contrib.auth",
@@ -61,6 +62,8 @@ INSTALLED_APPS = [
     "apps.media",
     "apps.annuaire",
     "apps.config.apps.ConfigAppConfig",  # system_settings LDAP + jobs (pas .env)
+    "channels",
+    "apps.realtime",
 ]
 
 AUTH_USER_MODEL = "iam.User"
@@ -136,6 +139,10 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"/api/v1",
     "SORT_OPERATIONS": False,  # ordre = urlpatterns (parcours auth → me → admin)
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "apps.realtime.schema.add_presence_websocket",  # Channels : /ws/v1/presence
+    ],
     "TAGS": [
         {"name": "Santé", "description": "Liveness / base"},
         {
@@ -246,4 +253,16 @@ else:
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
             "LOCATION": "yas-connect-local",
         }
+    }
+
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [REDIS_URL]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"},
     }

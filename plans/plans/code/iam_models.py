@@ -131,7 +131,9 @@ class User(AbstractBaseUser):
     """AUTH_USER_MODEL. Login = pending_approval / is_active / is_locked, jamais status (présence)."""
 
     class PresenceStatus(models.TextChoices):
-        ONLINE = "ONLINE"  # pastille contacts (WS plus tard)
+        ONLINE = "ONLINE"
+        AWAY = "AWAY"
+        IN_MEETING = "IN_MEETING"
         OFFLINE = "OFFLINE"  # défaut ; AUTH-01 ne le change pas
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
@@ -147,7 +149,8 @@ class User(AbstractBaseUser):
         choices=PresenceStatus.choices,
         default=PresenceStatus.OFFLINE,
         db_index=True,
-    )  # ONLINE/OFFLINE — pas un statut de compte
+    )  # disponibilité sticky (IN_MEETING) ; pastille = effective Redis
+    status_message = models.CharField(max_length=140, blank=True, default="")
     language = models.CharField(max_length=8, default="fr")  # fallback i18n profil
     timezone = models.CharField(max_length=64, default="Africa/Lome")
     role = models.ForeignKey(Role, on_delete=models.PROTECT, related_name="users")
@@ -285,7 +288,8 @@ class Device(models.Model):
     os_version = models.CharField(max_length=64, blank=True, default="")
     app_version = models.CharField(max_length=32, blank=True, default="")
     device_fingerprint = models.CharField(max_length=255, null=True, blank=True)
-    push_token = models.TextField(blank=True, default="")  # FCM / APNs
+    push_token = models.TextField(blank=True, default="")  # FCM / APNs alert
+    voip_push_token = models.TextField(blank=True, default="")  # APNs VoIP iOS (AUTH-28b / NOTIF-A)
     ip_address = models.GenericIPAddressField(null=True, blank=True, unpack_ipv4=True)
     last_location = models.CharField(max_length=255, null=True, blank=True)
     trusted = models.BooleanField(default=False)  # non lu AUTH-C (pas de skip MFA)

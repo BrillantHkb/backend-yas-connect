@@ -37,7 +37,7 @@ Schéma cible : catalogues IAM / Annuaire / Médias / Config / Messagerie / Appe
 | ------------------ | ------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | Produit            | Repo dédié `backend-yas-connect`                  | Pas de mélange avec le SIRH Node                                                                                |
 | API                | REST `/api/v1/*`                                  | Versionnée dès le jour 0                                                                                        |
-| WS                 | Django Channels **plus tard**                     | Hors AUTH-01                                                                                                    |
+| WS                 | Django Channels (**PRES-A**)                      | `/ws/v1/presence` ; hors AUTH-01                                                                                |
 | Runtime            | Python 3.12+ / Django 5.2                         | LTS, DRF mature                                                                                                 |
 | API layer          | `djangorestframework`                             | Serializers, views, auth classes                                                                                |
 | ORM                | Django ORM + PostgreSQL 16                        | Migrations natives                                                                                              |
@@ -764,7 +764,7 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 | 1 | `apps.iam` + `apps.media` + `apps.annuaire` | **AUTH-A** (01–12) | 16 tables IAM + `media_files` + 5 Annuaire. Login local : devices, sessions, refresh, history. |
 | 1b | `apps.config` + IAM + seed annuaire min | **AUTH-D puis AUTH-B** | `ldap_service` + inscription (`register/ad` = seul JIT) **puis** `login/ldap` + job AUTH-16. Pas de seed user AD. Seed régions TG + segment `YAS`. JWT encore sans OTP. |
 | 1c | `apps.iam` | **AUTH-C** (19–24) | `otp_secrets`. TOTP obligatoire chaque login **et** après `register/ad`. Lab : [00-jour-4-auth-c.md](00-jour-4-auth-c.md) **clos**. |
-| 1e | `apps.iam` | **AUTH-E** (27–36) | `devices` : liste, **push_token**, trusted, jailbreak. Lab : [00-jour-5-auth-e.md](00-jour-5-auth-e.md) **clos**. |
+| 1e | `apps.iam` | **AUTH-E** (27–36) | `devices` : liste, **push_token**, trusted, jailbreak. Lab : [00-jour-5-auth-e.md](00-jour-5-auth-e.md) **clos**. Delta MOB-PUSH : `voip_push_token` au jour NOTIF-A. |
 | 1e2 | `apps.iam` | **AUTH-J** (67–69) | QR 2ᵉ appareil + TOTP Authenticator. Cache Redis, 0 table. Lab : [00-jour-6-auth-j.md](00-jour-6-auth-j.md) **clos**. |
 | 1f | `apps.iam` | **AUTH-F** (37–42) | CGU + wizard. Lab : [00-jour-7-auth-f.md](00-jour-7-auth-f.md) **clos**. |
 | 1g | `apps.iam` | **AUTH-G** (43–50) | MDP app (change + forgot TOTP). Lab : [00-jour-8-auth-g.md](00-jour-8-auth-g.md) **clos**. |
@@ -774,16 +774,16 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 | 1k | `apps.iam` | **ADMIN-A** | Lifecycle, audit, `region`. Lab : [00-jour-12-admin-a.md](00-jour-12-admin-a.md) **clos**. |
 | 2 | `apps.iam` + `apps.media` | **PROF-A** | `/me`, avatar (scan SKIPPED lab). Lab : [00-jour-13-prof-a.md](00-jour-13-prof-a.md) **clos**. |
 | 2b | `apps.iam` | **PROF-B** | Prefs + `editable` + `job_title` gated. Lab : [00-jour-14-prof-b.md](00-jour-14-prof-b.md) **clos**. |
-| 2c | `apps.iam` | **PROF-C** | Écriture `privacy_settings`. Lab : [00-jour-15-prof-c.md](00-jour-15-prof-c.md). |
-| 2d | `apps.iam` + `apps.realtime` | **PRES-A** | Présence Redis + WS. |
+| 2c | `apps.iam` | **PROF-C** | Écriture `privacy_settings`. Lab : [00-jour-15-prof-c.md](00-jour-15-prof-c.md) **clos**. |
+| 2d | `apps.iam` + `apps.realtime` | **PRES-A** | Présence Redis + WS. Lab : [00-jour-16-pres-a.md](00-jour-16-pres-a.md) **clos**. |
 | 2e | `apps.iam` + `apps.annuaire` | **ANNUAIRE-A** | People-picker `GET /users`. Seed types + `YAS` **déjà** jour 3 (AUTH-D). |
 | **2x** | — | **[CRYPTO-00](crypto_plans/CRYPTO-00-modele-chiffrement.md)** | Décision 1 page. **0 table.** Clés HTTP = phase **3c**. |
-| **3a** | `apps.media` | **MEDIA-R + MEDIA-A** | Seed `media.*` + upload MinIO (PJ, avatars) **avant** les messages. |
-| **3b** | `apps.notifications` | **NOTIF-R + NOTIF-A** | 2 tables ; in-app + push ; events message/appel. |
+| **3a** | `apps.media` | **MEDIA-R + MEDIA-A** | Seed `media.*` + upload MinIO (PJ, avatars) **avant** les messages. Plafonds MED-12 ; **pas** de reprise PUT. |
+| **3b** | `apps.notifications` | **NOTIF-R + NOTIF-A** | 2 tables ; in-app + push FCM/APNs (iOS alert **et** VoIP) ; events message/appel + `CALL_CANCELLED`. |
 | **3c** | `apps.crypto` | **CRYPTO-R + CRYPTO-A** | Bundles Signal / appareil + `conversation_keys` (GROUP). |
 | **3d** | `apps.messaging` | **MESSAGERIE-R, A, B** | Inbox + 1-to-1 + PJ. Gardes `CRYPTO_*_MISSING`. |
 | **3e** | `apps.messaging` | **MESSAGERIE-C, D** | Groupes (`ensure_conversation_key`) + WS + MSG-67 → NOTIF. |
-| **3f** | `apps.messaging` | **MESSAGERIE-E (partiel), F (blocage), G** | Emoji, transfert, sondage, favoris ; bloquer ; « en train d’écrire ». |
+| **3f** | `apps.messaging` | **MESSAGERIE-E (partiel), F (blocage), G** | Emoji, transfert, sondage **GROUP**, favoris ; bloquer ; « en train d’écrire ». |
 | **4a** | `apps.media` | **MEDIA-B, C, D, E** | Album / thumbs ; transcodage vidéo ; vocal + dictée STT ; GED (coffre documents). |
 | **5a** | `apps.calls` | **APPELS-R, A, B, C** | Appel 1-1 LiveKit + hook CALL-44 → NOTIF (`IN_MEETING`). |
 | **5b** | `apps.calls` | **APPELS-D, E, G** | Partage d’écran ; enregistrement MinIO ; CR + STT/résumé auto. |
@@ -798,6 +798,7 @@ Inventaire fonctions (à quoi chacune sert) : [MVP-fonctionnalites-roles.md](MVP
 | 3g | MESSAGERIE-E reste | Mentions, localisation, épingles message, type IA — **après** |
 | 3h | MESSAGERIE-F reste | Signalement / file modération — **après** |
 | 4f | MEDIA-F | Quotas admin / audit accès — **après** |
+| — | MEDIA reprise S3 multipart | PUT unique au MVP ; parties / reprise = **après** |
 | 5c | APPELS-F | QoS 90 j — **après** |
 | 2f–2h | ANNUAIRE-B, C, D | Arbre RH, affectations, skills — **après** chat/appel |
 | 6 | **CONFIG-A** | Rate-limits messages/appels, flags — après NOTIF |
@@ -856,7 +857,7 @@ Plans fonctionnels Appels : [APPELS-R](calls_plans/APPELS-R-roles-permissions.md
 Comportement login local : [AUTH-A-connexion-locale.md](iam_plans/AUTH-A-connexion-locale.md).  
 MFA : [AUTH-C-mfa-otp.md](iam_plans/AUTH-C-mfa-otp.md) (TOTP obligatoire ; coupe le JWT tant que `/mfa/verify` n’est pas OK).  
 Inscription : [AUTH-D-inscription.md](iam_plans/AUTH-D-inscription.md) (AD + hors AD / RH).  
-Appareils : [AUTH-E-appareils.md](iam_plans/AUTH-E-appareils.md) (27–36 ; `trusted` ≠ skip MFA). Lab [00-jour-5-auth-e.md](00-jour-5-auth-e.md) **clos**.  
+Appareils : [AUTH-E-appareils.md](iam_plans/AUTH-E-appareils.md) (27–36 ; `trusted` ≠ skip MFA). Lab [00-jour-5-auth-e.md](00-jour-5-auth-e.md) **clos**. Delta MOB-PUSH `voip_push_token` → jour NOTIF-A.  
 Lier un 2ᵉ écran : [AUTH-J-lier-appareil-qr.md](iam_plans/AUTH-J-lier-appareil-qr.md) (QR Connect **puis** Google Authenticator ; ≠ QR enroll AUTH-C). Lab [00-jour-6-auth-j.md](00-jour-6-auth-j.md) **clos**.  
 Première connexion / CGU : [AUTH-F-onboarding.md](iam_plans/AUTH-F-onboarding.md) (37–42). Lab : [00-jour-7-auth-f.md](00-jour-7-auth-f.md).  
 Mot de passe : [AUTH-G-mot-de-passe.md](iam_plans/AUTH-G-mot-de-passe.md) (43–50).  
@@ -867,7 +868,7 @@ Admin comptes / audit / régions : [ADMIN-A-lifecycle-audit.md](iam_plans/ADMIN-
 Profil : [PROF-A-identite.md](iam_plans/PROF-A-identite.md) (01–14).  
 Édition & préférences : [PROF-B-edition-preferences.md](iam_plans/PROF-B-edition-preferences.md) (15–22).  
 Confidentialité : [PROF-C-confidentialite.md](iam_plans/PROF-C-confidentialite.md) (23–30).  
-Présence : [PRES-A-presence.md](iam_plans/PRES-A-presence.md) (01–16).  
+Présence : [PRES-A-presence.md](iam_plans/PRES-A-presence.md) (01–16). Lab [00-jour-16-pres-a.md](00-jour-16-pres-a.md) **clos**.  
 Recherche & référentiels : [ANNUAIRE-A-recherche-referentiels.md](annuaire_plans/ANNUAIRE-A-recherche-referentiels.md).  
 Arbre RH : [ANNUAIRE-B-arbre-segments.md](annuaire_plans/ANNUAIRE-B-arbre-segments.md).  
 Affectations : [ANNUAIRE-C-affectations.md](annuaire_plans/ANNUAIRE-C-affectations.md).  
@@ -921,8 +922,8 @@ Socle jour 0 :
 Fermeture MVP (chemin §4.1) :
 
 - [ ] CRYPTO-A : bundles par appareil ; 409 `CRYPTO_KEYS_MISSING` / `PEER_KEYS_MISSING` ; clé cloud GROUP
-- [ ] MEDIA-A : upload MinIO ; `scan_status=SKIPPED` (lab) ou ClamAV (staging) — jamais `CLEAN` sans scan
-- [ ] NOTIF-A : in-app + push routé FCM/APNs via `devices.platform` ; hooks message + appel
+- [ ] MEDIA-A : upload MinIO ; `scan_status=SKIPPED` (lab) ou ClamAV (staging) — jamais `CLEAN` sans scan ; plafonds MED-12 ; **pas** de reprise PUT
+- [ ] NOTIF-A : in-app + push FCM/APNs (iOS **alert** + **VoIP**) ; `voip_push_token` ; hooks message + appel (`CALL_CANCELLED` ≠ `CALL_MISSED`)
 - [ ] MESSAGERIE-B : PJ `media_id` ; 1-to-1 opaque (CRYPTO-00)
 - [ ] APPELS-C : 1-to-1 LiveKit ; `CALL_INCOMING` sonne app fermée
 - [ ] CRYPTO-00 respecté (pas de plaintext 1-to-1 en notif / logs)

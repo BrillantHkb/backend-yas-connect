@@ -137,7 +137,7 @@ Fichiers (arborescence actuelle) :
 | `GET /api/v1/auth/device-link/{challenge_id}` | public | Header `X-Device-Link-Secret` obligatoire. PENDING / APPROVED+tokens (delete cache) / 403 secret / 410 expiré |
 | `POST /api/v1/me/devices/link` | JWT | Body `{ challenge_id, otp }`. 200 `{ linked, device_id }` **sans** tokens. 400 sans otp / backup / self. 401 TOTP faux. 410 expiré. 409 uuid d’un autre user |
 
-`jailbreak` / `push_token` dans le spec waiter : appliqués au `complete_login` (AUTH-E-32/33).  
+`jailbreak` / `push_token` / `voip_push_token` dans le spec waiter : appliqués au `complete_login` (AUTH-E-32/33/28b). Jeton absent = ne pas vider. Colonne VoIP portée au **jour 20**.  
 403 appareil **après** TOTP OK (messages distincts d’AUTH-05).
 
 ---

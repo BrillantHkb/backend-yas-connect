@@ -1,5 +1,6 @@
 # PRES-A — Présence temps réel (PRES-01 … 16)
 
+**Statut :** clos (2026-09-14) — lab [00-jour-16-pres-a.md](../00-jour-16-pres-a.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-H** (session `last_activity`, **pas** la pastille) + **PROF-A/C** (`last_seen`, `online_status_visibility`) + **AUTH-R**.  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md).  
@@ -245,10 +246,12 @@ Index : `status` déjà btree. Pas de `status_until`.
 ## 1. Fichiers
 
 ```
-apps/realtime/consumers.py         # PresenceConsumer
-apps/realtime/routing.py
 apps/iam/services/presence_service.py
-apps/iam/views_presence.py         # PATCH + heartbeat REST
+apps/iam/views/presence.py          # PATCH + heartbeat REST (lab : pas views_presence.py)
+apps/iam/serializers/presence.py
+apps/realtime/consumers.py
+apps/realtime/routing.py
+config/asgi.py                      # ProtocolTypeRouter HTTP + WS
 ```
 
 `config.asgi.application` : ProtocolTypeRouter HTTP + WS.  
@@ -299,7 +302,8 @@ apps/iam/views_presence.py         # PATCH + heartbeat REST
 - [ ] last_seen ≠ last_login
 - [ ] WS event + privacy PROF-25
 - [ ] `badge` API ; AUTH-H heartbeat session distinct
-- [ ] Perms self seed ; spec seulement
+- [x] Perms self seed (jour 11)
+- [x] Spec + lab [00-jour-16-pres-a.md](../00-jour-16-pres-a.md)
 
 ---
 

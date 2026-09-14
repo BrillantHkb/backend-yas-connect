@@ -45,8 +45,8 @@ Hors HTTP : `python manage.py seed_calls` (16 permissions).
 | 2 | `GET` | `/api/v1/calls/history` | Collaborateur | `calls.call.read` | USER, ADMIN | A-10 | Historique | Keyset ; filtres status/type/missed. |
 | 3 | `GET` | `/api/v1/calls/{id}` | Collaborateur | `calls.call.read` | USER, ADMIN | A-11 | Détail | Participant only. |
 | 4 | `POST` | `/api/v1/calls/{id}/accept` | Collaborateur | `calls.call.control` | USER, ADMIN | A-06 | Accepter | → ACTIVE. |
-| 5 | `POST` | `/api/v1/calls/{id}/reject` | Collaborateur | `calls.call.control` | USER, ADMIN | A-07 | Rejeter | CALL_MISSED. |
-| 6 | `POST` | `/api/v1/calls/{id}/end` | Collaborateur | `calls.call.control` | USER, ADMIN | A-09 | Terminer | Durée + ENDED. |
+| 5 | `POST` | `/api/v1/calls/{id}/reject` | Collaborateur | `calls.call.control` | USER, ADMIN | A-07 | Rejeter | `CALL_CANCELLED` + `CALL_MISSED`. |
+| 6 | `POST` | `/api/v1/calls/{id}/end` | Collaborateur | `calls.call.control` | USER, ADMIN | A-09 | Terminer | Durée + ENDED. Si encore RINGING : cancel + missed. |
 
 ---
 
@@ -126,7 +126,8 @@ Hors HTTP : `python manage.py seed_calls` (16 permissions).
 
 | Event | Plan | Payload clé |
 |-------|------|-------------|
-| `CALL_INCOMING` | A | `call_id`, `caller`, `call_type` |
+| `CALL_INCOMING` | A | `call_id`, `call_type`, `caller_id`, `caller_name`, `caller_avatar_id`? |
+| `CALL_CANCELLED` | A | **même identité** que incoming (CallKit si incoming perdu) |
 | `CALL_ACCEPTED` / `REJECTED` / `STARTED` / `ENDED` / `FAILED` | A | `call_id`, `status` |
 | `PARTICIPANT_JOINED` / `LEFT` / `MUTED` / `CAMERA` | B | `user_id`, flags |
 | `ROOM_CLOSED` / `TOKEN_REFRESH_NEEDED` | C | `call_id` |

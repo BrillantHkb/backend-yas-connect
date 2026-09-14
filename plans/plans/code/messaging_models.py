@@ -4,6 +4,7 @@ Coller dans apps/messaging/models.py.
 Source : catalogues/MESSAGERIE-catalogue-tables.md
 Phase 3 : 18 tables. Dépend de iam (users, devices) et media (media_files).
 Pas de PostGIS : GPS dans encrypted_content (CRYPTO-00).
+Sondages : GROUP seulement (tables claires) ; PRIVATE = 400 POLL_PRIVATE_FORBIDDEN.
 call_id : UUID sans FK (module Appels).
 """
 
@@ -352,6 +353,7 @@ class MessageMention(models.Model):
 
 
 class MessagePoll(models.Model):
+    """Sondage GROUP seulement (CRYPTO-00). Question en clair ; pas de POLL en PRIVATE."""
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     question = models.TextField()
     multiple_choices = models.BooleanField(default=False)

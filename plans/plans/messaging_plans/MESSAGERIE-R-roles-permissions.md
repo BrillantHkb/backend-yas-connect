@@ -53,7 +53,7 @@
 | `messaging.receipt.update` | self | USER, ADMIN | Livré / lu |
 | `messaging.member.read` | self | USER, ADMIN | Liste participants |
 | `messaging.member.manage` | self | USER, ADMIN | Ajouter / retirer / rôles |
-| `messaging.poll.vote` | self | USER, ADMIN | Voter / clôturer sondage |
+| `messaging.poll.vote` | self | USER, ADMIN | Voter / clôturer sondage (**GROUP** ; PRIVATE → 400 `POLL_PRIVATE_FORBIDDEN`) |
 | `messaging.block.manage` | self | USER, ADMIN | Blocage user |
 | `messaging.report.create` | self | USER, ADMIN | Signaler message |
 | `messaging.bookmark.manage` | self | USER, ADMIN | Signets |

@@ -29,6 +29,19 @@ def _session_from_access(payload):
     return session
 
 
+def session_from_access_token(raw: str):
+    """Session vivante depuis un JWT access. None si invalide / idle / blacklist."""
+    if not raw:
+        return None
+    try:
+        payload = decode_access_token(raw)
+    except jwt.InvalidTokenError:
+        return None
+    if payload.get("typ") != "access":
+        return None
+    return _session_from_access(payload)
+
+
 def session_user_from_bearer(request):
     """User IAM si Bearer access valide + session vivante. Sinon None (pas d’exception).
 

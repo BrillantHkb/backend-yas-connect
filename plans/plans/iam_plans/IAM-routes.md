@@ -10,7 +10,7 @@
 **Rôles** = qui a ce code après `seed_iam` (USER et/ou ADMIN). ADMIN a aussi toutes les perms USER.  
 Public = `AllowAny` : pas de JWT, pas de permission.
 
-**86 routes.** Un **ADMIN** a aussi toutes les routes Collaborateur (seed = **58** perms system : 27 self + 31 admin).
+**87 routes.** Un **ADMIN** a aussi toutes les routes Collaborateur (seed = **58** perms system : 27 self + 31 admin).
 
 **Hors tableau :** jobs (sync LDAP AUTH-16, reapers), `GET /health`, OpenAPI.
 
@@ -40,7 +40,7 @@ Le [socle A→Z §4](../00-application-A-Z.md) est un **ordre de documentation d
 | **1** | 2 | Login local + refresh + **seed RBAC** + `HasPermission` | 0 |
 | **2** | 1 | MFA : plus de JWT tant que TOTP KO | 1 |
 | **3** | 6 | Sessions / logout / heartbeat idle | 2 |
-| **4** | 5 | Appareils (soi) | 3 |
+| **4** | 6 | Appareils (soi) + push-test (NOTIF-17, jour NOTIF-A) | 3 |
 | **4b** | 3 | Lier un 2ᵉ appareil par QR + TOTP (AUTH-J) | 2, 4 |
 | **5** | 6 | `GET /me` + CGU + wizard | 2 |
 | **6** | 4 | Mot de passe app (change + forgot TOTP) | 3, 5 (portes sur `/me/password`) |
@@ -107,11 +107,12 @@ Complète le refresh (réuse → kick partout). `revoke_sessions` réutilisé en
 
 | # | Méthode | Chemin | Acteur | Permission | Rôles | Plan | Sert à | Spécificités |
 |---|---------|--------|--------|------------|------|------|--------|--------------|
-| 10 | `GET` | `/api/v1/me/devices` | Collaborateur | `iam.device.read` | USER, ADMIN | AUTH-E-35 | Lister ses appareils | `is_current` via session. Push token jamais renvoyé. |
-| 11 | `PATCH` | `/api/v1/me/devices/current` | Collaborateur | `iam.device.update` | USER, ADMIN | AUTH-E-27/28 | Heartbeat appareil + `push_token` + jailbreak | Sans re-login. `trusted` ≠ skip MFA. |
+| 10 | `GET` | `/api/v1/me/devices` | Collaborateur | `iam.device.read` | USER, ADMIN | AUTH-E-35 | Lister ses appareils | `is_current` via session. `push_token` / `voip_push_token` jamais renvoyés. |
+| 11 | `PATCH` | `/api/v1/me/devices/current` | Collaborateur | `iam.device.update` | USER, ADMIN | AUTH-E-27/28/28b | Heartbeat + `push_token` + `voip_push_token` + jailbreak | Sans re-login. Jeton **absent = ne pas vider**. `trusted` ≠ skip MFA. |
 | 12 | `PATCH` | `/api/v1/me/devices/{id}` | Collaborateur | `iam.device.update` | USER, ADMIN | AUTH-E-30/31/36 | Renommer / `trusted` (owner) | Retirer trusted ne tue pas les sessions. |
-| 13 | `POST` | `/api/v1/me/devices/{id}/revoke` | Collaborateur | `iam.device.revoke` | USER, ADMIN | AUTH-E-34 | Révoquer un appareil (kill sessions + push) | Ligne conservée, `trusted=false`. |
-| 14 | `POST` | `/api/v1/me/devices/{id}/compromise` | Collaborateur | `iam.device.compromise` | USER, ADMIN | AUTH-E-33 | Signaler vol / compromis (soi) | Kill + login 403. Miroir admin = vague 14. |
+| 13 | `POST` | `/api/v1/me/devices/{id}/revoke` | Collaborateur | `iam.device.revoke` | USER, ADMIN | AUTH-E-34 | Révoquer un appareil (kill sessions + push) | Ligne conservée, `trusted=false`. Vide `push_token` **et** `voip_push_token`. |
+| 14 | `POST` | `/api/v1/me/devices/{id}/compromise` | Collaborateur | `iam.device.compromise` | USER, ADMIN | AUTH-E-33 | Signaler vol / compromis (soi) | Kill + login 403. Vide les deux jetons. Miroir admin = vague 14. |
+| 87 | `POST` | `/api/v1/me/devices/current/push-test` | Collaborateur | `iam.device.update` | USER, ADMIN | NOTIF-17 | Diagnostiquer le push de **cet** appareil | Type `PUSH_TEST` (pas `DEVICE_NEW`). **200** + corps par canal. Rate-limit 1/30 s. Porter au jour NOTIF-A. |
 
 ---
 
@@ -195,7 +196,7 @@ Première surface « app ». Toutes les vues métier suivantes s’appuient sur 
 | 33 | `DELETE` | `/api/v1/me/avatar` | Collaborateur | `media.avatar.manage` | USER, ADMIN | PROF-04 | Retirer l’avatar | Fichier `media_files` conservé. |
 | 34 | `GET` | `/api/v1/me/preferences` | Collaborateur | `iam.prefs.read` | USER, ADMIN | PROF-B | Lire langue, fuseau, son, DL, souhait accusés | Distinct de `privacy_settings`. |
 | 35 | `PATCH` | `/api/v1/me/preferences` | Collaborateur | `iam.prefs.update` | USER, ADMIN | PROF-B | Modifier ses préférences UI | `read_receipts` ici = souhait, pas le booléen privacy. |
-| 36 | `GET` | `/api/v1/me/privacy` | Collaborateur | `iam.privacy.read` | USER, ADMIN | PROF-C | Lire visibilités + `allow_*` | Pas exposé dans `GET /me`. |
+| 36 | `GET` | `/api/v1/me/privacy` | Collaborateur | `iam.privacy.read` | USER, ADMIN | PROF-C | Lire visibilités + `allow_*` | Écran dédié. Bloc `privacy` **aussi** lu sur `GET /me`. |
 | 37 | `PATCH` | `/api/v1/me/privacy` | Collaborateur | `iam.privacy.update` | USER, ADMIN | PROF-C | Masquer photo / last_seen / online | 23–25 effet immédiat sur GET collègue. |
 | 38 | `GET` | `/api/v1/users/{id}` | Collaborateur | `iam.profile.read_other` | USER, ADMIN | PROF-02 | Fiche d’un collègue | 404 si inactif. Self → 400. Après CGU/wizard. |
 
@@ -317,5 +318,5 @@ Channels. Login ≠ online. Sticky `IN_MEETING` = hook appels (plus tard).
 | Acteur | Combien | Vagues | Qui |
 |--------|---------|--------|-----|
 | **Public** | 18 | 1, 2, 4b, 6, 7, 8, 10, 11 | Anonyme : login, MFA, inscription, forgot, `/directory/*`, device-link start/poll |
-| **Collaborateur** | 35 | 3–6, 8–9, 15–16, 4b | Rôle `USER` |
+| **Collaborateur** | 36 | 3–6, 8–9, 15–16, 4b | Rôle `USER` |
 | **Admin** | 33 | 10, 12–14 | Rôle `ADMIN` (+ toutes les routes Collaborateur) |

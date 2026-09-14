@@ -1,9 +1,9 @@
 # Jour 15 — PROF-C (confidentialité / écriture masques)
 
-**Statut :** à faire.  
+**Statut :** clos (2026-09-11).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jours 0–14 **clos** ([jour 1](00-jour-1-auth-a.md) … [jour 14](00-jour-14-prof-b.md)).  
-Lecture collègue **déjà** masquée (PROF-A). Prefs **déjà** distinctes (PROF-B). Perms `iam.privacy.read` / `iam.privacy.update` **déjà** seedées (jour 11). Ligne `privacy_settings` 1-1 **déjà** à `create_user`.
+**Livré :** GET/PATCH `/api/v1/me/privacy` (8 champs + `updated_at`). 0 migration. Masque collègue inchangé (PROF-A).
 
 **MVP** ([MVP-fonctionnalites-roles.md](MVP-fonctionnalites-roles.md) §2 — *visibilité*) :
 
@@ -11,7 +11,7 @@ Lecture collègue **déjà** masquée (PROF-A). Prefs **déjà** distinctes (PRO
 | Fonction MVP                       | Ticket   | Statut                                     |
 | ---------------------------------- | -------- | ------------------------------------------ |
 | Ma fiche / photo / prefs           | PROF-A/B | **fait** (jours 13–14)                     |
-| **Écrire ses masques confidentialité** | **PROF-C** | **ce jour**                            |
+| **Écrire ses masques confidentialité** | **PROF-C** | **fait** (ce jour)                            |
 | Statut en ligne / last_seen live   | PRES-A   | [jour 16](00-jour-16-pres-a.md)            |
 
 
@@ -29,9 +29,11 @@ Chemins lab = ce fichier (`views/privacy.py`, `services/privacy_service.py` — 
 - Prefs `read_receipts` / `typing_indicator` ≠ colonnes `*_enabled`
 - USER a déjà `iam.privacy.read` / `update`
 
-**Pas encore :** `GET/PATCH /api/v1/me/privacy`.
+**Pas encore (avant ce jour) :** `GET/PATCH /api/v1/me/privacy`.
 
-**Objectif du jour :**
+**Livré (code) :** GET/PATCH `/me/privacy` ; 23–25 effet immédiat sur `GET /users/{id}` ; soi non masqué sur GET `/me` ; `INVALID_VISIBILITY` / `UNKNOWN_FIELD` ; 26–27 ≠ prefs ; 28–30 persistés ; audit `PRIVACY_PATCH`. Login `public_user` **inchangé**. Bloc `privacy` **conservé** sur GET `/me`.
+
+**Objectif du jour (fait) :**
 
 1. `GET /api/v1/me/privacy` : 8 champs + `updated_at`.
 2. `PATCH /api/v1/me/privacy` partiel ≥ 1 clé ; effet **immédiat** 23–25 sur `GET /users/{id}`.
@@ -39,7 +41,7 @@ Chemins lab = ce fichier (`views/privacy.py`, `services/privacy_service.py` — 
 4. 26–27 n’écrivent **pas** les souhaits PROF-B. 28–30 persistés seulement (pas d’enforcement appel / mention / groupe).
 5. **Garder** le bloc `privacy` sur `GET /me` (déjà jour 13 — ne **pas** le retirer).
 
-**Hors jour 15 :** PRES-A (Redis / WS `USER_STATUS_CHANGED`), moteur chat / appels / invitations, graphe d’amis, PATCH privacy d’un **autre**, admin override, recoder PROF-A masque / PROF-B prefs.
+**Hors jour 15 :** PRES-A (Redis / WS `USER_STATUS_CHANGED`), moteur chat / appels / invitations, graphe d’amis, PATCH privacy d’un **autre**, admin override, recoder PROF-A masque / PROF-B prefs, **MOB-PUSH** (worker, `voip_push_token`, `CALL_CANCELLED` — jours **20** et **26**).
 
 ---
 
@@ -248,14 +250,14 @@ Compte neuf : GET `/me/privacy` bloqué.
 
 ## Checklist jour 15
 
-- [ ] GET/PATCH `/me/privacy` (8 champs + `updated_at`)
-- [ ] 23–25 effet immédiat collègue ; soi non masqué sur GET `/me`
-- [ ] `INVALID_VISIBILITY` / `UNKNOWN_FIELD` (dont clé prefs `read_receipts`)
-- [ ] 26–27 ≠ souhaits PROF-B ; 28–30 persistés
-- [ ] Bloc `privacy` **conservé** sur GET `/me` ; login inchangé
-- [ ] `test_prof_c.py` + régression A/B
-- [ ] SIRH non modifié
-- [ ] 0 `docker compose down -v`
+- [x] GET/PATCH `/me/privacy` (8 champs + `updated_at`)
+- [x] 23–25 effet immédiat collègue ; soi non masqué sur GET `/me`
+- [x] `INVALID_VISIBILITY` / `UNKNOWN_FIELD` (dont clé prefs `read_receipts`)
+- [x] 26–27 ≠ souhaits PROF-B ; 28–30 persistés
+- [x] Bloc `privacy` **conservé** sur GET `/me` ; login inchangé
+- [x] `test_prof_c.py` + régression A/B
+- [x] SIRH non modifié
+- [x] 0 `docker compose down -v`
 
 ---
 
@@ -279,6 +281,8 @@ Compte neuf : GET `/me/privacy` bloqué.
 
 Jour 16 : [00-jour-16-pres-a.md](00-jour-16-pres-a.md) — **PRES-A** (présence Redis + `last_seen` live ; `online_status_visibility` filtre aussi le WS).
 
+Delta MOB-PUSH (déjà dans AUTH-E / NOTIF-A / APPELS-A) : **pas** ce jour. À coller au **jour 20** (migration `voip_push_token` + worker FCM/APNs + `PUSH_TEST`) et au **jour 26** (`CALL_CANCELLED`, identité appelant, timeout configurable).
+
 ---
 
 
@@ -301,17 +305,17 @@ Cadence actuelle : **1 ligne** [A→Z §4.1](00-application-A-Z.md) = **1 plan d
 | 17     | ANNUAIRE-A                                     | §3 recherche collègue               |
 | 18     | CRYPTO-00                                      | §6 décision E2E                     |
 | 19     | MEDIA-R + MEDIA-A                              | §4 upload                           |
-| 20     | NOTIF-R + NOTIF-A                              | §5 alertes                          |
+| 20     | NOTIF-R + NOTIF-A                              | §5 alertes + MOB-PUSH (VoIP / worker) |
 | 21     | CRYPTO-R + CRYPTO-A                            | Clés HTTP                           |
 | 22     | MESSAGERIE-R, A, B                             | §7 1-to-1                           |
 | 23     | MESSAGERIE-C, D                                | §7 groupes + temps réel             |
 | 24     | MESSAGERIE-E (partiel), F, G                   | §7 enrichissements                  |
 | 25     | MEDIA-B, C, D, E                               | §4 album / vocal / coffre           |
-| 26     | APPELS-R, A, B, C                              | §8 appel 1-1                        |
+| 26     | APPELS-R, A, B, C                              | §8 appel 1-1 + `CALL_CANCELLED`     |
 | 27     | APPELS-D, E, G                                 | §8 écran / CR                       |
 
 
 **Total : 28 plans (jours 0 à 27).**  
-Déjà clos : **15** (0–14). Restant : **13** (15–27).
+Déjà clos : **16** (0–15). Restant : **12** (16–27).
 
 Hors ce compteur (A→Z §4.2) : ANNUAIRE-B/C/D, MEDIA-F, APPELS-F, mentions / modération, social, IA.

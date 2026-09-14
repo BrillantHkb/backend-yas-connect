@@ -31,7 +31,7 @@ Chemins lab = ce fichier (`views/sessions.py`, pas `views_session.py` à la raci
 4. Blacklist JTI (cache) jusqu’à `exp` access ; Redis / cache down → **ignorer**, session DB = vérité.
 5. Extraire `revoke_sessions` ; AUTH-G continue de tuer les sessions (motifs inchangés) **et** blacklist les JTI.
 
-**Hors jour 9 :** AUTH-I, ADMIN-A kick d’un autre user, PRES-A pastille, cookie httpOnly, OTP au refresh, `HasPermission` AUTH-R, révocation **appareil** AUTH-E-34 (`push_token` / `trusted`).
+**Hors jour 9 :** AUTH-I, ADMIN-A kick d’un autre user, PRES-A pastille, cookie httpOnly, OTP au refresh, `HasPermission` AUTH-R, révocation **appareil** AUTH-E-34 (`push_token` / `voip_push_token` / `trusted`).
 
 ---
 
@@ -97,7 +97,7 @@ AUTH-H métier dit `HasPermission`. **Jour 9 = même palier que `/me/password` /
 | ----- | ---- |
 | `sessions` | `expires_at` = plafond **session** (commentaire modèle, plus « fin de l’access ») |
 | `refresh_tokens` | rotation inchangée ; `expires_at` capé par la session |
-| `devices` | **lecture** liste ; AUTH-54 **ne** touche **pas** `push_token` / `trusted` |
+| `devices` | **lecture** liste ; AUTH-54 **ne** touche **pas** `push_token` / `voip_push_token` / `trusted` |
 | `audit_logs` | `LOGOUT` / `LOGOUT_ALL` / `FORCE_LOGOUT` (déjà) / job `INACTIVITY` / `EXPIRED` |
 
 Motifs `revoke_reason` (CharField 64, déjà libre) : `LOGOUT`, `LOGOUT_ALL`, `INACTIVITY`, `EXPIRED` — plus `PASSWORD_*`, `REFRESH_REUSE`, `NEW_LOGIN_SAME_DEVICE`, `MFA_RESET`.
@@ -199,7 +199,7 @@ Arborescence actuelle (`views/`, `serializers/`, `urls/auth.py`, `urls/me.py`) �
 | `POST /api/v1/auth/logout-all` | JWT | partout `LOGOUT_ALL` (y compris courant) ; **200** |
 | `GET /api/v1/me/sessions` | JWT | actives et pas `session_dead` ; `is_current` ; jamais hash / JTI |
 | `POST /api/v1/me/sessions/{id}/logout` | JWT | owner ; `{id}` = courante → même effet qu’AUTH-53 ; **404** autre user (pas 403) |
-| `POST /api/v1/me/devices/{id}/logout` | JWT | owner ; toutes les sessions de l’appareil ; `devices.trusted` / `push_token` **inchangés** ; **404** autre user |
+| `POST /api/v1/me/devices/{id}/logout` | JWT | owner ; toutes les sessions de l’appareil ; `devices.trusted` / `push_token` / `voip_push_token` **inchangés** ; **404** autre user |
 | `POST /api/v1/me/sessions/current/heartbeat` | JWT | body vide ; write `last_activity` si ≥ 60 s sinon 200 no-op ; `{ "last_activity": "…" }` ; **pas** `users.status` |
 
 Liste (forme figée) :
@@ -259,7 +259,7 @@ Régression : A (refresh) + G + F encore verts.
 | refresh inconnu | 401 `INVALID_REFRESH` ; **pas** de kill |
 | `POST /auth/logout` | courante inactive `LOGOUT` ; autre appareil **intact** |
 | logout session distante | cette session morte ; courante OK |
-| logout `device_id` | sessions de l’appareil mortes ; `trusted` / `push_token` **inchangés** |
+| logout `device_id` | sessions de l’appareil mortes ; `trusted` / `push_token` / `voip_push_token` **inchangés** |
 | logout session d’un **autre** user | **404** |
 | `POST /auth/logout-all` | 0 session ; refresh tous révoqués |
 | `GET /me/sessions` | courante `is_current=true` ; pas de `refresh_hash` / `access_jti` |
@@ -327,7 +327,7 @@ pytest apps/iam/tests/test_auth_h.py apps/iam/tests/test_auth_a.py apps/iam/test
 - `HasPermission` AUTH-R
 - Coder AUTH-I / ADMIN-A kick / PRES-A
 - Cookie httpOnly, OTP au refresh
-- Vider `push_token` / `trusted` sur AUTH-54
+- Vider `push_token` / `voip_push_token` / `trusted` sur AUTH-54
 - `startswith /me/devices` dans l’allowlist CGU
 - Recoller `session.expires_at` au TTL access 15 min
 - 503 si Redis down

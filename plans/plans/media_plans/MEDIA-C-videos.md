@@ -21,7 +21,7 @@
 | **MED-39** | **Gardé** | Durée, résolution, codec | `videos` + `media_metadata` |
 | **MED-40** | **Gardé** | État pipeline visible client | polling `transcoding_status` |
 | **MED-41** | **Gardé** | Échec transcodage | `FAILED` + retry |
-| **MED-42** | **Gardé** | Limite taille / durée (config) | validation upload |
+| **MED-42** | **Gardé** | Limite taille / durée = caps MEDIA-A (`max_video_bytes`, `max_video_duration_seconds`) | validation upload |
 
 ---
 
@@ -38,3 +38,5 @@
 ### `GET /api/v1/media/{id}/video/thumbnail`
 
 Redirect thumbnail ; généré à la fin transcodage si absent.
+
+**Upload :** plafond MEDIA-A (`media.max_video_bytes` **16 MiB**, `max_video_duration_seconds` **90**). Au-dessus → **413** `FILE_TOO_LARGE`. Pas de reprise PUT.

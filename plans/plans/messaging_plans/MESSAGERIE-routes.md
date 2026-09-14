@@ -58,7 +58,7 @@ Hors HTTP : `python manage.py seed_messaging` (18 permissions).
 | # | Méthode | Chemin | Acteur | Permission | Rôles | Plan | Sert à | Spécificités |
 |---|---------|--------|--------|------------|------|------|--------|--------------|
 | 10 | `GET` | `/api/v1/conversations/{id}/messages` | Collaborateur | `messaging.message.read` | USER, ADMIN | B-21 | Historique | Keyset `sent_at`. |
-| 11 | `POST` | `/api/v1/conversations/{id}/messages` | Collaborateur | `messaging.message.send` | USER, ADMIN | B-22 | Envoyer | `client_message_id` idempotent. |
+| 11 | `POST` | `/api/v1/conversations/{id}/messages` | Collaborateur | `messaging.message.send` | USER, ADMIN | B-22 | Envoyer | `client_message_id` idempotent. `type=POLL` → E-81, **GROUP only** ; PRIVATE → 400 `POLL_PRIVATE_FORBIDDEN`. |
 | 12 | `GET` | `/api/v1/messages/{id}` | Collaborateur | `messaging.message.read` | USER, ADMIN | B-27 | Détail message | |
 | 13 | `PATCH` | `/api/v1/messages/{id}` | Collaborateur | `messaging.message.update` | USER, ADMIN | B-24 | Éditer | Auteur seul ; fenêtre 15 min. |
 | 14 | `DELETE` | `/api/v1/messages/{id}` | Collaborateur | `messaging.message.delete` | USER, ADMIN | B-25/26 | Supprimer | Query `scope=SELF\|EVERYONE`. |
@@ -99,14 +99,14 @@ Hors HTTP : `python manage.py seed_messaging` (18 permissions).
 |---|---------|--------|--------|------------|------|------|--------|--------------|
 | 27 | `POST` | `/api/v1/messages/{id}/reactions` | Collaborateur | `messaging.message.react` | USER, ADMIN | E-73 | Ajouter emoji | |
 | 28 | `DELETE` | `/api/v1/messages/{id}/reactions` | Collaborateur | `messaging.message.react` | USER, ADMIN | E-74 | Retirer | Query `emoji`. |
-| 29 | `POST` | `/api/v1/messages/{id}/forward` | Collaborateur | `messaging.message.forward` | USER, ADMIN | E-75 | Transférer | |
+| 29 | `POST` | `/api/v1/messages/{id}/forward` | Collaborateur | `messaging.message.forward` | USER, ADMIN | E-75 | Transférer | POLL vers `PRIVATE` → 400 `POLL_PRIVATE_FORBIDDEN`. |
 | 30 | `POST` | `/api/v1/conversations/{id}/pins` | Collaborateur | `messaging.message.update` | USER, ADMIN | E-77 | Épingler message | OWNER/ADMIN/MEMBER selon policy. |
 | 31 | `DELETE` | `/api/v1/conversations/{id}/pins/{message_id}` | Collaborateur | `messaging.message.update` | USER, ADMIN | E-78 | Désépingler | |
 | 32 | `POST` | `/api/v1/messages/{id}/bookmarks` | Collaborateur | `messaging.bookmark.manage` | USER, ADMIN | E-79 | Signet | |
 | 33 | `DELETE` | `/api/v1/messages/{id}/bookmarks` | Collaborateur | `messaging.bookmark.manage` | USER, ADMIN | E-79 | Retirer signet | |
 | 34 | `GET` | `/api/v1/me/message-bookmarks` | Collaborateur | `messaging.bookmark.manage` | USER, ADMIN | E-80 | Liste signets | |
-| 35 | `POST` | `/api/v1/polls/{id}/votes` | Collaborateur | `messaging.poll.vote` | USER, ADMIN | E-82 | Voter | |
-| 36 | `POST` | `/api/v1/polls/{id}/close` | Collaborateur | `messaging.poll.vote` | USER, ADMIN | E-83 | Clôturer sondage | Créateur ou admin groupe. |
+| 35 | `POST` | `/api/v1/polls/{id}/votes` | Collaborateur | `messaging.poll.vote` | USER, ADMIN | E-82 | Voter | Fil **GROUP** seulement. |
+| 36 | `POST` | `/api/v1/polls/{id}/close` | Collaborateur | `messaging.poll.vote` | USER, ADMIN | E-83 | Clôturer sondage | Créateur ou admin groupe. Fil **GROUP**. |
 
 ---
 

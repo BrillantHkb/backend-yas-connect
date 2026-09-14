@@ -23,7 +23,7 @@
 | **MED-09** | **Gardé** | GET métadonnées fichier | lecture owner ou ACL |
 | **MED-10** | **Gardé** | URL téléchargement signée TTL 15 min | pas de path public |
 | **MED-11** | **Gardé** | DELETE soft ou hard (orphan S3) | job cleanup |
-| **MED-12** | **Gardé** | Taille max par type (config) | validation |
+| **MED-12** | **Gardé** | Taille max par type (config) ; **413** `FILE_TOO_LARGE` | validation |
 | **MED-13** | **Gardé** | Incrément quota à l’upload | `storage_usage` |
 | **MED-14** | **Gardé** | Journal accès DOWNLOAD | `media_access_logs` |
 | **MED-15** | **Gardé** | Avatar profil (PROF-A) | `users.avatar_id` |
@@ -31,7 +31,7 @@
 | **MED-17** | **Gardé** | Certif annuaire | `user_certifications.document_id` |
 | **MED-18** | **Gardé** | Portes AUTH-F sur upload | — |
 
-**Hors incrément :** CDN public, watermark global.
+**Hors incrément :** CDN public, watermark global, **reprise d’upload / multipart S3** (PUT unique au MVP).
 
 ---
 
@@ -39,12 +39,14 @@
 
 | Sujet | Choix |
 |-------|--------|
-| Flow presign | `POST /media/uploads` → `{ upload_id, presigned_url }` → client PUT → `POST /media/uploads/{id}/complete` |
-| Flow multipart | `POST /media/upload` direct < 10 Mo |
+| Flow presign | `POST /media/uploads` → `{ upload_id, presigned_url }` → client PUT → `POST /media/uploads/{id}/complete`. **Un** PUT ; **pas** de reprise |
+| Flow multipart | `POST /media/upload` direct < 10 Mo (tout ou rien) |
 | Bucket | `bucket_name` depuis settings ; path `/{type}/{yyyy}/{uuid}` |
 | Scan (MED-05) | **Lab / dev :** pas de worker → `SKIPPED` (jamais `CLEAN` fantôme). **Staging / prod :** ClamAV `PENDING` → `CLEAN` \| `INFECTED`. Figé A→Z §4.3. |
 | INFECTED | Pas de download ; message chat refusé (MSG-38) |
 | 1-to-1 E2E | Ciphertext MinIO (`encrypted=true`) ; scan du blob opaque — [CRYPTO-00](../crypto_plans/CRYPTO-00-modele-chiffrement.md) |
+| Plafonds (MED-12) | Seed `media.max_*_bytes`. Au-dessus → **413** `FILE_TOO_LARGE` (init, complete, multipart). Avatar PROF-A = **2 Mo** (inchangé) |
+| Reprise | **Pas au MVP.** Un PUT cassé = tout recommencer. Multipart S3 = après |
 
 ---
 
@@ -54,11 +56,24 @@
 
 `media.file.upload`. Body : `{ "filename", "mime_type", "size_bytes", "media_type" }`.
 
-**201** `{ "upload_id", "presigned_url", "expires_in" }`.
+**201** `{ "upload_id", "presigned_url", "expires_in" }`.  
+**413** `FILE_TOO_LARGE` si `size_bytes` > plafond du `media_type` (MED-12).
 
 ### `POST /api/v1/media/uploads/{upload_id}/complete`
 
-`{ "checksum": "sha256..." }` → crée `media_files` + lance scan.
+`{ "checksum": "sha256..." }` → crée `media_files` + lance scan.  
+**413** `FILE_TOO_LARGE` si la taille réelle dépasse le cap.
+
+Seed `python manage.py seed_config` (MED-12) :
+
+| category | setting_key | value | type |
+|----------|-------------|-------|------|
+| `media` | `max_image_bytes` | `10485760` | int |
+| `media` | `max_audio_bytes` | `10485760` | int |
+| `media` | `max_document_bytes` | `15728640` | int |
+| `media` | `max_other_bytes` | `10485760` | int |
+| `media` | `max_video_bytes` | `16777216` | int |
+| `media` | `max_video_duration_seconds` | `90` | int |
 
 ### MED-09 — `GET /api/v1/media/{id}`
 

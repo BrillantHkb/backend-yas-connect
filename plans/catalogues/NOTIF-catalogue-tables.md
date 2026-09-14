@@ -6,7 +6,7 @@ Source comportement : [NOTIF-R](../plans/notif_plans/NOTIF-R-roles-permissions.m
 
 **Légende « Renseigné par »** : Système (service) / User / Seed.
 
-Push tokens : **pas** de table dédiée — `devices.push_token` ([IAM](IAM-catalogue-tables.md) AUTH-E).
+Push tokens : **pas** de table dédiée — `devices.push_token` (FCM / APNs alert) et `devices.voip_push_token` (APNs VoIP iOS) ([IAM](IAM-catalogue-tables.md) AUTH-E / AUTH-28b).
 
 ---
 
@@ -34,9 +34,11 @@ Push tokens : **pas** de table dédiée — `devices.push_token` ([IAM](IAM-cata
 | `pushed_at` | `timestamptz` | NULL | Push envoyé | | Retry / debug | Système |
 | `created_at` | `timestamptz` | NOT NULL, index | Horodatage | | Tri inbox | Système |
 
-`type` enum applicatif : `MESSAGE_NEW` · `MESSAGE_MENTION` · `CALL_INCOMING` · `CALL_MISSED` · `DEVICE_NEW` · `SYSTEM`.
+`type` enum applicatif : `MESSAGE_NEW` · `MESSAGE_MENTION` · `CALL_INCOMING` · `CALL_MISSED` · `DEVICE_NEW` · `SYSTEM`.  
+`CALL_CANCELLED` et `PUSH_TEST` : **push seulement** (pas de ligne inbox).  
+`collapse_key` : `msg:{conversation_id}` · `call:{call_id}` (incoming + cancel) · **`missed:{call_id}`** (missed seul) · `device:{device_id}` · `test:{device_id}`.
 
-**CRYPTO-00 :** pour `MESSAGE_NEW` / `MESSAGE_MENTION` sur fil `PRIVATE`, `title`/`body`/`payload` **ne contiennent jamais** le plaintext du message.
+**CRYPTO-00 :** pour `MESSAGE_NEW` / `MESSAGE_MENTION` sur fil `PRIVATE`, `title`/`body`/`payload` **ne contiennent jamais** le plaintext du message. Identité d’appel (`caller_name`) **autorisée** (signalisation hors modèle E2E).
 
 ---
 

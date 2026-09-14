@@ -59,6 +59,7 @@ Exactement **un** identifiant : `email` **ou** `username` (pas les deux, pas zé
     "os_version": "10.0",
     "app_version": "1.0.0",
     "push_token": "",
+    "voip_push_token": "",
     "device_fingerprint": null
   }
 }
@@ -478,6 +479,7 @@ class DeviceSpecSerializer(serializers.Serializer):
     os_version = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
     app_version = serializers.CharField(max_length=32, required=False, allow_blank=True, default="")
     push_token = serializers.CharField(required=False, allow_blank=True, default="")
+    voip_push_token = serializers.CharField(required=False, allow_blank=True, default="")  # iOS VoIP ; AUTH-28b
     device_fingerprint = serializers.CharField(max_length=255, required=False, allow_null=True, default=None)
 
 

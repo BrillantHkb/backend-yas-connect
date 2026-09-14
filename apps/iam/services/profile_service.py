@@ -10,6 +10,11 @@ from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import AuditLog, EmailVerification, User, Visibility
 from apps.iam.services.org_resolver import resolve_org
 from apps.iam.services.prefs_service import job_title_self_edit
+from apps.iam.services.presence_service import (
+    colleague_presence,
+    last_seen_at,
+    serialize_presence_self,
+)
 from apps.media.services.avatar_service import avatar_url
 
 MSG_FIELD = "Champ interdit."
@@ -109,6 +114,7 @@ def _editable() -> dict:
 
 def serialize_me(user: User) -> dict:
     """GET /me : pas de rôle (claim JWT). Prefs / privacy / email_pending / editable."""
+    presence = serialize_presence_self(user)
     return {
         "id": str(user.id),
         "display_name": user.get_full_name(),
@@ -120,7 +126,11 @@ def serialize_me(user: User) -> dict:
         "phone": user.phone,
         "matricule": user.matricule,
         "job_title": user.job_title,
-        "status": user.status,
+        "status": presence["status"],
+        "connection": presence["connection"],
+        "availability": presence["availability"],
+        "badge": presence["badge"],
+        "status_message": presence["status_message"],
         "language": user.language,
         "timezone": user.timezone,
         "segment_id": str(user.segment_id) if user.segment_id else None,
@@ -128,7 +138,8 @@ def serialize_me(user: User) -> dict:
         "avatar_url": avatar_url(user),
         "region": _region(user),
         "org": resolve_org(user),
-        "last_seen": _iso(user.last_login),
+        "last_seen": presence["last_seen"],
+        "last_login": presence["last_login"],
         "preferences": _prefs(user),
         "privacy": _privacy(user),
         "editable": _editable(),
@@ -147,6 +158,7 @@ def serialize_colleague(*, target: User, viewer: User) -> dict:
     role = target.role
     url = avatar_url(target) if show_photo else None
     avatar_id = str(target.avatar_id) if show_photo and target.avatar_id else None
+    presence = colleague_presence(target=target, viewer=viewer)
     return {
         "id": str(target.id),
         "display_name": target.get_full_name(),
@@ -157,7 +169,9 @@ def serialize_colleague(*, target: User, viewer: User) -> dict:
         "phone": target.phone,
         "matricule": target.matricule,
         "job_title": target.job_title,
-        "status": target.status if show_status else None,
+        "status": presence["status"] if show_status else None,
+        "badge": presence["badge"] if show_status else None,
+        "status_message": presence["status_message"] if show_status else None,
         "language": target.language,
         "timezone": target.timezone,
         "segment_id": str(target.segment_id) if target.segment_id else None,
@@ -165,7 +179,7 @@ def serialize_colleague(*, target: User, viewer: User) -> dict:
         "avatar_url": url,
         "region": _region(target),
         "org": resolve_org(target),
-        "last_seen": _iso(target.last_login) if show_seen else None,
+        "last_seen": _iso(last_seen_at(target)) if show_seen else None,
         "role": {"code": role.code, "name": role.name},
     }
 

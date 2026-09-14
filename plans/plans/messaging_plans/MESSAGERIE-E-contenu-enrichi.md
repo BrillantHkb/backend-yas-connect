@@ -4,7 +4,7 @@
 **Préalable :** [MESSAGERIE-B](MESSAGERIE-B-messages.md), **MEDIA-A**, [CRYPTO-00](../crypto_plans/CRYPTO-00-modele-chiffrement.md).  
 **Models :** [code/messaging_models.py](../code/messaging_models.py).
 
-**Périmètre MVP :** réactions emoji, transfert, favoris, sondages.  
+**Périmètre MVP :** réactions emoji, transfert, favoris, sondages (**GROUP seulement**).  
 **Après le MVP :** épingles dans le fil, mentions, localisation, type IA. (Appel `type=CALL` = module Appels.)
 
 ---
@@ -21,16 +21,16 @@
 | **MSG-78** | **Gardé** | Désépingler | DELETE pin |
 | **MSG-79** | **Gardé** | Signet / favori avec note | `message_bookmarks` |
 | **MSG-80** | **Gardé** | Liste signets user | `GET /me/message-bookmarks` |
-| **MSG-81** | **Gardé** | Sondage | `message_polls`, `poll_options`, `type=POLL` |
-| **MSG-82** | **Gardé** | Vote simple / multiple | `poll_votes` |
-| **MSG-83** | **Gardé** | Clôturer sondage | `closed_at` |
+| **MSG-81** | **Gardé** | Sondage **GROUP** ; `PRIVATE` → 400 `POLL_PRIVATE_FORBIDDEN` | `message_polls`, `poll_options`, `type=POLL` |
+| **MSG-82** | **Gardé** | Vote simple / multiple (fil GROUP) | `poll_votes` |
+| **MSG-83** | **Gardé** | Clôturer sondage (créateur ou admin groupe) | `closed_at` |
 | **MSG-84** | **Gardé** | Mention @user | `message_mentions` + snapshot `mentions` jsonb |
 | **MSG-85** | **Gardé** | Hashtags | `messages.tags` |
 | **MSG-86** | **Gardé** | Localisation | `type=LOCATION` ; GPS dans `encrypted_content` (pas de colonne) |
 | **MSG-87** | **Gardé** | Référence appel | `type=CALL`, `call_id` sans FK — voir [APPELS-A](../calls_plans/APPELS-A-cycle-vie.md) |
 | **MSG-88** | **Gardé** | Message IA | `ai_generated=true`, fil `type=AI` |
 
-**Hors incrément :** stickers pack, GIF tenor API.
+**Hors incrément :** stickers pack, GIF tenor API, sondage E2E 1-to-1.
 
 ---
 
@@ -38,8 +38,8 @@
 
 | Sujet | Choix |
 |-------|--------|
-| Forward | Crée message dans fil cible ; `forwarded=true` |
-| Poll | Une option = un vote sauf `multiple_choices=true` |
+| Forward | Crée message dans fil cible ; `forwarded=true`. **POLL → PRIVATE** → **400** `POLL_PRIVATE_FORBIDDEN` |
+| Poll | **GROUP seulement** (CRYPTO-00). Question / options / votes en clair. Une option = un vote sauf `multiple_choices=true`. `PRIVATE` ou body `poll` en 1-to-1 → **400** `POLL_PRIVATE_FORBIDDEN` |
 | Mentions | Notif push si `allow_mentions` OK |
 | Location | WGS84 dans le blob ; `latitude`/`longitude` JSON clair → **400** `FIELD_FORBIDDEN` |
 
@@ -69,7 +69,7 @@
 
 ### Sondage
 
-Envoi via `POST .../messages` :
+**Fil `GROUP` uniquement** ([CRYPTO-00](../crypto_plans/CRYPTO-00-modele-chiffrement.md)). Envoi via `POST .../messages` :
 
 ```json
 {
@@ -83,7 +83,9 @@ Envoi via `POST .../messages` :
 }
 ```
 
-- `POST /api/v1/polls/{id}/votes` — `{ "option_ids": ["..."] }` — `messaging.poll.vote`
+`type=POLL` ou body `poll` sur un fil `PRIVATE` → **400** `POLL_PRIVATE_FORBIDDEN`. Pas de blob sondage au MVP.
+
+- `POST /api/v1/polls/{id}/votes` — `{ "option_ids": ["..."] }` — `messaging.poll.vote` (membre du **groupe**)
 - `POST /api/v1/polls/{id}/close` — créateur ou admin groupe
 
 ### Localisation

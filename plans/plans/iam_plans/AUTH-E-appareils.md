@@ -1,6 +1,7 @@
 # AUTH-E — Appareils & reconnaissance (AUTH-27 … 36)
 
 **Statut :** clos (2026-09-09) — lab [00-jour-5-auth-e.md](../00-jour-5-auth-e.md).  
+**Delta MOB-PUSH (2026-09-11) :** colonne `voip_push_token` + sémantique heartbeat/revoke — **à porter au jour NOTIF-A** (migration IAM). Pas de code Django tant que NOTIF n’est pas ouvert.  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **AUTH-A** (upsert `devices`) + **AUTH-C** (MFA ; `trusted` **ne skip pas** l’OTP) — jours 1–4 **clos**.  
 **Attributs / index :** [IAM](../../catalogues/IAM-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md) · [CONFIG](../../catalogues/CONFIG-catalogue-tables.md).  
@@ -20,7 +21,8 @@
 | ID          | Fonctionnalité            | Comportement                                                                                         | Écritures                                      |
 | ----------- | ------------------------- | ---------------------------------------------------------------------------------------------------- | ---------------------------------------------- |
 | **AUTH-27** | Enregistrement appareil   | AUTH-11 + `jailbreak` client ; heartbeat `PATCH /me/devices/current`                                 | `devices`                                      |
-| **AUTH-28** | Push token                | `PATCH` FCM/APNs **sans** re-login ; jamais renvoyé en GET                                           | `devices.push_token`                           |
+| **AUTH-28** | Push token                | `PATCH` FCM/APNs **alert** **sans** re-login ; jamais renvoyé en GET                                 | `devices.push_token`                           |
+| **AUTH-28b** | Jeton VoIP iOS            | 2ᵉ colonne ; `PATCH` partiel : **absent = ne pas vider**. Revoke vide **les deux**                   | `devices.voip_push_token`                      |
 | **AUTH-29** | Nouvel appareil           | 1re vue `(user, device_uuid)` : MFA **déjà** AUTH-C ; `login_history.suspicious=true` + event notif. **Nouveau pays** = [AUTH-I](AUTH-I-securite.md) AUTH-62 | history + `audit_logs`                         |
 | **AUTH-30** | Marquer confiance         | `trusted=true` — **label UI uniquement**, pas de skip MFA                                            | `devices.trusted`                              |
 | **AUTH-31** | Retirer confiance         | `trusted=false` ; sessions **inchangées**                                                            | `devices.trusted`                              |
@@ -31,7 +33,7 @@
 | **AUTH-36** | Renommer                  | `PATCH` `device_name` (owner)                                                                        | `devices.device_name`                          |
 
 
-**Hors incrément :** GeoIP `last_location`, attestation Play Integrity / DeviceCheck, table `trusted_devices`. Push FCM/APNs = [NOTIF-A](../notif_plans/NOTIF-A-in-app-push.md) (routage via `devices.platform`). Lier un 2ᵉ écran par QR = [AUTH-J](AUTH-J-lier-appareil-qr.md) (pas AUTH-E).
+**Hors incrément :** GeoIP `last_location`, attestation Play Integrity / DeviceCheck, table `trusted_devices`. Push FCM/APNs (sujet `.voip` vs alert) = [NOTIF-A](../notif_plans/NOTIF-A-in-app-push.md). Lier un 2ᵉ écran par QR = [AUTH-J](AUTH-J-lier-appareil-qr.md) (pas AUTH-E). Push de test HTTP = NOTIF-17 (route sous `/me/devices/current/push-test`).
 
 ---
 
@@ -45,7 +47,10 @@
 | MFA nouvel appareil | Login MDP/LDAP : **pas** de 3ᵉ facteur — AUTH-C suffit. Lien par QR : TOTP sur le **téléphone** déjà connecté ([AUTH-J](AUTH-J-lier-appareil-qr.md)). AUTH-29 = **signal** (suspicious + notif) dans les deux cas |
 | `trusted` | Marque « c’est le mien » pour l’UI / filtrage alertes. **AUTH-C inchangé** |
 | Ligne `devices` | Jamais DELETE (revocation / compromis gardent l’historique) |
-| `push_token` | **Write-only** API liste ; `is_sensitive` côté sérializer |
+| `push_token` | **Write-only** API liste ; FCM (ANDROID/WEB/DESKTOP) ou APNs **alert** (IOS). `is_sensitive` |
+| `voip_push_token` | **Write-only**. APNs **VoIP** iOS uniquement (`<bundle-id>.voip`). Vide sur les autres plateformes. **Indissociable** de AUTH-28 pour le critère MVP iOS ([NOTIF-A](../notif_plans/NOTIF-A-in-app-push.md)) |
+| Jetons absents | Heartbeat / upsert : champ **absent** (ou `null`) = **ne pas vider**. Chaîne vide `""` = vider ce jeton-là |
+| Revoke / compromis | AUTH-34 / 33 : `push_token=""` **et** `voip_push_token=""` |
 | Jailbreak WEB | Ignoré (pas de root navigateur) |
 | Compromis | Owner (sauf appareil courant) **ou** admin |
 | Notif NEW_DEVICE | `audit_logs` `DEVICE_NEW` + `NotificationService.emit(DEVICE_NEW)` ([NOTIF-A](../notif_plans/NOTIF-A-in-app-push.md) NOTIF-15) ; pas d’e-mail |
@@ -77,7 +82,7 @@ Message distinct (pas AUTH-05) : l’user est déjà authentifié facteur 1+2.
 
 `required_permission = iam.device.read`.
 
-**200** liste (sans `push_token`) :
+**200** liste (sans `push_token` **ni** `voip_push_token`) :
 
 ```json
 {
@@ -113,7 +118,8 @@ Heartbeat / push / versions. Body partiel :
 
 ```json
 {
-  "push_token": "<fcm-or-apns>",
+  "push_token": "<fcm-or-apns-alert>",
+  "voip_push_token": "<apns-voip-ios-only>",
   "app_version": "1.4.3",
   "os_version": "18.0",
   "jailbreak": false
@@ -121,7 +127,8 @@ Heartbeat / push / versions. Body partiel :
 ```
 
 Identité appareil = celle de la **session** (pas un `device_uuid` forgé).  
-**403** si `compromised` ou jailbreak bloquant.
+**403** si `compromised` ou jailbreak bloquant.  
+Champ jeton **absent** = inchangé (le client n’envoie que le jeton qui a tourné — MOB-DEVICE). `""` = vider ce champ.
 
 ### `PATCH /api/v1/me/devices/{id}`
 
@@ -135,9 +142,9 @@ Pas de `compromised` / `jailbreak` ici (sauf heartbeat current).
 
 `required_permission = iam.device.revoke`.
 
-Owner. Kill sessions + refresh de **cet** appareil, `push_token=""`, `trusted=false`.  
+Owner. Kill sessions + refresh de **cet** appareil, `push_token=""` **et** `voip_push_token=""`, `trusted=false`.  
 Si c’est l’appareil **courant** : 200 puis le client n’a plus de session (équivalent logout cet appareil).  
-**AUTH-54** ([AUTH-H](AUTH-H-sessions.md)) : tuer les sessions **sans** toucher push / trusted (relogin OK).
+**AUTH-54** ([AUTH-H](AUTH-H-sessions.md)) : tuer les sessions **sans** toucher push / trusted / voip (relogin OK).
 
 ### `POST /api/v1/me/devices/{id}/compromise` (AUTH-33)
 
@@ -188,7 +195,7 @@ apps/iam/
   services/device_service.py   # étendre AUTH-11
   services/notify_stub.py      # enqueue DEVICE_NEW (no-op log + audit)
   views_devices.py
-  serializers.py               # DeviceOutSerializer (pas push_token)
+    serializers.py               # DeviceOutSerializer (pas push_token / voip_push_token)
 ```
 
 ```python
@@ -247,6 +254,8 @@ def upsert_device(*, user, spec: dict, ip) -> tuple[Device, bool]:
     }
     if spec.get("push_token"):
         defaults["push_token"] = spec["push_token"]
+    if spec.get("voip_push_token"):
+        defaults["voip_push_token"] = spec["voip_push_token"]
     device, created = Device.objects.update_or_create(
         user=user,
         device_uuid=spec["device_uuid"],
@@ -306,7 +315,7 @@ def on_new_device(*, user, device, ip) -> None:
 
 `complete_login` : `_history(..., suspicious=created)`.
 
-`NotificationService.emit` : [NOTIF-15](../notif_plans/NOTIF-A-in-app-push.md). Push vers les **autres** appareils (`push_token` non vide, hors le nouveau). Si l’app `notifications` n’est pas encore migrée : `logger.info` + audit **suffisent**.
+`NotificationService.emit` : [NOTIF-15](../notif_plans/NOTIF-A-in-app-push.md). Push vers les **autres** appareils (`push_token` non vide, hors le nouveau ; iOS : canal **alert**, pas VoIP). Si l’app `notifications` n’est pas encore migrée : `logger.info` + audit **suffisent**.
 
 Appareil **déjà** `trusted` : la 1re insertion a `trusted=false` ; AUTH-29 s’applique **une fois**. Relogin même UUID : `created=False`, pas de nouvelle alerte.
 
@@ -361,10 +370,11 @@ def kill_device(*, device, reason: str) -> None:
         revoked_at=now, revoked_reason=reason,
     )
     device.push_token = ""
+    device.voip_push_token = ""
     device.trusted = False
     if reason == "DEVICE_COMPROMISED":
         device.compromised = True
-    device.save(update_fields=["push_token", "trusted", "compromised", "updated_at"])
+    device.save(update_fields=["push_token", "voip_push_token", "trusted", "compromised", "updated_at"])
 ```
 
 `revoke` : `reason=DEVICE_REVOKED`, **sans** poser `compromised`.  
@@ -398,9 +408,18 @@ class DeviceOutSerializer(serializers.ModelSerializer):
 class DevicePatchSerializer(serializers.Serializer):
     device_name = serializers.CharField(max_length=128, required=False, allow_blank=True)
     trusted = serializers.BooleanField(required=False)
+
+
+class DeviceCurrentSerializer(serializers.Serializer):
+    push_token = serializers.CharField(required=False, allow_blank=True)
+    voip_push_token = serializers.CharField(required=False, allow_blank=True)
+    app_version = serializers.CharField(required=False, allow_blank=True)
+    os_version = serializers.CharField(required=False, allow_blank=True)
+    jailbreak = serializers.BooleanField(required=False)
 ```
 
-`DeviceSpecSerializer` AUTH-A : `jailbreak = BooleanField(required=False, default=False)`.
+`DeviceSpecSerializer` AUTH-A : `jailbreak = BooleanField(required=False, default=False)` ; `voip_push_token` optionnel (même sémantique que `push_token` : absent = ne pas poser).  
+Heartbeat : clé **absente** ≠ `""`. Ne poser un jeton que s’il est dans le body.
 
 ---
 
@@ -439,17 +458,9 @@ class DevicePatchSerializer(serializers.Serializer):
 | 27  | 1er login MFA OK                         | 1 `devices` ; champs platform / model        |
 | 27  | 2e login même uuid                       | 1 ligne ; `last_seen` MAJ                    |
 | 28  | `PATCH current` push_token               | persisté ; **absent** du GET liste           |
-| 29  | 1er uuid                                 | history `suspicious=true` ; audit `DEVICE_NEW` |
-| 29  | 2e login même uuid                       | `suspicious=false`                           |
-| 29  | `trusted=true`                           | MFA **toujours** required (AUTH-C)           |
-| 30  | PATCH trusted true                       | GET `trusted=true`                           |
-| 31  | PATCH trusted false                      | sessions encore actives                      |
-| 32  | IOS jailbreak + block                    | 403 ; device.jailbreak true ; pas de session |
-| 32  | WEB jailbreak true                       | 200 session                                  |
-| 32  | block=false + ANDROID jailbreak          | 200 ; flag true                              |
-| 33  | compromise autre device                  | sessions kill ; login 403                    |
-| 33  | compromise current (owner)               | 400                                          |
-| 34  | revoke                                   | session inactive ; relogin **OK**            |
+| 28b | `PATCH current` voip_push_token seul     | persisté ; `push_token` **inchangé**         |
+| 28b | `PATCH current` sans les deux jetons     | aucun jeton vidé                             |
+| 34  | revoke                                   | session inactive ; **deux** jetons vides ; relogin **OK** |
 | 35  | GET liste                                | `is_current` ; pas le device d’autrui        |
 | 36  | PATCH name                               | GET reflète                                  |
 | —   | GET device d’un autre user               | 404                                          |
@@ -469,6 +480,7 @@ class DevicePatchSerializer(serializers.Serializer):
 - [x] Compromis / révocation tuent session + refresh + push
 - [x] `/me/devices*` = JWT + owner ; admin = JWT + `IsAdminRole` (palier D05) ; AUTH-R → `iam.device.*`
 - [x] `push_token` jamais en GET
+- [ ] **Delta MOB-PUSH :** `voip_push_token` (migration) ; GET sans les deux jetons ; revoke vide les deux — porter au jour NOTIF-A
 - [x] Pas de DELETE `devices`
 - [x] SIRH non modifié
 

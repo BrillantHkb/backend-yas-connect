@@ -1,7 +1,7 @@
 # APPELS-C — LiveKit, tokens & temps réel (CALL-37 … 52)
 
 **Produit :** YAS Connect uniquement.  
-**Préalable :** **APPELS-A/B** + infra LiveKit + Redis + Channels + **[NOTIF-A](../notif_plans/NOTIF-A-in-app-push.md)** (CALL-44 `CALL_INCOMING`).  
+**Préalable :** **APPELS-A/B** + infra LiveKit + Redis + Channels + **[NOTIF-A](../notif_plans/NOTIF-A-in-app-push.md)** (CALL-44 `CALL_INCOMING` / `CALL_CANCELLED` / `CALL_MISSED`).  
 **Attributs :** `livekit_rooms` ; Redis status/presence.  
 **Models :** [code/calls_models.py](../code/calls_models.py).
 
@@ -20,7 +20,7 @@
 | **CALL-41** | **Gardé** | Webhook `participant_joined` / `left` | sync sessions |
 | **CALL-42** | **Gardé** | Webhook `track_published` / `unpublished` | → plan D |
 | **CALL-43** | **Gardé** | WS `/ws/v1/calls/` subscribe `call_id` | — |
-| **CALL-44** | **Gardé** | Push notif `CALL_INCOMING` (Notifications) | — |
+| **CALL-44** | **Gardé** | Push `CALL_INCOMING` / `CALL_CANCELLED` / `CALL_MISSED` ([NOTIF-A](../notif_plans/NOTIF-A-in-app-push.md)) | — |
 | **CALL-45** | **Gardé** | Redis `call:{id}:status` | Redis |
 | **CALL-46** | **Gardé** | Redis `call_presence:{room_id}` | Redis |
 | **CALL-47** | **Gardé** | Fermeture room à `ENDED` | LiveKit API + `closed_at` |
@@ -78,7 +78,7 @@ Pas de JWT user. Header signature LiveKit. Idempotent sur `event_id`.
 
 JWT query/header. Client envoie `{ "action": "subscribe", "call_id": "…" }`.
 
-Événements : ceux de A/B + `ROOM_CLOSED`, `TOKEN_REFRESH_NEEDED`.
+Événements : ceux de A/B (`CALL_INCOMING` / `CALL_CANCELLED` portent l’identité appelant) + `ROOM_CLOSED`, `TOKEN_REFRESH_NEEDED`.
 
 ---
 

@@ -30,7 +30,7 @@
 | Portes AUTH-F | Toutes les routes JWT **après** CGU + wizard |
 | Isolation | Pas de lecture de l’inbox d’un autre user, même ADMIN |
 | Création | **Aucun** POST public — `NotificationService.emit()` interne (Messagerie, Appels, AUTH-E) |
-| Push token | AUTH-E `devices.push_token` ; perm IAM appareils, pas `notifications.*` |
+| Push token | AUTH-E `devices.push_token` + `voip_push_token` ; perm IAM appareils, pas `notifications.*` |
 
 ---
 
