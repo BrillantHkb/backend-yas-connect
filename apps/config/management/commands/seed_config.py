@@ -43,6 +43,16 @@ PRESENCE_SETTINGS = [
     ("away_after_seconds", 300, "int"),
 ]
 
+# MED-12 : plafonds par media_type. Dépassement -> 413 FILE_TOO_LARGE.
+MEDIA_SETTINGS = [
+    ("max_image_bytes", 10485760, "int"),
+    ("max_audio_bytes", 10485760, "int"),
+    ("max_document_bytes", 15728640, "int"),
+    ("max_other_bytes", 10485760, "int"),
+    ("max_video_bytes", 16777216, "int"),
+    ("max_video_duration_seconds", 90, "int"),
+]
+
 
 class Command(BaseCommand):
     help = "Clés LDAP (system_settings) + job ldap_sync_users. Pas de secret dans .env."
@@ -116,6 +126,20 @@ class Command(BaseCommand):
             )
             action = "créé" if created else "à jour"
             self.stdout.write(f"presence.{key} {action}")
+
+        for key, value, value_type in MEDIA_SETTINGS:
+            _, created = SystemSetting.objects.update_or_create(
+                category="media",
+                setting_key=key,
+                defaults={
+                    "setting_value": value,
+                    "value_type": value_type,
+                    "is_sensitive": False,
+                    "editable": True,
+                },
+            )
+            action = "créé" if created else "à jour"
+            self.stdout.write(f"media.{key} {action}")
 
         now = timezone.now()
         ScheduledJob.objects.update_or_create(

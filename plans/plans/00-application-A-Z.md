@@ -847,13 +847,13 @@ Attributs, types, contraintes, « renseigné par » : **uniquement** les fichier
 | [CRYPTO-catalogue-tables.md](../catalogues/CRYPTO-catalogue-tables.md) | `apps.crypto` | Phase 3c ; 4 tables ; [code/crypto_models.py](code/crypto_models.py) ; plans [crypto_plans/](crypto_plans/) |
 | [INDEX-catalogue.md](../catalogues/INDEX-catalogue.md) | btree / GIN | Dès `0001` ; `TrigramExtension` + `django.contrib.postgres` |
 
-Chiffrement : [CRYPTO-00](crypto_plans/CRYPTO-00-modele-chiffrement.md) (décision) · [CRYPTO-A](crypto_plans/CRYPTO-A-cles.md) (API) · [CRYPTO-R](crypto_plans/CRYPTO-R-roles-permissions.md) · [routes](crypto_plans/CRYPTO-routes.md).
+Chiffrement : [CRYPTO-00](crypto_plans/CRYPTO-00-modele-chiffrement.md) (décision). Lab [00-jour-21-crypto-00.md](00-jour-21-crypto-00.md) **clos** · [CRYPTO-A](crypto_plans/CRYPTO-A-cles.md) (API) · [CRYPTO-R](crypto_plans/CRYPTO-R-roles-permissions.md) · [routes](crypto_plans/CRYPTO-routes.md).
 
 Plans fonctionnels Notifications : [NOTIF-R](notif_plans/NOTIF-R-roles-permissions.md) · [A in-app + push](notif_plans/NOTIF-A-in-app-push.md) · [routes](notif_plans/NOTIF-routes.md).
 
 Plans fonctionnels Messagerie : [MESSAGERIE-R](messaging_plans/MESSAGERIE-R-roles-permissions.md) · [A inbox](messaging_plans/MESSAGERIE-A-inbox-conversations.md) · [B messages](messaging_plans/MESSAGERIE-B-messages.md) · [C groupes](messaging_plans/MESSAGERIE-C-groupes.md) · [D temps réel](messaging_plans/MESSAGERIE-D-temps-reel.md) · [E enrichi](messaging_plans/MESSAGERIE-E-contenu-enrichi.md) · [F modération](messaging_plans/MESSAGERIE-F-moderation-blocage.md) · [G typing](messaging_plans/MESSAGERIE-G-indicateurs-saisie.md).
 
-Plans fonctionnels Médias : [MEDIA-R](media_plans/MEDIA-R-roles-permissions.md) · [A upload](media_plans/MEDIA-A-upload-stockage.md) · [B images](media_plans/MEDIA-B-images.md) · [C vidéos](media_plans/MEDIA-C-videos.md) · [D audio](media_plans/MEDIA-D-audio-transcription.md) · [E documents](media_plans/MEDIA-E-documents-ged.md) · [F quotas](media_plans/MEDIA-F-quotas-audit.md).
+Plans fonctionnels Médias : [MEDIA-R](media_plans/MEDIA-R-roles-permissions.md) · [A upload](media_plans/MEDIA-A-upload-stockage.md) (Vague A). Lab [00-jour-22-media-r-a.md](00-jour-22-media-r-a.md) **clos** · [B images](media_plans/MEDIA-B-images.md) · [C vidéos](media_plans/MEDIA-C-videos.md) · [D audio](media_plans/MEDIA-D-audio-transcription.md) · [E documents](media_plans/MEDIA-E-documents-ged.md) · [F quotas](media_plans/MEDIA-F-quotas-audit.md).
 
 Plans fonctionnels Appels : [APPELS-R](calls_plans/APPELS-R-roles-permissions.md) · [A cycle](calls_plans/APPELS-A-cycle-vie.md) · [B participants](calls_plans/APPELS-B-participants-sessions.md) · [C LiveKit](calls_plans/APPELS-C-livekit-temps-reel.md) · [D pistes](calls_plans/APPELS-D-pistes-ecran.md) · [E enregistrements](calls_plans/APPELS-E-enregistrements.md) · [F QoS](calls_plans/APPELS-F-qualite-qos.md) · [G compte-rendu](calls_plans/APPELS-G-compte-rendu.md).
 
@@ -875,7 +875,7 @@ Présence : [PRES-A-presence.md](iam_plans/PRES-A-presence.md) (01–16). Lab [0
 Recherche & référentiels : [ANNUAIRE-A-recherche-referentiels.md](annuaire_plans/ANNUAIRE-A-recherche-referentiels.md). Lab [00-jour-17-annuaire-a.md](00-jour-17-annuaire-a.md) **clos**.  
 Organigramme (types + arbre) : [ANNUAIRE-B-arbre-segments.md](annuaire_plans/ANNUAIRE-B-arbre-segments.md). Lab [00-jour-18-annuaire-b.md](00-jour-18-annuaire-b.md) **clos**.  
 Affectations / mutations : [ANNUAIRE-C-affectations.md](annuaire_plans/ANNUAIRE-C-affectations.md). Lab [00-jour-19-annuaire-c.md](00-jour-19-annuaire-c.md) **clos**.  
-Compétences / certifications : [ANNUAIRE-D-competences-certifications.md](annuaire_plans/ANNUAIRE-D-competences-certifications.md). Lab [00-jour-20-annuaire-d.md](00-jour-20-annuaire-d.md).  
+Compétences / certifications : [ANNUAIRE-D-competences-certifications.md](annuaire_plans/ANNUAIRE-D-competences-certifications.md). Lab [00-jour-20-annuaire-d.md](00-jour-20-annuaire-d.md) **clos**.  
 Arbre RH : [ANNUAIRE-B-arbre-segments.md](annuaire_plans/ANNUAIRE-B-arbre-segments.md).  
 Affectations : [ANNUAIRE-C-affectations.md](annuaire_plans/ANNUAIRE-C-affectations.md).  
 Skills / certifs : [ANNUAIRE-D-competences-certifications.md](annuaire_plans/ANNUAIRE-D-competences-certifications.md).  

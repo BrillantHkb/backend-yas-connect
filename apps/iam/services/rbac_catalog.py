@@ -1,4 +1,4 @@
-"""Catalogue seed AUTH-R : 58 permissions is_system (27 self + 31 admin).
+"""Catalogue seed AUTH-R : 70 permissions is_system (36 self + 34 admin).
 
 Codes = {module}.{resource}.{action} (regex R01, 3 segments).
 Écart table AUTH-R : `iam.user.security.read` → `iam.user_security.read` ;
@@ -30,6 +30,15 @@ _SELF = (
     ("iam", "email", "change", "Changer / renvoyer e-mail"),
     ("iam", "mfa", "regenerate", "Régénérer codes secours"),
     ("media", "avatar", "manage", "Avatar"),
+    ("media", "file", "read", "Lire métadonnées / stream d’un fichier"),
+    ("media", "file", "upload", "Upload / init presign"),
+    ("media", "file", "delete", "Supprimer ses fichiers"),
+    ("media", "image", "manage", "Annotation, floutage flags"),
+    ("media", "video", "manage", "Lancer transcodage"),
+    ("media", "audio", "manage", "Transcription STT"),
+    ("media", "document", "read", "GED lecture"),
+    ("media", "document", "manage", "GED CRUD / versions"),
+    ("media", "storage", "read", "Quota perso"),
     ("annuaire", "skill", "read", "Lire ses compétences"),
     ("annuaire", "skill", "manage", "Gérer ses compétences"),
     ("annuaire", "certification", "read", "Lire ses certifications"),
@@ -68,6 +77,9 @@ _ADMIN = (
     ("annuaire", "user_skill", "manage", "CRUD skills d’un autre user"),
     ("annuaire", "user_certification", "read", "Certifs d’un autre user"),
     ("annuaire", "user_certification", "manage", "CRUD certifs d’un autre user"),
+    ("media", "access_log", "read", "Journal accès d’un fichier"),
+    ("media", "storage", "manage", "Quota admin user"),
+    ("media", "file", "scan_override", "Forcer SKIP (SOC)"),
 )
 
 
@@ -96,7 +108,7 @@ ALL_SYSTEM_CODES = frozenset(p["code"] for p in SYSTEM_PERMISSIONS)
 CODE_RE = r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$"
 ROLE_CODE_RE = r"^[A-Z][A-Z0-9_]*$"
 
-assert len(SELF_PERMISSIONS) == 27, len(SELF_PERMISSIONS)
-assert len(ADMIN_PERMISSIONS) == 31, len(ADMIN_PERMISSIONS)
-assert len(SYSTEM_PERMISSIONS) == 58
-assert len(ALL_SYSTEM_CODES) == 58
+assert len(SELF_PERMISSIONS) == 36, len(SELF_PERMISSIONS)
+assert len(ADMIN_PERMISSIONS) == 34, len(ADMIN_PERMISSIONS)
+assert len(SYSTEM_PERMISSIONS) == 70
+assert len(ALL_SYSTEM_CODES) == 70
