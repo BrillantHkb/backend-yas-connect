@@ -872,7 +872,8 @@ Profil : [PROF-A-identite.md](iam_plans/PROF-A-identite.md) (01–14).
 Édition & préférences : [PROF-B-edition-preferences.md](iam_plans/PROF-B-edition-preferences.md) (15–22).  
 Confidentialité : [PROF-C-confidentialite.md](iam_plans/PROF-C-confidentialite.md) (23–30).  
 Présence : [PRES-A-presence.md](iam_plans/PRES-A-presence.md) (01–16). Lab [00-jour-16-pres-a.md](00-jour-16-pres-a.md) **clos**.  
-Recherche & référentiels : [ANNUAIRE-A-recherche-referentiels.md](annuaire_plans/ANNUAIRE-A-recherche-referentiels.md). Lab [00-jour-17-annuaire-a.md](00-jour-17-annuaire-a.md).  
+Recherche & référentiels : [ANNUAIRE-A-recherche-referentiels.md](annuaire_plans/ANNUAIRE-A-recherche-referentiels.md). Lab [00-jour-17-annuaire-a.md](00-jour-17-annuaire-a.md) **clos**.  
+Organigramme (types + arbre) : [ANNUAIRE-B-arbre-segments.md](annuaire_plans/ANNUAIRE-B-arbre-segments.md). Lab [00-jour-18-annuaire-b.md](00-jour-18-annuaire-b.md) **clos**.  
 Arbre RH : [ANNUAIRE-B-arbre-segments.md](annuaire_plans/ANNUAIRE-B-arbre-segments.md).  
 Affectations : [ANNUAIRE-C-affectations.md](annuaire_plans/ANNUAIRE-C-affectations.md).  
 Skills / certifs : [ANNUAIRE-D-competences-certifications.md](annuaire_plans/ANNUAIRE-D-competences-certifications.md).  

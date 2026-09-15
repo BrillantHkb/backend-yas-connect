@@ -1,0 +1,1 @@
+"""Package serializers annuaire."""

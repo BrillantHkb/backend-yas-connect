@@ -1,5 +1,6 @@
 # ANNUAIRE-B — Types d’unité & arbre organisationnel (ANN-06 … 08)
 
+**Statut :** clos (2026-09-15) — lab [00-jour-18-annuaire-b.md](../00-jour-18-annuaire-b.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **ANNUAIRE-A** (seed types + `YAS`) + **AUTH-R** (perms `annuaire.segment*`) + **ADMIN-A** (audit, portes admin absentes).  
 **Attributs :** [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) (`segment_types`, `segments`).  
@@ -126,12 +127,14 @@ sinon: SEGMENT_CYCLE
 ## 1. Fichiers
 
 ```
-apps/annuaire/views_admin_org.py
-apps/annuaire/serializers_org.py
-apps/annuaire/services/org_tree.py      # cycle, level, tree
-apps/annuaire/urls.py
+apps/annuaire/services/org_tree.py      # cycle, level, tree, audit
+apps/annuaire/views/admin_org.py        # AdminSegmentType*View + AdminSegment*View + tree
+apps/annuaire/serializers/admin_org.py  # query OpenAPI + enveloppes
+apps/annuaire/urls/admin_org.py         # tree AVANT {id} ; include séparé sous /api/v1/admin/
+apps/iam/tests/test_annuaire_b.py
 ```
 
+Chemins lab = [00-jour-18-annuaire-b.md](../00-jour-18-annuaire-b.md) (package `views/` / `urls/` comme ANNUAIRE-A — **pas** `views_admin_org.py` à plat).  
 Audit via le helper ADMIN-A (`audit_logs`).
 
 ---
@@ -159,11 +162,11 @@ Audit via le helper ADMIN-A (`audit_logs`).
 
 ## Critères d’acceptation
 
-- [ ] CRUD types + gardes seed / in-use
-- [ ] CRUD segments + cycle / level / responsable
-- [ ] Tree admin ; directory public inchangé (actifs)
-- [ ] Audit `SEGMENT_*`
-- [ ] Spec seulement
+- [x] CRUD types + gardes seed / in-use
+- [x] CRUD segments + cycle / level / responsable
+- [x] Tree admin ; directory public inchangé (actifs)
+- [x] Audit `SEGMENT_*`
+- [x] Spec + lab [00-jour-18-annuaire-b.md](../00-jour-18-annuaire-b.md)
 
 ---
 

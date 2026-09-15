@@ -1,8 +1,9 @@
 # Jour 17 — ANNUAIRE-A (people-picker + directory)
 
-**Statut :** à faire.  
+**Statut :** clos (2026-09-15).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jours 0–16 **clos** ([jour 1](00-jour-1-auth-a.md) … [jour 16](00-jour-16-pres-a.md)).  
+**Livré :** `GET /api/v1/users` (picker, `q` 2–64, filtres `region_id`/`segment_id`, pagination, privacy 23–25) ; `GET /api/v1/directory/segment-types` ; `GET /api/v1/directory/segments` enrichi (`type_code`, `parent_id`). 17 tests (`test_annuaire_a.py`).  
 Fiche collègue **déjà** `GET /users/{id}` (PROF-A). Dropdowns inscription **déjà** `GET /directory/regions|segments` (AUTH-D). Seed types + `YAS` **déjà** `seed_annuaire` (jour 3). Perm `iam.profile.read_other` **déjà** seedée (jour 11). Index GIN trgm `users` **déjà** AUTH-A.
 
 **MVP** ([MVP-fonctionnalites-roles.md](MVP-fonctionnalites-roles.md) §3 — *trouver un collègue*) :
@@ -225,14 +226,14 @@ Sans Bearer : directory 200 ; picker 401.
 
 ## Checklist jour 17
 
-- [ ] `GET /users` `q` 2–64 + trgm/ILIKE ; soi / pending / disabled exclus
-- [ ] Hit sans e-mail ; privacy 23–25 ; `org.segment` mini
-- [ ] `path("")` avant `{id}` ; fiche PROF-02 intacte
-- [ ] `GET /directory/segment-types` ; segments racines + `parent_id`
-- [ ] Régions AUTH-D inchangées
-- [ ] `seed_annuaire` idempotent ; 0 migration ; 0 `down -v`
-- [ ] `test_annuaire_a.py` + régression D / PROF-A
-- [ ] SIRH non modifié
+- [x] `GET /users` `q` 2–64 + trgm/ILIKE ; soi / pending / disabled exclus
+- [x] Hit sans e-mail ; privacy 23–25 ; `org.segment` mini
+- [x] `path("")` avant `{id}` ; fiche PROF-02 intacte
+- [x] `GET /directory/segment-types` ; segments racines + `parent_id`
+- [x] Régions AUTH-D inchangées
+- [x] `seed_annuaire` idempotent ; 0 migration ; 0 `down -v`
+- [x] `test_annuaire_a.py` + régression D / PROF-A
+- [x] SIRH non modifié
 
 ---
 

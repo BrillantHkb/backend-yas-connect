@@ -1,6 +1,6 @@
 # ANNUAIRE-A — Recherche collègues & référentiels (ANN-01 … 05)
 
-**Statut :** à faire — lab [00-jour-17-annuaire-a.md](../00-jour-17-annuaire-a.md).  
+**Statut :** clos (2026-09-15) — lab [00-jour-17-annuaire-a.md](../00-jour-17-annuaire-a.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **PROF-A** (carte collègue + privacy) + **ADMIN-A** (seed `region`) + **AUTH-R**.  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) (`users`, `region`) · [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md) (GIN trgm).  
@@ -172,12 +172,12 @@ apps/annuaire/management/commands/seed_annuaire.py  # déjà jour 3
 
 ## Critères d’acceptation
 
-- [ ] People-picker JWT + trgm ; pas de dump sans `q`
-- [ ] Privacy 23–25 sur les hits
-- [ ] Directory public pour AUTH-D
-- [ ] Seed types + `YAS` ; régions = ADMIN-A
-- [ ] Pas de CRUD RH arbre (B/C/D)
-- [ ] Spec + lab [00-jour-17-annuaire-a.md](../00-jour-17-annuaire-a.md) (pas encore le code)
+- [x] People-picker JWT + trgm ; pas de dump sans `q`
+- [x] Privacy 23–25 sur les hits
+- [x] Directory public pour AUTH-D
+- [x] Seed types + `YAS` ; régions = ADMIN-A
+- [x] Pas de CRUD RH arbre (B/C/D)
+- [x] Spec + lab [00-jour-17-annuaire-a.md](../00-jour-17-annuaire-a.md)
 
 ---
 
