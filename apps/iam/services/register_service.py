@@ -10,6 +10,7 @@ import uuid
 from django.db import models
 
 from apps.annuaire.models import Segment
+from apps.annuaire.services.assignment import open_assignment, validate_org_fk
 from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import AuditLog, EmailVerification, LoginMethod, Region, Role, User
 from apps.iam.services import rate_limit_service
@@ -64,16 +65,8 @@ def _audit(
 
 
 def _validate_region_segment(*, region_id, segment_id) -> tuple[Region, Segment]:
-    """Obligatoires D02/D03. 400 métier (pas 404) pour ne pas leak l’existence."""
-    try:
-        region = Region.objects.get(pk=region_id)
-    except Region.DoesNotExist as exc:
-        raise AuthAPIError(400, "REGION_INVALID", "Région invalide.") from exc
-    try:
-        segment = Segment.objects.get(pk=segment_id, is_active=True)
-    except Segment.DoesNotExist as exc:
-        raise AuthAPIError(400, "SEGMENT_INVALID", "Segment invalide.") from exc
-    return region, segment
+    """Obligatoires D02/D03. Délègue à la validation partagée (ANNUAIRE-C ANN-16)."""
+    return validate_org_fk(region_id=region_id, segment_id=segment_id)
 
 
 def suggest_username(first_name: str, last_name: str) -> str:
@@ -176,6 +169,7 @@ def register_ad(
         pending_approval=False,
         is_active=True,
     )
+    open_assignment(user, segment, assigned_by=None)  # ANNUAIRE-C : historique + sync
     prefs = user.preferences
     prefs.language = user.language
     prefs.save(update_fields=["language", "last_updated"])
@@ -241,6 +235,7 @@ def register_local(*, email, password, profile: dict, ip) -> dict:
         pending_approval=True,  # 403 ACCOUNT_PENDING jusqu’à D05
         is_active=False,
     )
+    open_assignment(user, segment, assigned_by=None)  # ANNUAIRE-C : historique + sync
     prefs = user.preferences
     prefs.language = user.language
     prefs.save(update_fields=["language", "last_updated"])

@@ -6,6 +6,7 @@ from django.db.models import Q
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
 
+from apps.annuaire.services.assignment import open_assignment
 from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import AuditLog, Role, User
 from apps.iam.services.password_policy import enforce_password_policy
@@ -257,6 +258,7 @@ def create_local_user(*, data, actor, ip) -> dict:
         pending_approval=False,
         is_active=True,
     )
+    open_assignment(user, segment, assigned_by=actor)  # ANNUAIRE-C : historique + sync
     prefs = user.preferences
     prefs.language = user.language
     prefs.save(update_fields=["language", "last_updated"])

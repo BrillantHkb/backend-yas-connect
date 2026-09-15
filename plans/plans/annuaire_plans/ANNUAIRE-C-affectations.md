@@ -1,5 +1,6 @@
 # ANNUAIRE-C — Affectations user ↔ segment (ANN-09 … 13, ANN-16)
 
+**Statut :** clos (2026-09-15) — lab [00-jour-19-annuaire-c.md](../00-jour-19-annuaire-c.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** **ANNUAIRE-B** (segments existent) + **AUTH-D** / **ADMIN-A** (création compte pose déjà `users.segment_id`).  
 **Attributs :** [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) (`user_segments`) · [IAM](../../catalogues/IAM-catalogue-tables.md) (`users.segment_id`).  
@@ -124,9 +125,13 @@ DELETE : suppression physique (correction). Puis sync. **204**. Audit `USER_SEGM
 ## 1. Fichiers
 
 ```
-apps/annuaire/services/assignment.py   # open_assignment, sync, validate_org_fk
-apps/annuaire/views_admin_assignments.py
+apps/annuaire/services/assignment.py    # open_assignment, sync_users_segment_id, validate_org_fk
+apps/annuaire/views/admin_assignments.py
+apps/annuaire/urls/admin_assignments.py  # monté sous /api/v1/admin/ (config/urls.py)
+apps/iam/tests/test_annuaire_c.py
 ```
+
+Chemins lab = [00-jour-19-annuaire-c.md](../00-jour-19-annuaire-c.md) (package `views/`/`urls/` comme ANNUAIRE-A/B — **pas** `views_admin_assignments.py` à plat).
 
 AUTH-D D02/D03 et ADMIN-A ADM-02 : après INSERT user, `open_assignment(...)` dans la même transaction.
 
@@ -151,12 +156,12 @@ AUTH-D D02/D03 et ADMIN-A ADM-02 : après INSERT user, `open_assignment(...)` da
 
 ## Critères d’acceptation
 
-- [ ] Une affectation ouverte max ; mutation clôture l’ancienne
-- [ ] `users.segment_id` toujours aligné (ANN-13)
-- [ ] AUTH-D / ADMIN-A créent l’historique
-- [ ] ANN-16 partagé
-- [ ] Pas de self-service affectation
-- [ ] Spec seulement
+- [x] Une affectation ouverte max ; mutation clôture l’ancienne
+- [x] `users.segment_id` toujours aligné (ANN-13)
+- [x] AUTH-D / ADMIN-A créent l’historique
+- [x] ANN-16 partagé
+- [x] Pas de self-service affectation
+- [x] Spec + lab [00-jour-19-annuaire-c.md](../00-jour-19-annuaire-c.md)
 
 ---
 

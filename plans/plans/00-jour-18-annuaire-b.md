@@ -236,7 +236,7 @@ Directory public (`/directory/segments`) : toujours actifs seulement, sans chang
 
 ## Après le jour 18
 
-Jour 19 : **ANNUAIRE-C** — affectations / mutations (`user_segments` + sync `users.segment_id`) ([ANNUAIRE-C-affectations.md](annuaire_plans/ANNUAIRE-C-affectations.md)). Delta AUTH-D (D02/D03) et ADMIN-A (ADM-02) : appeler `open_assignment` (déjà noté dans ces plans). Lab pas encore écrit.
+Jour 19 : [00-jour-19-annuaire-c.md](00-jour-19-annuaire-c.md) — **ANNUAIRE-C** (affectations / mutations, `user_segments` + sync `users.segment_id`). Delta AUTH-D (D02/D03) et ADMIN-A (ADM-02) : appeler `open_assignment`.
 
 ---
 

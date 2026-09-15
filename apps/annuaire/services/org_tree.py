@@ -5,7 +5,7 @@ import uuid
 
 from django.db.models import Q
 
-from apps.annuaire.models import Segment, SegmentType
+from apps.annuaire.models import Segment, SegmentType, UserSegment
 from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import AuditLog, User
 
@@ -494,6 +494,8 @@ def delete_segment(*, segment: Segment, actor, ip) -> None:
     if Segment.objects.filter(parent_segment=segment).exists():
         raise AuthAPIError(409, "SEGMENT_IN_USE", MSG_SEGMENT_IN_USE)
     if User.objects.filter(segment_id=segment.id).exists():
+        raise AuthAPIError(409, "SEGMENT_IN_USE", MSG_SEGMENT_IN_USE)
+    if UserSegment.objects.filter(segment=segment).exists():
         raise AuthAPIError(409, "SEGMENT_IN_USE", MSG_SEGMENT_IN_USE)
     old = serialize_segment(segment)
     segment_id = segment.id
