@@ -28,7 +28,9 @@ urlpatterns = [
     path("api/v1/admin/", include("apps.iam.urls.admin")),  # JWT API, distinct de /admin/
     path("api/v1/admin/", include("apps.annuaire.urls.admin_org")),  # ANNUAIRE-B : organigramme
     path("api/v1/admin/", include("apps.annuaire.urls.admin_assignments")),  # ANNUAIRE-C
+    path("api/v1/admin/", include("apps.annuaire.urls.admin_competences")),  # ANNUAIRE-D
     path("api/v1/me/", include("apps.iam.urls.me")),  # AUTH-E appareils + AUTH-F CGU/wizard + PROF-A
+    path("api/v1/me/", include("apps.annuaire.urls.me_competences")),  # ANNUAIRE-D
     path("api/v1/users/", include("apps.iam.urls.users")),  # PROF-A fiche collègue
     path("api/v1/media/", include("apps.media.urls")),  # PROF-A fichiers avatar
     path("api/v1/directory/", include("apps.annuaire.urls")),  # publics, pas de Bearer

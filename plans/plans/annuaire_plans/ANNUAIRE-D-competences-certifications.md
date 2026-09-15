@@ -1,5 +1,6 @@
 # ANNUAIRE-D — Compétences & certifications (ANN-14, 15, 17, 18)
 
+**Statut :** à faire — lab [00-jour-20-annuaire-d.md](../00-jour-20-annuaire-d.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** **AUTH-R** (perms `annuaire.skill*` / `annuaire.user_skill*` / certifs) + **PROF-A** (portes AUTH-F pour le self) + table `media_files`.  
 **Attributs :** [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) · [Médias](../../catalogues/MEDIA-catalogue-tables.md) (`document_id`).  
@@ -36,7 +37,7 @@ Recherche experts par `skill_name` / certif (index GIN déjà là) : **hors incr
 | UK skill | `(user_id, skill_name)` — **409** `SKILL_TAKEN` (case-insensitive trim ; stocker tel que saisi après trim) |
 | `level` | Entier **1–5**. 0 ou hors plage → **400** `SKILL_LEVEL_INVALID`. Défaut POST = `1` |
 | Certif | Pas d’UK nom. Plusieurs « CCNA » possibles (renouvellement) |
-| `document_id` | Optionnel. Si posé : `media_files` existe, `owner_id` = **le user cible**, `scan_status` ∈ {`CLEAN`,`SKIPPED`} sinon **400** `CERT_DOCUMENT_INVALID` |
+| `document_id` | Optionnel. Si posé : `media_files` existe, `owner_id` = **le user cible**, `scan_status` ∈ {`CLEAN`,`SKIPPED`}, `media_type` = `DOCUMENT` sinon **400** `CERT_DOCUMENT_INVALID` |
 | Self vs admin | Self : `user` = `request.user`. Id d’une ligne d’autrui → **404** (pas de 403 qui confirme) |
 | Portes AUTH-F | Self **après** CGU/wizard. Admin : pas de porte |
 | Audit | `USER_SKILL_*` / `USER_CERTIFICATION_*`. Self et admin même action, `user_id` = acteur |
@@ -90,12 +91,16 @@ DELETE **204**. Fichier média **conservé** (comme avatar PROF-04).
 ## 1. Fichiers
 
 ```
-apps/annuaire/views_skills.py
-apps/annuaire/views_certifications.py
-apps/annuaire/services/media_ref.py   # CERT_DOCUMENT_INVALID
+apps/annuaire/services/competences.py    # skills + certifs, self et admin, CERT_DOCUMENT_INVALID
+apps/annuaire/views/competences.py       # vues self (/me) + admin, mêmes serializers
+apps/annuaire/serializers/competences.py
+apps/annuaire/urls/me_competences.py     # monté sous /api/v1/me/
+apps/annuaire/urls/admin_competences.py  # monté sous /api/v1/admin/
+apps/iam/tests/test_annuaire_d.py
 ```
 
-Self et admin partagent le même serializer ; la vue fixe `user`.
+Chemins lab = [00-jour-20-annuaire-d.md](../00-jour-20-annuaire-d.md) (package `views/`/`urls/` comme ANNUAIRE-A/B/C — **pas** `views_skills.py` à plat).  
+Self et admin partagent le même service ; la vue fixe `user`.
 
 ---
 

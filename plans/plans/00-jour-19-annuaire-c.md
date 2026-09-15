@@ -239,7 +239,7 @@ Inscription locale (AUTH-D) d'un nouvel utilisateur → vérifier qu'une ligne `
 
 ## Après le jour 19
 
-Jour 20 : **ANNUAIRE-D** — compétences / certifications (self `/me/skills`, `/me/certifications` + admin) ([ANNUAIRE-D-competences-certifications.md](annuaire_plans/ANNUAIRE-D-competences-certifications.md)). Indépendant de l'arbre. `document_id` référence `media_files` (déjà créée, upload réel = phase 3a / jour 22). Lab pas encore écrit.
+Jour 20 : [00-jour-20-annuaire-d.md](00-jour-20-annuaire-d.md) — **ANNUAIRE-D** (compétences / certifications, self `/me/skills`+`/me/certifications` + admin). Ferme le chapitre Annuaire (§3).
 
 ---
 
