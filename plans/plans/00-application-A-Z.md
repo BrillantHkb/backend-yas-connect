@@ -849,7 +849,7 @@ Attributs, types, contraintes, « renseigné par » : **uniquement** les fichier
 
 Chiffrement : [CRYPTO-00](crypto_plans/CRYPTO-00-modele-chiffrement.md) (décision). Lab [00-jour-21-crypto-00.md](00-jour-21-crypto-00.md) **clos** · [CRYPTO-A](crypto_plans/CRYPTO-A-cles.md) (API) · [CRYPTO-R](crypto_plans/CRYPTO-R-roles-permissions.md) · [routes](crypto_plans/CRYPTO-routes.md).
 
-Plans fonctionnels Notifications : [NOTIF-R](notif_plans/NOTIF-R-roles-permissions.md) · [A in-app + push](notif_plans/NOTIF-A-in-app-push.md) · [routes](notif_plans/NOTIF-routes.md).
+Plans fonctionnels Notifications : [NOTIF-R](notif_plans/NOTIF-R-roles-permissions.md) · [A in-app + push](notif_plans/NOTIF-A-in-app-push.md). Lab [00-jour-23-notif-r-a.md](00-jour-23-notif-r-a.md) **clos** · [routes](notif_plans/NOTIF-routes.md).
 
 Plans fonctionnels Messagerie : [MESSAGERIE-R](messaging_plans/MESSAGERIE-R-roles-permissions.md) · [A inbox](messaging_plans/MESSAGERIE-A-inbox-conversations.md) · [B messages](messaging_plans/MESSAGERIE-B-messages.md) · [C groupes](messaging_plans/MESSAGERIE-C-groupes.md) · [D temps réel](messaging_plans/MESSAGERIE-D-temps-reel.md) · [E enrichi](messaging_plans/MESSAGERIE-E-contenu-enrichi.md) · [F modération](messaging_plans/MESSAGERIE-F-moderation-blocage.md) · [G typing](messaging_plans/MESSAGERIE-G-indicateurs-saisie.md).
 

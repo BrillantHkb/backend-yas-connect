@@ -334,7 +334,8 @@ class Device(models.Model):
     os_version = models.CharField(max_length=64, blank=True, default="")
     app_version = models.CharField(max_length=32, blank=True, default="")
     device_fingerprint = models.CharField(max_length=255, null=True, blank=True)
-    push_token = models.TextField(blank=True, default="")  # FCM / APNs
+    push_token = models.TextField(blank=True, default="")  # FCM / APNs alert
+    voip_push_token = models.TextField(blank=True, default="")  # APNs VoIP (iOS), NOTIF-A 28b
     ip_address = models.GenericIPAddressField(null=True, blank=True, unpack_ipv4=True)
     last_location = models.CharField(max_length=255, null=True, blank=True)
     trusted = models.BooleanField(default=False)  # non lu AUTH-C (pas de skip MFA)

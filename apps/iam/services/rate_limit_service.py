@@ -186,6 +186,26 @@ def is_email_resend_limited(user_id, ip: str | None) -> bool:
     return cache.get(_email_resend_ip_key(ip), 0) >= settings.YAS_EMAIL_RESEND_RATE_LIMIT
 
 
+_PUSH_TEST_WINDOW = 30  # NOTIF-17 : 1 / 30 s par appareil courant
+
+
+def _push_test_key(device_id) -> str:
+    return f"pushtest:attempts:device:{device_id}"
+
+
+def is_push_test_limited(device_id) -> bool:
+    return cache.get(_push_test_key(device_id), 0) >= 1
+
+
+def push_test_hit(device_id) -> None:
+    key = _push_test_key(device_id)
+    cache.add(key, 0, _PUSH_TEST_WINDOW)
+    try:
+        cache.incr(key)
+    except ValueError:
+        cache.set(key, 1, _PUSH_TEST_WINDOW)
+
+
 def email_resend_hit(user_id, ip: str | None) -> None:
     """Incrémente user + IP (fenêtre YAS_EMAIL_RESEND_WINDOW_SECONDS)."""
     window = settings.YAS_EMAIL_RESEND_WINDOW_SECONDS

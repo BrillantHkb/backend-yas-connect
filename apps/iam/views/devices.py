@@ -1,6 +1,7 @@
 """AUTH-E : /me/devices* (JWT + iam.device.*) + admin (iam.device.manage)."""
 
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from django.utils import timezone
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -11,6 +12,7 @@ from apps.iam.serializers.devices import (
     DeviceOutSerializer,
     DevicePatchSerializer,
 )
+from apps.iam.services import rate_limit_service
 from apps.iam.services.device_service import (
     MSG_NOT_FOUND,
     clear_compromise,
@@ -22,6 +24,7 @@ from apps.iam.services.device_service import (
     revoke_device,
     serialize_device,
 )
+from apps.notifications.services import push_worker
 
 
 def _current_device_id(request):
@@ -82,6 +85,36 @@ class DeviceCurrentPatchView(APIView):
                 "data": serialize_device(
                     device, current_device_id=_current_device_id(request)
                 ),
+            }
+        )
+
+
+class DevicePushTestView(APIView):
+    """POST /api/v1/me/devices/current/push-test — NOTIF-17, diagnostic, 1/30 s."""
+
+    required_permission = "iam.device.update"
+
+    @extend_schema(
+        tags=["Devices"],
+        parameters=[
+            OpenApiParameter(
+                "channel", str, OpenApiParameter.QUERY, required=False,
+                enum=["alert", "voip", "both"],
+            ),
+        ],
+        responses={200: OpenApiResponse(description="Diagnostic canaux"), 429: OpenApiResponse()},
+    )
+    def post(self, request):
+        device = _current_device(request)
+        if rate_limit_service.is_push_test_limited(device.id):
+            raise AuthAPIError(429, "RATE_LIMITED", "Trop de tests, réessayez dans 30 secondes.")
+        rate_limit_service.push_test_hit(device.id)
+        channel = (request.query_params.get("channel") or "both").strip().lower()
+        channels = push_worker.send_test(device, channel)
+        return Response(
+            {
+                "success": True,
+                "data": {"emitted_at": timezone.now().isoformat(), "channels": channels},
             }
         )
 

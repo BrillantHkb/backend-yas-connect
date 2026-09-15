@@ -37,6 +37,8 @@ env = environ.Env(
     YAS_AVATAR_MAX_BYTES=(int, 2097152),
     YAS_MEDIA_AVATAR_SCAN_SKIP=(bool, True),
     YAS_MEDIA_SCAN_SKIP=(bool, True),
+    FCM_SERVER_KEY=(str, ""),
+    APNS_KEY_PATH=(str, ""),
 )
 environ.Env.read_env(BASE_DIR / ".env")
 if os.environ.get("DATABASE_URL"):
@@ -63,6 +65,7 @@ INSTALLED_APPS = [
     "apps.media",
     "apps.annuaire",
     "apps.config.apps.ConfigAppConfig",  # system_settings LDAP + jobs (pas .env)
+    "apps.notifications",
     "channels",
     "apps.realtime",
 ]
@@ -234,6 +237,9 @@ MINIO_ENDPOINT = env("MINIO_ENDPOINT")
 MINIO_ACCESS_KEY = env("MINIO_ACCESS_KEY")
 MINIO_SECRET_KEY = env("MINIO_SECRET_KEY")
 MINIO_BUCKET = env("MINIO_BUCKET")
+
+FCM_SERVER_KEY = env("FCM_SERVER_KEY")
+APNS_KEY_PATH = env("APNS_KEY_PATH")
 
 # Vide = skip envoi (lab). Mailhog plus tard ; verify-email ne bloque pas.
 EMAIL_HOST = env("EMAIL_HOST", default="")

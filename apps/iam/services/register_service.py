@@ -27,6 +27,7 @@ from apps.iam.services.ldap_service import (
 )
 from apps.iam.services.password_policy import enforce_password_policy
 from apps.iam.services.password_service import verify_dummy
+from apps.notifications.services.notification_service import ensure_preferences
 
 logger = logging.getLogger(__name__)
 
@@ -170,6 +171,7 @@ def register_ad(
         is_active=True,
     )
     open_assignment(user, segment, assigned_by=None)  # ANNUAIRE-C : historique + sync
+    ensure_preferences(user)  # NOTIF-A : ligne notification_preferences
     prefs = user.preferences
     prefs.language = user.language
     prefs.save(update_fields=["language", "last_updated"])
@@ -236,6 +238,7 @@ def register_local(*, email, password, profile: dict, ip) -> dict:
         is_active=False,
     )
     open_assignment(user, segment, assigned_by=None)  # ANNUAIRE-C : historique + sync
+    ensure_preferences(user)  # NOTIF-A : ligne notification_preferences
     prefs = user.preferences
     prefs.language = user.language
     prefs.save(update_fields=["language", "last_updated"])

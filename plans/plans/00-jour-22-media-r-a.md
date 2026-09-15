@@ -249,7 +249,7 @@ Login jean → `POST /api/v1/media/upload` (multipart, petit fichier) → `GET /
 
 ## Après le jour 22
 
-Jour 23 : **NOTIF-R + NOTIF-A** — alertes in-app + push (MOB-PUSH, VoIP/worker), première brique qui appliquera la règle CRYPTO-00 « payload générique en 1-to-1 » (déjà vérifiée jour 21). Lab pas encore écrit.
+Jour 23 : [00-jour-23-notif-r-a.md](00-jour-23-notif-r-a.md) — **NOTIF-R + NOTIF-A** (centre de notifications + push, remplace le stub `DEVICE_NEW`).
 
 ---
 

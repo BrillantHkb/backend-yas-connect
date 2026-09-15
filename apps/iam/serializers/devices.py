@@ -48,6 +48,7 @@ class DeviceCurrentPatchSerializer(serializers.Serializer):
     """Heartbeat : identité = session, pas un UUID forgé."""
 
     push_token = serializers.CharField(required=False, allow_blank=True)
+    voip_push_token = serializers.CharField(required=False, allow_blank=True)  # NOTIF-A 28b
     app_version = serializers.CharField(max_length=32, required=False, allow_blank=True)
     os_version = serializers.CharField(max_length=64, required=False, allow_blank=True)
     jailbreak = serializers.BooleanField(required=False)

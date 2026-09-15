@@ -14,14 +14,14 @@ from apps.iam.views.devices import (
     DeviceCurrentPatchView,
     DeviceListView,
     DevicePatchView,
+    DevicePushTestView,
     DeviceRevokeView,
 )
 from apps.iam.views.me import MeView
 from apps.iam.views.password import PasswordChangeView
 from apps.iam.views.prefs import MePreferencesView
-from apps.iam.views.privacy import MePrivacyView
 from apps.iam.views.presence import MePresenceHeartbeatView, MePresenceView
-from apps.media.views.avatar import MeAvatarView
+from apps.iam.views.privacy import MePrivacyView
 from apps.iam.views.security import EmailChangeView, EmailResendView, LoginHistoryView
 from apps.iam.views.sessions import (
     DeviceSessionsLogoutView,
@@ -29,6 +29,7 @@ from apps.iam.views.sessions import (
     SessionListView,
     SessionLogoutView,
 )
+from apps.media.views.avatar import MeAvatarView
 
 urlpatterns = [
     path("", MeView.as_view(), name="me"),  # GET+PATCH /api/v1/me/
@@ -58,6 +59,11 @@ urlpatterns = [
     path("sessions/<uuid:pk>/logout", SessionLogoutView.as_view(), name="me-session-logout"),
     path("devices", DeviceListView.as_view(), name="me-devices"),
     path("devices/current", DeviceCurrentPatchView.as_view(), name="me-devices-current"),
+    path(
+        "devices/current/push-test",
+        DevicePushTestView.as_view(),
+        name="me-devices-push-test",  # avant devices/<uuid:pk>
+    ),
     path("devices/link", DeviceLinkConfirmView.as_view(), name="me-devices-link"),  # avant <uuid>
     path("devices/<uuid:pk>", DevicePatchView.as_view(), name="me-devices-patch"),
     path("devices/<uuid:pk>/revoke", DeviceRevokeView.as_view(), name="me-devices-revoke"),

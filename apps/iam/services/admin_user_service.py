@@ -18,6 +18,7 @@ from apps.iam.services.register_service import (
 )
 from apps.iam.services.security_service import get_user_or_404
 from apps.iam.services.session_service import revoke_sessions
+from apps.notifications.services.notification_service import ensure_preferences
 
 MSG_LDAP = "Compte lié à Active Directory."
 MSG_SELF = "Action interdite sur votre propre compte."
@@ -259,6 +260,7 @@ def create_local_user(*, data, actor, ip) -> dict:
         is_active=True,
     )
     open_assignment(user, segment, assigned_by=actor)  # ANNUAIRE-C : historique + sync
+    ensure_preferences(user)  # NOTIF-A : ligne notification_preferences
     prefs = user.preferences
     prefs.language = user.language
     prefs.save(update_fields=["language", "last_updated"])

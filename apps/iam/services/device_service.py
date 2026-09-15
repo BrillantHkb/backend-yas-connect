@@ -9,8 +9,9 @@ from django.utils import timezone
 
 from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import AuditLog, Device, Session
-from apps.iam.services.notify_stub import emit_device_new
 from apps.iam.services.session_service import kill_session_rows
+from apps.notifications.models import Notification
+from apps.notifications.services.notification_service import emit
 
 MSG_COMPROMISED = "Appareil signalé compromis."
 MSG_JAILBROKEN = "Appareil non autorisé (root/jailbreak)."
@@ -59,7 +60,7 @@ def jailbreak_blocked(*, device: Device) -> bool:
 
 
 def on_new_device(*, user, device, ip) -> None:
-    """AUTH-29 : 1re vue (user, uuid). Audit + stub log. Pas de MFA extra."""
+    """AUTH-29 : 1re vue (user, uuid). Audit + notif in-app. Pas de MFA extra."""
     AuditLog.objects.create(
         trace_id=uuid.uuid4(),
         module="IAM",
@@ -72,7 +73,14 @@ def on_new_device(*, user, device, ip) -> None:
         ip_address=ip,
         metadata={"device_uuid": device.device_uuid, "platform": device.platform},
     )
-    emit_device_new(user=user, device=device)
+    emit(
+        user=user,
+        type_=Notification.Type.DEVICE_NEW,
+        title="Nouvel appareil",
+        body=f"Un nouvel appareil ({device.platform}) s’est connecté à votre compte.",
+        payload={"device_id": str(device.id)},
+        collapse_key=f"device:{device.id}",
+    )
 
 
 def kill_device(*, device: Device, reason: str) -> None:
@@ -143,6 +151,9 @@ def patch_current_device(*, device: Device, spec: dict) -> Device:
     if "push_token" in spec and spec["push_token"] is not None:
         device.push_token = spec["push_token"]
         fields.append("push_token")
+    if "voip_push_token" in spec and spec["voip_push_token"] is not None:
+        device.voip_push_token = spec["voip_push_token"]
+        fields.append("voip_push_token")
     if spec.get("app_version") is not None:
         device.app_version = spec["app_version"]
         fields.append("app_version")
