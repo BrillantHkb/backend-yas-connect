@@ -1,6 +1,6 @@
 # Jour 20 — ANNUAIRE-D (compétences / certifications)
 
-**Statut :** à faire.  
+**Statut :** clos (2026-09-15).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jours 0–19 **clos** ([jour 1](00-jour-1-auth-a.md) … [jour 19](00-jour-19-annuaire-c.md)).  
 `UserSkill` / `UserCertification` **déjà** créés (AUTH-A, 5 tables annuaire), 0 ligne. Perms self `annuaire.skill.read/manage`, `annuaire.certification.read/manage` **déjà** accordées à USER (`SELF_PERMISSION_CODES`). Perms admin `annuaire.user_skill.read/manage`, `annuaire.user_certification.read/manage` **déjà** accordées à ADMIN (`ADMIN_PERMISSION_CODES`). Table `media_files` existe (AUTH-A) — upload réel = MEDIA-A (jour 22).
@@ -214,15 +214,15 @@ Login jean → `POST /api/v1/me/skills {"skill_name": "Fibre", "level": 4}` → 
 
 ## Checklist jour 20
 
-- [ ] CRUD self `/me/skills` + `/me/certifications`
-- [ ] CRUD admin `/admin/users/{id}/skills` + `/admin/users/{id}/certifications` + détails
-- [ ] `SKILL_TAKEN` / `SKILL_LEVEL_INVALID` / `SKILL_LIMIT`
-- [ ] `CERT_DATE_INVALID` / `CERT_LIMIT` / `CERT_DOCUMENT_INVALID`
-- [ ] Self → 404 sur ligne d'autrui ; portes AUTH-F héritées automatiquement
-- [ ] Audit `USER_SKILL_*` / `USER_CERTIFICATION_*`
-- [ ] `test_annuaire_d.py` + régression PROF-A / ANNUAIRE-B / ANNUAIRE-C
-- [ ] 0 migration ; 0 `docker compose down -v`
-- [ ] SIRH non modifié
+- [x] CRUD self `/me/skills` + `/me/certifications`
+- [x] CRUD admin `/admin/users/{id}/skills` + `/admin/users/{id}/certifications` + détails
+- [x] `SKILL_TAKEN` / `SKILL_LEVEL_INVALID` / `SKILL_LIMIT`
+- [x] `CERT_DATE_INVALID` / `CERT_LIMIT` / `CERT_DOCUMENT_INVALID` (+ `media_type` = `DOCUMENT`)
+- [x] Self → 404 sur ligne d'autrui ; portes AUTH-F héritées automatiquement
+- [x] Audit `USER_SKILL_*` / `USER_CERTIFICATION_*`
+- [x] `test_annuaire_d.py` + régression PROF-A / ANNUAIRE-B / ANNUAIRE-C
+- [x] 0 migration ; 0 `docker compose down -v`
+- [x] SIRH non modifié
 
 ---
 
@@ -243,7 +243,7 @@ Login jean → `POST /api/v1/me/skills {"skill_name": "Fibre", "level": 4}` → 
 
 ## Après le jour 20
 
-Chapitre **Annuaire (§3) fermé**. Jour 21 : **CRYPTO-00** — décision E2E 1-to-1 vs groupes, 0 table ([CRYPTO-00-modele-chiffrement.md](crypto_plans/CRYPTO-00-modele-chiffrement.md)). Lab pas encore écrit.
+Chapitre **Annuaire (§3) fermé**. Jour 21 : [00-jour-21-crypto-00.md](00-jour-21-crypto-00.md) — **CRYPTO-00** (revue de clôture du modèle de chiffrement, 0 code, 0 table).
 
 ---
 

@@ -1,6 +1,6 @@
 # ANNUAIRE-D — Compétences & certifications (ANN-14, 15, 17, 18)
 
-**Statut :** à faire — lab [00-jour-20-annuaire-d.md](../00-jour-20-annuaire-d.md).  
+**Statut :** clos (2026-09-15) — lab [00-jour-20-annuaire-d.md](../00-jour-20-annuaire-d.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** **AUTH-R** (perms `annuaire.skill*` / `annuaire.user_skill*` / certifs) + **PROF-A** (portes AUTH-F pour le self) + table `media_files`.  
 **Attributs :** [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) · [Médias](../../catalogues/MEDIA-catalogue-tables.md) (`document_id`).  
@@ -124,11 +124,11 @@ Self et admin partagent le même service ; la vue fixe `user`.
 
 ## Critères d’acceptation
 
-- [ ] Self + admin skills / certifs ; UK skill ; plage level
-- [ ] `document_id` owner + scan
-- [ ] Pas de recherche expert
-- [ ] Seed 4 perms self + 4 admin (voir AUTH-R)
-- [ ] Spec seulement
+- [x] Self + admin skills / certifs ; UK skill ; plage level
+- [x] `document_id` owner + scan + `media_type` = `DOCUMENT`
+- [x] Pas de recherche expert
+- [x] Seed 4 perms self + 4 admin (voir AUTH-R)
+- [x] Spec + lab [00-jour-20-annuaire-d.md](../00-jour-20-annuaire-d.md)
 
 ---
 
