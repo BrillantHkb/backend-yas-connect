@@ -753,8 +753,9 @@ Ne jamais changer `AUTH_USER_MODEL` après des migrations de prod.
 
 ## 4. Ordre de livraison (modules)
 
-Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédigé**. Le blocage de fermeture MVP = **ordre** + **transverses** (crypto, notif, scan, mail).  
-**MEDIA-A avant / avec MESSAGERIE-B** (PJ, avatars). **CRYPTO-A avant** MESSAGERIE-B (bundles). **NOTIF-A avant** MSG-67 et CALL-44.
+Le métier IAM → Annuaire-A→D → Messagerie → Médias → Appels est **rédigé**. Le blocage de fermeture MVP = **ordre** + **transverses** (crypto, notif, scan, mail).  
+**MEDIA-A avant / avec MESSAGERIE-B** (PJ, avatars). **CRYPTO-A avant** MESSAGERIE-B (bundles). **NOTIF-A avant** MSG-67 et CALL-44.  
+**ANNUAIRE-C** ajoute un hook `open_assignment` sur AUTH-D (D02/D03, jour 3 **clos**) et ADMIN-A (ADM-02, jour 12 **clos**) — delta de code à appliquer sur ces jours quand ANNUAIRE-C atterrit.
 
 ### 4.1 Chemin MVP « ça sonne / ça uploade »
 
@@ -776,7 +777,10 @@ Le métier IAM → Annuaire-A → Messagerie → Médias → Appels est **rédig
 | 2b | `apps.iam` | **PROF-B** | Prefs + `editable` + `job_title` gated. Lab : [00-jour-14-prof-b.md](00-jour-14-prof-b.md) **clos**. |
 | 2c | `apps.iam` | **PROF-C** | Écriture `privacy_settings`. Lab : [00-jour-15-prof-c.md](00-jour-15-prof-c.md) **clos**. |
 | 2d | `apps.iam` + `apps.realtime` | **PRES-A** | Présence Redis + WS. Lab : [00-jour-16-pres-a.md](00-jour-16-pres-a.md) **clos**. |
-| 2e | `apps.iam` + `apps.annuaire` | **ANNUAIRE-A** | People-picker `GET /users`. Seed types + `YAS` **déjà** jour 3 (AUTH-D). |
+| 2e | `apps.iam` + `apps.annuaire` | **ANNUAIRE-A** | People-picker `GET /users`. Seed types + `YAS` **déjà** jour 3 (AUTH-D). Lab : [00-jour-17-annuaire-a.md](00-jour-17-annuaire-a.md). |
+| 2f | `apps.annuaire` | **ANNUAIRE-B** | Types d'unité + arbre organisationnel. CRUD admin `segment_types` / `segments` + `GET .../tree`. |
+| 2g | `apps.annuaire` + `apps.iam` | **ANNUAIRE-C** | Affectations / mutations (`user_segments`) + sync `users.segment_id`. Delta AUTH-D / ADMIN-A (`open_assignment`). |
+| 2h | `apps.annuaire` | **ANNUAIRE-D** | Compétences / certifications, self (`/me/skills`, `/me/certifications`) + admin. `document_id` référence `media_files` (upload réel = phase 3a). |
 | **2x** | — | **[CRYPTO-00](crypto_plans/CRYPTO-00-modele-chiffrement.md)** | Décision 1 page. **0 table.** Clés HTTP = phase **3c**. |
 | **3a** | `apps.media` | **MEDIA-R + MEDIA-A** | Seed `media.*` + upload MinIO (PJ, avatars) **avant** les messages. Plafonds MED-12 ; **pas** de reprise PUT. |
 | **3b** | `apps.notifications` | **NOTIF-R + NOTIF-A** | 2 tables ; in-app + push FCM/APNs (iOS alert **et** VoIP) ; events message/appel + `CALL_CANCELLED`. |
@@ -800,7 +804,6 @@ Inventaire fonctions (à quoi chacune sert) : [MVP-fonctionnalites-roles.md](MVP
 | 4f | MEDIA-F | Quotas admin / audit accès — **après** |
 | — | MEDIA reprise S3 multipart | PUT unique au MVP ; parties / reprise = **après** |
 | 5c | APPELS-F | QoS 90 j — **après** |
-| 2f–2h | ANNUAIRE-B, C, D | Arbre RH, affectations, skills — **après** chat/appel |
 | 6 | **CONFIG-A** | Rate-limits messages/appels, flags — après NOTIF |
 | — | Social / Canaux / IA | **Interdit** tant que le MVP sonnant n’est pas vrai |
 | — | Rétention / RGPD | **Après** |
@@ -869,7 +872,7 @@ Profil : [PROF-A-identite.md](iam_plans/PROF-A-identite.md) (01–14).
 Édition & préférences : [PROF-B-edition-preferences.md](iam_plans/PROF-B-edition-preferences.md) (15–22).  
 Confidentialité : [PROF-C-confidentialite.md](iam_plans/PROF-C-confidentialite.md) (23–30).  
 Présence : [PRES-A-presence.md](iam_plans/PRES-A-presence.md) (01–16). Lab [00-jour-16-pres-a.md](00-jour-16-pres-a.md) **clos**.  
-Recherche & référentiels : [ANNUAIRE-A-recherche-referentiels.md](annuaire_plans/ANNUAIRE-A-recherche-referentiels.md).  
+Recherche & référentiels : [ANNUAIRE-A-recherche-referentiels.md](annuaire_plans/ANNUAIRE-A-recherche-referentiels.md). Lab [00-jour-17-annuaire-a.md](00-jour-17-annuaire-a.md).  
 Arbre RH : [ANNUAIRE-B-arbre-segments.md](annuaire_plans/ANNUAIRE-B-arbre-segments.md).  
 Affectations : [ANNUAIRE-C-affectations.md](annuaire_plans/ANNUAIRE-C-affectations.md).  
 Skills / certifs : [ANNUAIRE-D-competences-certifications.md](annuaire_plans/ANNUAIRE-D-competences-certifications.md).  

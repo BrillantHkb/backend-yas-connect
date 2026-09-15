@@ -1,5 +1,6 @@
 # ANNUAIRE-A — Recherche collègues & référentiels (ANN-01 … 05)
 
+**Statut :** à faire — lab [00-jour-17-annuaire-a.md](../00-jour-17-annuaire-a.md).  
 **Produit :** YAS Connect uniquement (pas le SIRH).  
 **Préalable :** Phase 0 + **PROF-A** (carte collègue + privacy) + **ADMIN-A** (seed `region`) + **AUTH-R**.  
 **Attributs :** [IAM](../../catalogues/IAM-catalogue-tables.md) (`users`, `region`) · [Annuaire](../../catalogues/ANNUAIRE-catalogue-tables.md) · [INDEX](../../catalogues/INDEX-catalogue.md) (GIN trgm).  
@@ -140,12 +141,13 @@ Pas de `user_segments`. Pas de skills.
 ## 1. Fichiers
 
 ```
-apps/iam/views_directory_search.py   # GET /users
-apps/annuaire/views_directory.py     # GET /directory/*
-apps/annuaire/seed.py                # seed_annuaire
+apps/iam/services/search_service.py   # GET /users
+apps/iam/views/users.py               # UserSearchView + UserPublicView (path "" avant {id})
+apps/annuaire/views/directory.py      # GET /directory/* (delta)
+apps/annuaire/management/commands/seed_annuaire.py  # déjà jour 3
 ```
 
-`HasPermission` sur `GET /users` seulement.
+`HasPermission` sur `GET /users` seulement. Lab : [00-jour-17-annuaire-a.md](../00-jour-17-annuaire-a.md) (enveloppe `{success, data}` ; régions tri `code`).
 
 ---
 
@@ -175,7 +177,7 @@ apps/annuaire/seed.py                # seed_annuaire
 - [ ] Directory public pour AUTH-D
 - [ ] Seed types + `YAS` ; régions = ADMIN-A
 - [ ] Pas de CRUD RH arbre (B/C/D)
-- [ ] Spec seulement
+- [ ] Spec + lab [00-jour-17-annuaire-a.md](../00-jour-17-annuaire-a.md) (pas encore le code)
 
 ---
 

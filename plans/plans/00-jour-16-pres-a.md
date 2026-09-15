@@ -20,7 +20,7 @@
 **Plan métier (code à coller) :** [PRES-A-presence.md](iam_plans/PRES-A-presence.md) (PRES-01 … 16).  
 Chemins lab = ce fichier (`views/presence.py`, `services/presence_service.py`, `apps/realtime/` — **pas** `views_presence.py` à la racine IAM).
 
-**Déjà en base / code :**
+**Déjà en base / code (avant ce jour) :**
 
 - `users.status` : `varchar(16)`, défaut `OFFLINE` ; TextChoices `ONLINE` / `OFFLINE` seulement
 - `GET /me` : `status` = colonne PG ; `last_seen` = `last_login` ; **pas** de `last_login` / `badge` / `connection`
@@ -31,9 +31,11 @@ Chemins lab = ce fichier (`views/presence.py`, `services/presence_service.py`, `
 - ASGI = HTTP Django seulement (pas Channels)
 - USER a déjà `iam.presence.update` / `heartbeat` et `iam.profile.read`
 
-**Pas encore :** `PATCH /me/presence`, `POST /me/presence/heartbeat`, WS `/ws/v1/presence`, `status_message`, enum `AWAY` / `IN_MEETING`, `apps.realtime`.
+**Pas encore (avant ce jour) :** `PATCH /me/presence`, `POST /me/presence/heartbeat`, WS `/ws/v1/presence`, `status_message`, enum `AWAY` / `IN_MEETING`, `apps.realtime`.
 
-**Objectif du jour :**
+**Livré (code) :** liveness cache `presence:{id}` TTL 90 s ; `effective_status` + `badge` ; GET `/me` (`connection`, `availability`, `last_login` soi) ; GET collègue `badge` / `status_message` si PROF-25 ; PATCH `/me/presence` ; POST heartbeat ; WS `/ws/v1/presence` ; hooks `on_call_*` ; seed `presence.*` ; Channels InMemory si pas de Redis. Login **≠** pastille. `public_user` **inchangé**.
+
+**Objectif du jour (fait) :**
 
 1. Liveness Redis (cache) : connect WS / ping REST = clé `presence:{id}` TTL 90 s. Login **reste** OFFLINE tant qu’il n’y a pas de ping.
 2. `effective_status` (ticket) + `badge` ; GET `/me` enrichi (`connection`, `availability`, `last_login` soi) ; GET collègue : `badge` + `status_message` **seulement** si `status` visible.
@@ -357,19 +359,22 @@ Cadence actuelle : **1 ligne** [A→Z §4.1](00-application-A-Z.md) = **1 plan d
 | 15     | PROF-C                                         | §2 visibilité                       |
 | **16** | **PRES-A** (ce plan)                           | §2 statut en ligne                  |
 | 17     | ANNUAIRE-A                                     | §3 recherche collègue               |
-| 18     | CRYPTO-00                                      | §6 décision E2E                     |
-| 19     | MEDIA-R + MEDIA-A                              | §4 upload (plafonds ; pas de reprise) |
-| 20     | NOTIF-R + NOTIF-A                              | §5 alertes + MOB-PUSH (VoIP / worker) |
-| 21     | CRYPTO-R + CRYPTO-A                            | Clés HTTP                           |
-| 22     | MESSAGERIE-R, A, B                             | §7 1-to-1                           |
-| 23     | MESSAGERIE-C, D                                | §7 groupes + temps réel             |
-| 24     | MESSAGERIE-E (partiel), F, G                   | §7 enrichissements                  |
-| 25     | MEDIA-B, C, D, E                               | §4 album / vocal / coffre           |
-| 26     | APPELS-R, A, B, C                              | §8 appel 1-1 + `CALL_CANCELLED`     |
-| 27     | APPELS-D, E, G                                 | §8 écran / CR                       |
+| 18     | ANNUAIRE-B                                     | §3 organigramme (types + arbre)     |
+| 19     | ANNUAIRE-C                                     | §3 mutations / affectations         |
+| 20     | ANNUAIRE-D                                     | §3 compétences / certifications     |
+| 21     | CRYPTO-00                                      | §6 décision E2E                     |
+| 22     | MEDIA-R + MEDIA-A                              | §4 upload (plafonds ; pas de reprise) |
+| 23     | NOTIF-R + NOTIF-A                              | §5 alertes + MOB-PUSH (VoIP / worker) |
+| 24     | CRYPTO-R + CRYPTO-A                            | Clés HTTP                           |
+| 25     | MESSAGERIE-R, A, B                             | §7 1-to-1                           |
+| 26     | MESSAGERIE-C, D                                | §7 groupes + temps réel             |
+| 27     | MESSAGERIE-E (partiel), F, G                   | §7 enrichissements                  |
+| 28     | MEDIA-B, C, D, E                               | §4 album / vocal / coffre           |
+| 29     | APPELS-R, A, B, C                              | §8 appel 1-1 + `CALL_CANCELLED`     |
+| 30     | APPELS-D, E, G                                 | §8 écran / CR                       |
 
 
-**Total : 28 plans (jours 0 à 27).**  
-Déjà clos : **17** (0–16). Restant : **11** (17–27).
+**Total : 31 plans (jours 0 à 30).**  
+Déjà clos : **17** (0–16). Restant : **14** (17–30).
 
-Hors ce compteur (A→Z §4.2) : ANNUAIRE-B/C/D, MEDIA-F, APPELS-F, mentions / modération, social, IA.
+Hors ce compteur (A→Z §4.2) : MEDIA-F, APPELS-F, mentions / modération, social, IA.

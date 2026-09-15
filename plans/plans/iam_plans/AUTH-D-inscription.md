@@ -43,6 +43,7 @@ Ce n’est **pas** le login LDAP (AUTH-13) : le login ne crée toujours pas de u
 | `status` | Toujours **`OFFLINE`** à la création |
 | Side tables | `provision_user_rows` : prefs + privacy + **notification_preferences** (D02, D03, seed, ADM-02) |
 | SMTP D04 | Lab = Mailhog (`EMAIL_HOST`). Vide = pas d’envoi, token quand même. Non bloquant |
+| Delta ANNUAIRE-C | Jour 3 **clos**, mais à rouvrir quand ANNUAIRE-C atterrit (jour 19) : D02/D03 doivent appeler `open_assignment(user, segment, assigned_by=None, ...)` dans la même transaction, en plus de poser `users.segment_id`. Voir [ANNUAIRE-C](../annuaire_plans/ANNUAIRE-C-affectations.md). |
 
 
 ### Politique MDP applicatif (D02 + D03)

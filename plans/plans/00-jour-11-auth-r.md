@@ -413,20 +413,23 @@ Cadence actuelle : **1 ligne** [A→Z §4.1](00-application-A-Z.md) = **1 plan d
 | 15 | PROF-C | §2 visibilité |
 | 16 | PRES-A | §2 statut en ligne |
 | 17 | ANNUAIRE-A | §3 recherche collègue |
-| 18 | CRYPTO-00 | §6 décision E2E 1-to-1 vs groupes |
-| 19 | MEDIA-R + MEDIA-A | §4 joindre un fichier (upload) |
-| 20 | NOTIF-R + NOTIF-A | §5 alertes + push app fermée |
-| 21 | CRYPTO-R + CRYPTO-A | Clés HTTP |
-| 22 | MESSAGERIE-R, A, B | §7 liste + chat 1-to-1 + PJ |
-| 23 | MESSAGERIE-C, D | §7 groupes + temps réel |
-| 24 | MESSAGERIE-E (partiel), F (blocage), G | §7 emoji, transfert, sondage, favoris, bloquer, typing |
-| 25 | MEDIA-B, C, D, E | §4 album, vidéo, vocal, coffre |
-| 26 | APPELS-R, A, B, C | §8 appel 1-1 + sonnerie |
-| 27 | APPELS-D, E, G | §8 écran, enregistrement, CR auto |
+| 18 | ANNUAIRE-B | §3 organigramme (types + arbre) |
+| 19 | ANNUAIRE-C | §3 mutations / affectations |
+| 20 | ANNUAIRE-D | §3 compétences / certifications |
+| 21 | CRYPTO-00 | §6 décision E2E 1-to-1 vs groupes |
+| 22 | MEDIA-R + MEDIA-A | §4 joindre un fichier (upload) |
+| 23 | NOTIF-R + NOTIF-A | §5 alertes + push app fermée |
+| 24 | CRYPTO-R + CRYPTO-A | Clés HTTP |
+| 25 | MESSAGERIE-R, A, B | §7 liste + chat 1-to-1 + PJ |
+| 26 | MESSAGERIE-C, D | §7 groupes + temps réel |
+| 27 | MESSAGERIE-E (partiel), F (blocage), G | §7 emoji, transfert, sondage, favoris, bloquer, typing |
+| 28 | MEDIA-B, C, D, E | §4 album, vidéo, vocal, coffre |
+| 29 | APPELS-R, A, B, C | §8 appel 1-1 + sonnerie |
+| 30 | APPELS-D, E, G | §8 écran, enregistrement, CR auto |
 
-**Total : 28 plans (jours 0 à 27).**  
-Déjà clos : **12** (0–11). Restant : **16** (12–27).
+**Total : 31 plans (jours 0 à 30).**  
+Déjà clos : **12** (0–11). Restant : **19** (12–30).
 
-Hors ce compteur (A→Z §4.2, *après* le MVP sonnant) : ANNUAIRE-B/C/D, MEDIA-F, APPELS-F, mentions / modération, social, IA.
+Hors ce compteur (A→Z §4.2, *après* le MVP sonnant) : MEDIA-F, APPELS-F, mentions / modération, social, IA.
 
-Le jour **25** (MEDIA-B…E) est le plus large : s’il explose au lab, on le **découpera** (le total passerait alors vers 30–31). On ne découpe pas maintenant.
+Le jour **28** (MEDIA-B…E) est le plus large : s’il explose au lab, on le **découpera** (le total passerait alors vers 33–34). On ne découpe pas maintenant.
