@@ -84,8 +84,8 @@ def user_has_permission(user, code: str) -> bool:
 
 
 def ensure_catalog() -> None:
-    """Upsert 58 perms system (idempotent)."""
-    if Permission.objects.filter(is_system=True).count() >= 58:
+    """Upsert les perms system du catalogue courant (idempotent, ajoute les manquantes)."""
+    if Permission.objects.filter(is_system=True).count() >= len(SYSTEM_PERMISSIONS):
         return
     for row in SYSTEM_PERMISSIONS:
         Permission.objects.get_or_create(
