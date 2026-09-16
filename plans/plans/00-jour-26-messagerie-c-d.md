@@ -322,7 +322,7 @@ pytest apps/iam/tests/test_messaging_c.py apps/iam/tests/test_messaging_d.py app
 
 ## Après le jour 26
 
-Jour 27 : **MESSAGERIE-E (partiel), F, G** — réactions, transfert, épinglage de message, signets, sondages (GROUP only), blocage/signalement (routes de gestion — `blocked_users` déjà peuplée manuellement en jour 25/26 pour les tests), indicateurs de saisie (Redis, WS). Lab pas encore écrit.
+Jour 27 : **MESSAGERIE-E (partiel), F, G** — réactions, transfert, épinglage de message, signets, sondages (GROUP only), blocage/signalement (routes de gestion — `blocked_users` déjà peuplée manuellement en jour 25/26 pour les tests), indicateurs de saisie (Redis, WS). Lab [00-jour-27-messagerie-e-f-g.md](00-jour-27-messagerie-e-f-g.md).
 
 ---
 

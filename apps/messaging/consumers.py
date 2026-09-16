@@ -16,6 +16,7 @@ from apps.iam.services.compliance_service import (
 from apps.iam.services.rbac_service import MSG_FORBIDDEN, user_has_permission
 from apps.iam.services.session_service import touch_last_activity
 from apps.messaging.models import ConversationMember
+from apps.messaging.services import realtime_service, typing_service
 
 
 def _token_from_scope(scope) -> str:
@@ -85,6 +86,12 @@ class MessagingConsumer(JsonWebsocketConsumer):
         if kind == "unsubscribe":
             self._unsubscribe(content.get("conversation_ids"))
             return
+        if kind == "typing.start":
+            self._typing_start(content)
+            return
+        if kind == "typing.stop":
+            self._typing_stop(content.get("conversation_id"))
+            return
 
     def _subscribe(self, raw_ids):
         for conversation_id in raw_ids or []:
@@ -111,6 +118,46 @@ class MessagingConsumer(JsonWebsocketConsumer):
             f"conversation.{conversation_id}", self.channel_name
         )
 
+    def _typing_start(self, content):
+        conversation_id = content.get("conversation_id")
+        if not conversation_id:
+            return
+        conversation_id = str(conversation_id)
+        is_member = ConversationMember.objects.filter(
+            conversation_id=conversation_id, user=self.user, active=True
+        ).exists()
+        if not is_member or not typing_service.should_emit(self.user):
+            return
+        if not typing_service.mark_typing_start(conversation_id, self.user.id):
+            return  # dédup TTL 5s (§0 jour 27)
+        realtime_service.broadcast_typing_updated(
+            conversation_id,
+            user_id=self.user.id,
+            display_name=self.user.get_full_name(),
+            activity=content.get("activity") or "TEXT",
+            reply_to_message_id=content.get("reply_to_message_id"),
+        )
+
+    def _typing_stop(self, conversation_id):
+        if not conversation_id:
+            return
+        conversation_id = str(conversation_id)
+        is_member = ConversationMember.objects.filter(
+            conversation_id=conversation_id, user=self.user, active=True
+        ).exists()
+        if not is_member or not typing_service.should_emit(self.user):
+            return
+        typing_service.clear_typing(conversation_id, self.user.id)
+        # expires_in=0 signale l'arrêt immédiat ; `activity` reste dans l'enum
+        # TEXT/VOICE/CAMERA du contrat (pas de 4e valeur "STOP" inventée).
+        realtime_service.broadcast_typing_updated(
+            conversation_id,
+            user_id=self.user.id,
+            display_name=self.user.get_full_name(),
+            activity="TEXT",
+            expires_in=0,
+        )
+
     def message_created(self, event):
         close_old_connections()
         self.send_json(event)
@@ -125,4 +172,14 @@ class MessagingConsumer(JsonWebsocketConsumer):
 
     def receipt_updated(self, event):
         close_old_connections()
+        self.send_json(event)
+
+    def reaction_updated(self, event):
+        close_old_connections()
+        self.send_json(event)
+
+    def typing_updated(self, event):
+        close_old_connections()
+        if event.get("user_id") == str(self.user.id):
+            return  # jamais d'écho à l'émetteur (§ contrat WS jour 27)
         self.send_json(event)

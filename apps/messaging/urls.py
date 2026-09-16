@@ -2,6 +2,7 @@
 
 from django.urls import path
 
+from apps.messaging.views.bookmarks import MessageBookmarksView
 from apps.messaging.views.conversations import (
     ConversationArchiveView,
     ConversationByUuidView,
@@ -15,6 +16,7 @@ from apps.messaging.views.conversations import (
     MemberDetailView,
     MemberListCreateView,
 )
+from apps.messaging.views.forward import MessageForwardView
 from apps.messaging.views.messages import (
     ConversationReadView,
     MessageDeliveredView,
@@ -23,6 +25,9 @@ from apps.messaging.views.messages import (
     MessageReadView,
     MessageSearchView,
 )
+from apps.messaging.views.polls import PollCloseView, PollVoteView
+from apps.messaging.views.reactions import MessageReactionsView
+from apps.messaging.views.reports import MessageReportView
 
 urlpatterns = [
     path("conversations", ConversationListCreateView.as_view(), name="messaging-conversations"),
@@ -96,4 +101,22 @@ urlpatterns = [
         name="messaging-message-delivered",
     ),
     path("messages/<uuid:pk>/read", MessageReadView.as_view(), name="messaging-message-read"),
+    path(
+        "messages/<uuid:pk>/reactions",
+        MessageReactionsView.as_view(),
+        name="messaging-message-reactions",
+    ),
+    path(
+        "messages/<uuid:pk>/forward", MessageForwardView.as_view(), name="messaging-message-forward"
+    ),
+    path(
+        "messages/<uuid:pk>/bookmarks",
+        MessageBookmarksView.as_view(),
+        name="messaging-message-bookmarks",
+    ),
+    path(
+        "messages/<uuid:pk>/reports", MessageReportView.as_view(), name="messaging-message-reports"
+    ),
+    path("polls/<uuid:pk>/votes", PollVoteView.as_view(), name="messaging-poll-votes"),
+    path("polls/<uuid:pk>/close", PollCloseView.as_view(), name="messaging-poll-close"),
 ]

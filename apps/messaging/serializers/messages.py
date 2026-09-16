@@ -14,6 +14,7 @@ class MessageSendSerializer(serializers.Serializer):
         child=serializers.UUIDField(), required=False, default=list
     )
     client_message_id = serializers.CharField(required=False, allow_blank=True, default="")
+    poll = serializers.DictField(required=False, default=dict)
 
 
 class MessageEditSerializer(serializers.Serializer):

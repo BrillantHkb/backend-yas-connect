@@ -53,3 +53,27 @@ def broadcast_receipt_updated(
             "read_at": read_at,
         },
     )
+
+
+def broadcast_reaction_updated(conversation_id, *, message_id) -> None:
+    _group_send(
+        conversation_id,
+        {"type": "reaction.updated", "message_id": str(message_id)},
+    )
+
+
+def broadcast_typing_updated(
+    conversation_id, *, user_id, display_name, activity, reply_to_message_id=None, expires_in=5
+) -> None:
+    _group_send(
+        conversation_id,
+        {
+            "type": "typing.updated",
+            "conversation_id": str(conversation_id),
+            "user_id": str(user_id),
+            "display_name": display_name,
+            "activity": activity,
+            "reply_to_message_id": str(reply_to_message_id) if reply_to_message_id else None,
+            "expires_in": expires_in,
+        },
+    )

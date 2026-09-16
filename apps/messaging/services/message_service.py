@@ -26,7 +26,7 @@ from apps.messaging.models import (
     MessageEdit,
     MessageMention,
 )
-from apps.messaging.services import conversation_service, realtime_service
+from apps.messaging.services import conversation_service, poll_service, realtime_service
 from apps.notifications.models import Notification
 from apps.notifications.services.notification_service import emit
 
@@ -117,6 +117,13 @@ def _get_message_and_member(user, pk):
     return message, member
 
 
+# Alias publics — réutilisés par forward_service.py (même app, cross-module).
+resolve_group_key = _resolve_group_key
+decode_b64 = _decode_b64
+encode_b64 = _encode_b64
+serialize_message = _serialize_message
+
+
 # --- MSG-21/70 : historique + catch-up (after=) ----------------------------------
 
 
@@ -197,42 +204,47 @@ def send_message(*, user, device, conversation_id, data: dict) -> dict:
         user_id=user.id
     )
 
-    if conversation.type == Conversation.Type.PRIVATE:
-        require_sender_identity(device=device)
-        peer_member = others.select_related("user").first()
-        if peer_member is not None:
-            require_peer_ready(target_user=peer_member.user)
-    # GROUP : aucune garde par appareil — la confidentialité est gérée par la
-    # clé de fil serveur (ensure_conversation_key), pas par Signal (§0 jour 26).
-
-    media = None
-    media_id = data.get("media_id")
     msg_type = (data.get("type") or "TEXT").upper()
-    if media_id:
-        media = get_own_media_or_404(user, media_id)
-        if media.scan_status == MediaFile.ScanStatus.INFECTED:
-            raise AuthAPIError(422, "MEDIA_INFECTED", MSG_MEDIA_INFECTED)
-        if msg_type == Message.Type.TEXT:
-            msg_type = _TYPE_FROM_MEDIA.get(media.media_type, Message.Type.DOCUMENT)
+    is_poll = msg_type == Message.Type.POLL
+    media = None
+    content_bytes = b""
 
-    if msg_type not in _ALLOWED_SEND_TYPES:
-        raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "type"})
-
-    raw_content = data.get("encrypted_content") or ""
-    if raw_content:
-        content_bytes = _decode_b64(raw_content, "encrypted_content")
-        if group_key is not None:
-            content_bytes = wrapping.wrap_with_key(group_key, content_bytes)
-    elif media is None:
-        raise AuthAPIError(
-            400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "encrypted_content"}
-        )
+    if is_poll:
+        poll_service.validate_poll_payload(conversation=conversation, data=data)
     else:
-        content_bytes = b""
+        if conversation.type == Conversation.Type.PRIVATE:
+            require_sender_identity(device=device)
+            peer_member = others.select_related("user").first()
+            if peer_member is not None:
+                require_peer_ready(target_user=peer_member.user)
+        # GROUP : aucune garde par appareil — la confidentialité est gérée par la
+        # clé de fil serveur (ensure_conversation_key), pas par Signal (§0 jour 26).
+
+        media_id = data.get("media_id")
+        if media_id:
+            media = get_own_media_or_404(user, media_id)
+            if media.scan_status == MediaFile.ScanStatus.INFECTED:
+                raise AuthAPIError(422, "MEDIA_INFECTED", MSG_MEDIA_INFECTED)
+            if msg_type == Message.Type.TEXT:
+                msg_type = _TYPE_FROM_MEDIA.get(media.media_type, Message.Type.DOCUMENT)
+
+        if msg_type not in _ALLOWED_SEND_TYPES:
+            raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "type"})
+
+        raw_content = data.get("encrypted_content") or ""
+        if raw_content:
+            content_bytes = _decode_b64(raw_content, "encrypted_content")
+            if group_key is not None:
+                content_bytes = wrapping.wrap_with_key(group_key, content_bytes)
+        elif media is None:
+            raise AuthAPIError(
+                400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "encrypted_content"}
+            )
 
     mention_ids = [str(m) for m in (data.get("mentions") or [])]
     metadata = {"client_message_id": client_message_id} if client_message_id else {}
 
+    poll = None
     with transaction.atomic():
         message = Message.objects.create(
             type=msg_type,
@@ -247,6 +259,8 @@ def send_message(*, user, device, conversation_id, data: dict) -> dict:
             metadata=metadata,
             sent_at=timezone.now(),
         )
+        if is_poll:
+            poll = poll_service.create_poll(message=message, user=user, device=device, data=data)
         others.update(unread_count=F("unread_count") + 1)
         conversation.last_message = message
         conversation.last_message_at = message.sent_at
@@ -281,6 +295,8 @@ def send_message(*, user, device, conversation_id, data: dict) -> dict:
             ignore_dnd=True,
         )
     serialized = _serialize_message(message, group_key)
+    if poll is not None:
+        serialized["poll"] = poll_service.serialize_poll(poll)
     realtime_service.broadcast_message_created(conversation.id, serialized)
     return serialized
 
