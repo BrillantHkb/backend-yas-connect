@@ -18,3 +18,7 @@ class MessageSendSerializer(serializers.Serializer):
 
 class MessageEditSerializer(serializers.Serializer):
     encrypted_content = serializers.CharField()
+
+
+class ConversationReadSerializer(serializers.Serializer):
+    last_read_message_id = serializers.UUIDField()

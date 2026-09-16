@@ -1,4 +1,4 @@
-"""MESSAGERIE-B : historique, envoi, détail, édition, suppression, recherche."""
+"""MESSAGERIE-B/C : historique, envoi, détail, édition, suppression, recherche."""
 
 import base64
 from datetime import timedelta
@@ -7,7 +7,12 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
-from apps.crypto.services.key_service import require_peer_ready, require_sender_identity
+from apps.crypto.services import wrapping
+from apps.crypto.services.key_service import (
+    group_content_key,
+    require_peer_ready,
+    require_sender_identity,
+)
 from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import PrivacySetting
 from apps.media.models import MediaFile
@@ -21,7 +26,7 @@ from apps.messaging.models import (
     MessageEdit,
     MessageMention,
 )
-from apps.messaging.services import conversation_service
+from apps.messaging.services import conversation_service, realtime_service
 from apps.notifications.models import Notification
 from apps.notifications.services.notification_service import emit
 
@@ -71,11 +76,21 @@ def _encode_b64(raw: bytes) -> str:
     return base64.b64encode(bytes(raw)).decode()
 
 
-def _serialize_message(message: Message) -> dict:
+def _resolve_group_key(conversation: Conversation) -> bytes | None:
+    """GROUP/AI : clé de fil serveur (CRYPTO-A). PRIVATE : None (contenu jamais touché)."""
+    if conversation.type == Conversation.Type.GROUP:
+        return group_content_key(conversation.id)
+    return None
+
+
+def _serialize_message(message: Message, group_key: bytes | None = None) -> dict:
+    raw = bytes(message.encrypted_content or b"")
+    if group_key is not None and raw:
+        raw = wrapping.unwrap_with_key(group_key, raw)
     return {
         "id": str(message.id),
         "type": message.type,
-        "encrypted_content": _encode_b64(bytes(message.encrypted_content or b"")),
+        "encrypted_content": _encode_b64(raw),
         "sender_id": str(message.sender_id) if message.sender_id else None,
         "conversation_id": str(message.conversation_id),
         "parent_message_id": str(message.parent_message_id)
@@ -102,17 +117,32 @@ def _get_message_and_member(user, pk):
     return message, member
 
 
-# --- MSG-21 : historique --------------------------------------------------------
+# --- MSG-21/70 : historique + catch-up (after=) ----------------------------------
 
 
-def list_messages(*, user, conversation_id, before=None, limit=30, parent_id=None) -> dict:
+def list_messages(
+    *, user, conversation_id, before=None, after=None, limit=30, parent_id=None
+) -> dict:
     limit = min(max(int(limit or 30), 1), _MESSAGES_LIMIT_MAX)
-    conversation_service.get_member_or_404(user, conversation_id=conversation_id)
+    member = conversation_service.get_member_or_404(user, conversation_id=conversation_id)
+    group_key = _resolve_group_key(member.conversation)
     qs = Message.objects.filter(conversation_id=conversation_id, deleted=False).exclude(
         deletes__delete_scope=MessageDelete.DeleteScope.SELF, deletes__deleted_by=user
     )
     if parent_id:
         qs = qs.filter(parent_message_id=parent_id)
+
+    if after:
+        rows = list(qs.filter(sent_at__gt=after).order_by("sent_at")[: limit + 1])
+        next_after = None
+        if len(rows) > limit:
+            rows = rows[:limit]
+            next_after = rows[-1].sent_at.isoformat()
+        return {
+            "results": [_serialize_message(m, group_key) for m in rows],
+            "next_after": next_after,
+        }
+
     if before:
         qs = qs.filter(sent_at__lt=before)
     rows = list(qs.order_by("-sent_at")[: limit + 1])
@@ -120,7 +150,7 @@ def list_messages(*, user, conversation_id, before=None, limit=30, parent_id=Non
     if len(rows) > limit:
         rows = rows[:limit]
         next_before = rows[-1].sent_at.isoformat()
-    return {"results": [_serialize_message(m) for m in rows], "next_before": next_before}
+    return {"results": [_serialize_message(m, group_key) for m in rows], "next_before": next_before}
 
 
 # --- MSG-22 : envoyer ------------------------------------------------------------
@@ -129,13 +159,22 @@ def list_messages(*, user, conversation_id, before=None, limit=30, parent_id=Non
 def send_message(*, user, device, conversation_id, data: dict) -> dict:
     member = conversation_service.get_member_or_404(user, conversation_id=conversation_id)
     conversation = member.conversation
-    if conversation.type != Conversation.Type.PRIVATE:
+    if conversation.type not in (Conversation.Type.PRIVATE, Conversation.Type.GROUP):
         raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "type"})
+    group_key = _resolve_group_key(conversation)
 
-    # "locked" est stocké par ligne ConversationSetting (par user), sans table
-    # dédiée conversation-level : tant que MESSAGERIE-C (group-settings) n'existe
-    # pas, on considère le fil verrouillé si N'IMPORTE QUELLE ligne le porte.
-    locked = ConversationSetting.objects.filter(conversation=conversation, locked=True).exists()
+    # locked/visibility/max_members : toujours la ligne ConversationSetting de
+    # l'OWNER qui fait foi (§0 jour 26). Pour PRIVATE il n'y a pas d'OWNER →
+    # jamais verrouillable, ce qui est le comportement voulu.
+    owner_member = ConversationMember.objects.filter(
+        conversation=conversation, role=ConversationMember.Role.OWNER, active=True
+    ).first()
+    locked = False
+    if owner_member is not None:
+        setting = ConversationSetting.objects.filter(
+            conversation=conversation, user=owner_member.user
+        ).first()
+        locked = bool(setting and setting.locked)
     if locked and member.role not in (ConversationMember.Role.OWNER, ConversationMember.Role.ADMIN):
         raise AuthAPIError(403, "CONVERSATION_LOCKED", MSG_CONVERSATION_LOCKED)
     if member.role == ConversationMember.Role.READ_ONLY:
@@ -151,17 +190,20 @@ def send_message(*, user, device, conversation_id, data: dict) -> dict:
                 409,
                 "DUPLICATE_MESSAGE",
                 MSG_DUPLICATE,
-                extra={"data": _serialize_message(existing)},
+                extra={"data": _serialize_message(existing, group_key)},
             )
-
-    require_sender_identity(device=device)
 
     others = ConversationMember.objects.filter(conversation=conversation, active=True).exclude(
         user_id=user.id
     )
-    peer_member = others.select_related("user").first()
-    if peer_member is not None:
-        require_peer_ready(target_user=peer_member.user)
+
+    if conversation.type == Conversation.Type.PRIVATE:
+        require_sender_identity(device=device)
+        peer_member = others.select_related("user").first()
+        if peer_member is not None:
+            require_peer_ready(target_user=peer_member.user)
+    # GROUP : aucune garde par appareil — la confidentialité est gérée par la
+    # clé de fil serveur (ensure_conversation_key), pas par Signal (§0 jour 26).
 
     media = None
     media_id = data.get("media_id")
@@ -179,6 +221,8 @@ def send_message(*, user, device, conversation_id, data: dict) -> dict:
     raw_content = data.get("encrypted_content") or ""
     if raw_content:
         content_bytes = _decode_b64(raw_content, "encrypted_content")
+        if group_key is not None:
+            content_bytes = wrapping.wrap_with_key(group_key, content_bytes)
     elif media is None:
         raise AuthAPIError(
             400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "encrypted_content"}
@@ -236,7 +280,9 @@ def send_message(*, user, device, conversation_id, data: dict) -> dict:
             collapse_key=f"mention:{message.id}",
             ignore_dnd=True,
         )
-    return _serialize_message(message)
+    serialized = _serialize_message(message, group_key)
+    realtime_service.broadcast_message_created(conversation.id, serialized)
+    return serialized
 
 
 # --- MSG-27 : détail --------------------------------------------------------------
@@ -244,7 +290,7 @@ def send_message(*, user, device, conversation_id, data: dict) -> dict:
 
 def get_message_detail(*, user, pk) -> dict:
     message, _member = _get_message_and_member(user, pk)
-    return _serialize_message(message)
+    return _serialize_message(message, _resolve_group_key(message.conversation))
 
 
 # --- MSG-24 : éditer ---------------------------------------------------------------
@@ -256,7 +302,12 @@ def edit_message(*, user, pk, encrypted_content_b64: str) -> dict:
         raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
     if timezone.now() - message.sent_at > _EDIT_WINDOW:
         raise AuthAPIError(403, "EDIT_WINDOW_EXPIRED", MSG_EDIT_EXPIRED)
+    group_key = _resolve_group_key(message.conversation)
     new_content = _decode_b64(encrypted_content_b64, "encrypted_content")
+    if group_key is not None:
+        wrapped = wrapping.wrap_with_key(group_key, new_content)
+    else:
+        wrapped = new_content
     with transaction.atomic():
         MessageEdit.objects.create(
             message=message,
@@ -264,10 +315,12 @@ def edit_message(*, user, pk, encrypted_content_b64: str) -> dict:
             edited_by=user,
             edited_at=timezone.now(),
         )
-        message.encrypted_content = new_content
+        message.encrypted_content = wrapped
         message.edited = True
         message.save(update_fields=["encrypted_content", "edited"])
-    return _serialize_message(message)
+    serialized = _serialize_message(message, group_key)
+    realtime_service.broadcast_message_updated(message.conversation_id, serialized)
+    return serialized
 
 
 # --- MSG-25/26 : supprimer ----------------------------------------------------------
@@ -305,6 +358,7 @@ def delete_message(*, user, pk, scope: str) -> dict:
         message.deleted = True
         message.encrypted_content = b""
         message.save(update_fields=["deleted", "encrypted_content"])
+    realtime_service.broadcast_message_deleted(message.conversation_id, message.id, scope)
     return {"deleted": True, "scope": scope}
 
 
@@ -312,13 +366,14 @@ def delete_message(*, user, pk, scope: str) -> dict:
 
 
 def search_messages(*, user, conversation_id, q: str) -> dict:
-    conversation_service.get_member_or_404(user, conversation_id=conversation_id)
+    member = conversation_service.get_member_or_404(user, conversation_id=conversation_id)
     q = (q or "").strip()
     if len(q) < 2:
         raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "q"})
+    group_key = _resolve_group_key(member.conversation)
     qs = (
         Message.objects.filter(conversation_id=conversation_id, deleted=False, tags__icontains=q)
         .exclude(deletes__delete_scope=MessageDelete.DeleteScope.SELF, deletes__deleted_by=user)
         .order_by("-sent_at")[:_SEARCH_LIMIT_MAX]
     )
-    return {"results": [_serialize_message(m) for m in qs]}
+    return {"results": [_serialize_message(m, group_key) for m in qs]}

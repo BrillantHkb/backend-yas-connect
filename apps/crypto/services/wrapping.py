@@ -10,6 +10,7 @@ from django.conf import settings
 from apps.iam.exceptions import AuthAPIError
 
 MSG_MASTER_UNSET = "CRYPTO_MASTER_KEY absente ou invalide (32 octets attendus)."
+MSG_CONTENT_CORRUPT = "Contenu chiffré illisible (clé de fil ou blob corrompu)."
 
 _NONCE_BYTES = 12
 
@@ -44,3 +45,20 @@ def unwrap(blob: bytes) -> bytes:
         return aesgcm.decrypt(nonce, ciphertext, None)
     except InvalidTag as exc:
         raise AuthAPIError(500, "CRYPTO_MASTER_UNSET", MSG_MASTER_UNSET) from exc
+
+
+def wrap_with_key(key: bytes, plaintext: bytes) -> bytes:
+    """Comme wrap(), mais avec une clé arbitraire déjà déwrappée (clé de fil GROUP)."""
+    nonce = os.urandom(_NONCE_BYTES)
+    aesgcm = AESGCM(key)
+    ciphertext = aesgcm.encrypt(nonce, plaintext, None)
+    return nonce + ciphertext
+
+
+def unwrap_with_key(key: bytes, blob: bytes) -> bytes:
+    nonce, ciphertext = blob[:_NONCE_BYTES], blob[_NONCE_BYTES:]
+    aesgcm = AESGCM(key)
+    try:
+        return aesgcm.decrypt(nonce, ciphertext, None)
+    except InvalidTag as exc:
+        raise AuthAPIError(500, "CRYPTO_CONTENT_CORRUPT", MSG_CONTENT_CORRUPT) from exc

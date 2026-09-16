@@ -1,11 +1,14 @@
-"""MESSAGERIE-A : inbox, création/réouverture fil privé, détail, archive, pin, mute, épinglés."""
+"""MESSAGERIE-A/C : inbox, conversations privées/groupes, membres, réglages."""
 
 from django.db import transaction
 from django.db.models import Q
+from django.utils import timezone
 
+from apps.crypto.services.key_service import ensure_conversation_key
 from apps.iam.exceptions import AuthAPIError
-from apps.iam.models import User
+from apps.iam.models import PrivacySetting, User
 from apps.media.services.avatar_service import avatar_url
+from apps.media.services.upload_service import get_own_media_or_404
 from apps.messaging.models import (
     ArchivedConversation,
     BlockedUser,
@@ -19,6 +22,11 @@ MSG_NOT_FOUND = "Conversation introuvable."
 MSG_USER_NOT_FOUND = "Utilisateur introuvable."
 MSG_VALIDATION = "Paramètre invalide."
 MSG_USER_BLOCKED = "Vous ne pouvez pas contacter cet utilisateur."
+MSG_FORBIDDEN = "Action non autorisée sur ce groupe."
+MSG_ALREADY_MEMBER = "Déjà membre actif de ce groupe."
+MSG_INVITE_REFUSED = "Cet utilisateur n'accepte pas les invitations de groupe."
+MSG_GROUP_FULL = "Ce groupe a atteint son nombre maximal de membres."
+MSG_OWNER_MUST_TRANSFER = "Transférez la propriété avant de quitter/retirer l'OWNER."
 
 _INBOX_LIMIT_MAX = 50
 
@@ -160,6 +168,298 @@ def find_or_create_private(*, user, participant_id) -> tuple[dict, bool]:
             conversation=conversation, user=participant, role=ConversationMember.Role.MEMBER
         )
     return get_detail(user=user, conversation_id=conversation.id), True
+
+
+# --- MSG-41 : créer un groupe -----------------------------------------------------
+
+
+def create_group(*, user, title, member_ids, visibility="PRIVATE") -> dict:
+    title = (title or "").strip()
+    valid_members = []
+    seen = {str(user.id)}
+    for raw_id in member_ids or []:
+        uid = str(raw_id)
+        if uid in seen:
+            continue
+        seen.add(uid)
+        try:
+            candidate = User.objects.get(pk=uid, is_active=True)
+        except (User.DoesNotExist, ValueError, TypeError):
+            continue
+        privacy, _ = PrivacySetting.objects.get_or_create(user=candidate)
+        if not privacy.allow_group_invites:
+            continue
+        blocked = BlockedUser.objects.filter(
+            Q(blocker=user, blocked=candidate) | Q(blocker=candidate, blocked=user)
+        ).exists()
+        if blocked:
+            continue
+        valid_members.append(candidate)
+
+    if not valid_members:
+        raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "member_ids"})
+
+    with transaction.atomic():
+        conversation = Conversation.objects.create(
+            type=Conversation.Type.GROUP, title=title, encrypted=False, owner=user
+        )
+        ConversationMember.objects.create(
+            conversation=conversation, user=user, role=ConversationMember.Role.OWNER
+        )
+        for candidate in valid_members:
+            ConversationMember.objects.create(
+                conversation=conversation, user=candidate, role=ConversationMember.Role.MEMBER
+            )
+        ConversationSetting.objects.update_or_create(
+            conversation=conversation,
+            user=user,
+            defaults={"visibility": visibility or ConversationSetting.Visibility.PRIVATE},
+        )
+        ensure_conversation_key(conversation.id)
+
+    return get_detail(user=user, conversation_id=conversation.id), True
+
+
+def _owner_member(conversation) -> ConversationMember:
+    owner = (
+        ConversationMember.objects.filter(
+            conversation=conversation, role=ConversationMember.Role.OWNER, active=True
+        )
+        .select_related("user")
+        .first()
+    )
+    if owner is None:
+        raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND)
+    return owner
+
+
+# --- MSG-42/43 : métadonnées groupe ------------------------------------------------
+
+
+def update_conversation(*, user, conversation_id, data: dict) -> dict:
+    member = get_member_or_404(user, conversation_id=conversation_id)
+    conversation = member.conversation
+    if conversation.type != Conversation.Type.GROUP:
+        raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "type"})
+    if member.role not in (ConversationMember.Role.OWNER, ConversationMember.Role.ADMIN):
+        raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
+
+    fields = []
+    if "title" in data:
+        conversation.title = data["title"].strip()
+        fields.append("title")
+    if "description" in data:
+        conversation.description = data["description"]
+        fields.append("description")
+    if "avatar_media_id" in data:
+        avatar_id = data["avatar_media_id"]
+        conversation.avatar_media = get_own_media_or_404(user, avatar_id) if avatar_id else None
+        fields.append("avatar_media")
+    if fields:
+        fields.append("updated_at")
+        conversation.save(update_fields=fields)
+    return get_detail(user=user, conversation_id=conversation.id)
+
+
+# --- group-settings : visibilité, locked, max_members, accueil, règles ------------
+
+
+def update_group_settings(*, user, conversation_id, data: dict) -> dict:
+    member = get_member_or_404(user, conversation_id=conversation_id)
+    conversation = member.conversation
+    if conversation.type != Conversation.Type.GROUP:
+        raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "type"})
+    if member.role not in (ConversationMember.Role.OWNER, ConversationMember.Role.ADMIN):
+        raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
+
+    owner_member = _owner_member(conversation)
+    setting, _ = ConversationSetting.objects.get_or_create(
+        conversation=conversation, user=owner_member.user
+    )
+    if "visibility" in data:
+        setting.visibility = data["visibility"]
+    if "locked" in data:
+        setting.locked = data["locked"]
+    if "max_members" in data:
+        setting.max_members = data["max_members"]
+    custom = dict(setting.custom_settings or {})
+    if "welcome_message" in data:
+        custom["welcome_message"] = data["welcome_message"]
+    if "rules" in data:
+        custom["rules"] = data["rules"]
+    setting.custom_settings = custom
+    setting.save(update_fields=["visibility", "locked", "max_members", "custom_settings"])
+    return {
+        "visibility": setting.visibility,
+        "locked": setting.locked,
+        "max_members": setting.max_members,
+        "welcome_message": custom.get("welcome_message", ""),
+        "rules": custom.get("rules", ""),
+    }
+
+
+# --- MSG-44 : membres --------------------------------------------------------------
+
+
+def list_members(*, user, conversation_id, active=True) -> dict:
+    member = get_member_or_404(user, conversation_id=conversation_id)
+    qs = ConversationMember.objects.filter(conversation=member.conversation)
+    if active:
+        qs = qs.filter(active=True)
+    qs = qs.select_related("user").order_by("joined_at")
+    return {
+        "results": [
+            {
+                "user_id": str(m.user_id),
+                "username": m.username,
+                "role": m.role,
+                "joined_at": m.joined_at.isoformat(),
+                "left_at": m.left_at.isoformat() if m.left_at else None,
+            }
+            for m in qs
+        ]
+    }
+
+
+def add_member(*, user, conversation_id, target_user_id, role="MEMBER") -> dict:
+    member = get_member_or_404(user, conversation_id=conversation_id)
+    conversation = member.conversation
+    if conversation.type != Conversation.Type.GROUP:
+        raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "type"})
+    if member.role not in (ConversationMember.Role.OWNER, ConversationMember.Role.ADMIN):
+        raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
+
+    try:
+        target = User.objects.get(pk=target_user_id, is_active=True)
+    except (User.DoesNotExist, ValueError, TypeError) as exc:
+        raise AuthAPIError(404, "NOT_FOUND", MSG_USER_NOT_FOUND) from exc
+
+    existing = ConversationMember.objects.filter(conversation=conversation, user=target).first()
+    if existing is not None and existing.active:
+        raise AuthAPIError(409, "ALREADY_MEMBER", MSG_ALREADY_MEMBER)
+
+    privacy, _ = PrivacySetting.objects.get_or_create(user=target)
+    if not privacy.allow_group_invites:
+        raise AuthAPIError(403, "INVITE_REFUSED", MSG_INVITE_REFUSED)
+    blocked = BlockedUser.objects.filter(
+        Q(blocker=user, blocked=target) | Q(blocker=target, blocked=user)
+    ).exists()
+    if blocked:
+        raise AuthAPIError(403, "USER_BLOCKED", MSG_USER_BLOCKED)
+
+    owner_member = _owner_member(conversation)
+    setting = ConversationSetting.objects.filter(
+        conversation=conversation, user=owner_member.user
+    ).first()
+    if setting and setting.max_members:
+        current_count = ConversationMember.objects.filter(
+            conversation=conversation, active=True
+        ).count()
+        if current_count >= setting.max_members:
+            raise AuthAPIError(409, "GROUP_FULL", MSG_GROUP_FULL)
+
+    if existing is not None:
+        existing.active = True
+        existing.left_at = None
+        existing.role = role
+        existing.save(update_fields=["active", "left_at", "role"])
+        row = existing
+    else:
+        row = ConversationMember.objects.create(conversation=conversation, user=target, role=role)
+    return {"user_id": str(target.id), "role": row.role, "joined_at": row.joined_at.isoformat()}
+
+
+def update_member(*, user, conversation_id, target_user_id, data: dict) -> dict:
+    member = get_member_or_404(user, conversation_id=conversation_id)
+    conversation = member.conversation
+    if conversation.type != Conversation.Type.GROUP:
+        raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "type"})
+
+    try:
+        target_member = ConversationMember.objects.select_related("user").get(
+            conversation=conversation, user_id=target_user_id, active=True
+        )
+    except ConversationMember.DoesNotExist as exc:
+        raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND) from exc
+
+    new_role = data.get("role")
+    if new_role:
+        if new_role == ConversationMember.Role.OWNER:
+            if member.role != ConversationMember.Role.OWNER:
+                raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
+            if target_member.user_id != member.user_id:
+                with transaction.atomic():
+                    member.role = ConversationMember.Role.ADMIN
+                    member.save(update_fields=["role"])
+                    target_member.role = ConversationMember.Role.OWNER
+                    target_member.save(update_fields=["role"])
+        else:
+            if member.role == ConversationMember.Role.ADMIN and target_member.role in (
+                ConversationMember.Role.OWNER,
+                ConversationMember.Role.ADMIN,
+            ):
+                raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
+            if member.role not in (ConversationMember.Role.OWNER, ConversationMember.Role.ADMIN):
+                raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
+            target_member.role = new_role
+            target_member.save(update_fields=["role"])
+
+    if "username" in data:
+        is_self = target_member.user_id == user.id
+        is_privileged = member.role in (
+            ConversationMember.Role.OWNER,
+            ConversationMember.Role.ADMIN,
+        )
+        if not is_self and not is_privileged:
+            raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
+        target_member.username = data["username"]
+        target_member.save(update_fields=["username"])
+
+    return {
+        "user_id": str(target_member.user_id),
+        "role": target_member.role,
+        "username": target_member.username,
+    }
+
+
+def remove_member(*, user, conversation_id, target_user_id) -> dict:
+    member = get_member_or_404(user, conversation_id=conversation_id)
+    conversation = member.conversation
+    if conversation.type != Conversation.Type.GROUP:
+        raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "type"})
+    if member.role not in (ConversationMember.Role.OWNER, ConversationMember.Role.ADMIN):
+        raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
+
+    try:
+        target_member = ConversationMember.objects.get(
+            conversation=conversation, user_id=target_user_id, active=True
+        )
+    except ConversationMember.DoesNotExist as exc:
+        raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND) from exc
+
+    if target_member.role == ConversationMember.Role.OWNER:
+        raise AuthAPIError(403, "OWNER_MUST_TRANSFER", MSG_OWNER_MUST_TRANSFER)
+    both_admin = (
+        member.role == ConversationMember.Role.ADMIN
+        and target_member.role == ConversationMember.Role.ADMIN
+    )
+    if both_admin:
+        raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
+
+    target_member.active = False
+    target_member.left_at = timezone.now()
+    target_member.save(update_fields=["active", "left_at"])
+    return {"removed": True}
+
+
+def leave_conversation(*, user, conversation_id) -> dict:
+    member = get_member_or_404(user, conversation_id=conversation_id)
+    if member.role == ConversationMember.Role.OWNER:
+        raise AuthAPIError(403, "OWNER_MUST_TRANSFER", MSG_OWNER_MUST_TRANSFER)
+    member.active = False
+    member.left_at = timezone.now()
+    member.save(update_fields=["active", "left_at"])
+    return {"left": True}
 
 
 def set_archived(*, user, conversation_id, archived: bool) -> dict:

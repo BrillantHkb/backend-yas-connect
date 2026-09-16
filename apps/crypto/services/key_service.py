@@ -206,3 +206,9 @@ def ensure_conversation_key(conversation_id) -> ConversationKey:
         wrapped_key=wrapped,
         is_current=True,
     )
+
+
+def group_content_key(conversation_id) -> bytes:
+    """Clé brute (32o) d'un fil GROUP/AI, prête pour wrap_with_key/unwrap_with_key."""
+    conv_key = ensure_conversation_key(conversation_id)
+    return wrapping.unwrap(bytes(conv_key.wrapped_key))

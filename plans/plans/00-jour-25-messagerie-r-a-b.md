@@ -330,7 +330,7 @@ pytest apps/iam/tests/test_messaging_a.py apps/iam/tests/test_messaging_b.py app
 
 ## Après le jour 25
 
-Jour 26 : **MESSAGERIE-C, D** — groupes (CRUD, membres, rôles) + temps réel (WebSocket, accusés livré/lu), premier vrai consommateur de `ensure_conversation_key` (CRYPTO-A) et de `channels_redis` (si `REDIS_URL` toujours vide en lab, `InMemoryChannelLayer` suffira pour les tests). Lab pas encore écrit.
+Jour 26 : **MESSAGERIE-C, D** — groupes (CRUD, membres, rôles) + temps réel (WebSocket, accusés livré/lu), premier vrai consommateur de `ensure_conversation_key` (CRYPTO-A) et de `channels_redis` (si `REDIS_URL` toujours vide en lab, `InMemoryChannelLayer` suffira pour les tests). Lab [00-jour-26-messagerie-c-d.md](00-jour-26-messagerie-c-d.md).
 
 ---
 

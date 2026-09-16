@@ -5,8 +5,12 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from apps.iam.services.device_service import current_device
-from apps.messaging.serializers.messages import MessageEditSerializer, MessageSendSerializer
-from apps.messaging.services import message_service
+from apps.messaging.serializers.messages import (
+    ConversationReadSerializer,
+    MessageEditSerializer,
+    MessageSendSerializer,
+)
+from apps.messaging.services import message_service, receipt_service
 
 
 class MessageListCreateView(APIView):
@@ -19,10 +23,11 @@ class MessageListCreateView(APIView):
         tags=["Messagerie"],
         parameters=[
             OpenApiParameter("before", str, OpenApiParameter.QUERY, required=False),
+            OpenApiParameter("after", str, OpenApiParameter.QUERY, required=False),
             OpenApiParameter("limit", int, OpenApiParameter.QUERY, required=False),
             OpenApiParameter("parent_id", str, OpenApiParameter.QUERY, required=False),
         ],
-        responses={200: OpenApiResponse(description="Historique paginé")},
+        responses={200: OpenApiResponse(description="Historique (before) ou catch-up (after)")},
     )
     def get(self, request, pk):
         params = request.query_params
@@ -30,6 +35,7 @@ class MessageListCreateView(APIView):
             user=request.user,
             conversation_id=pk,
             before=params.get("before"),
+            after=params.get("after"),
             limit=params.get("limit"),
             parent_id=params.get("parent_id"),
         )
@@ -112,5 +118,50 @@ class MessageSearchView(APIView):
     def get(self, request, pk):
         data = message_service.search_messages(
             user=request.user, conversation_id=pk, q=request.query_params.get("q")
+        )
+        return Response({"success": True, "data": data})
+
+
+class MessageDeliveredView(APIView):
+    """POST /messages/{id}/delivered — MSG-61. Corps ignoré, appareil = session."""
+
+    required_permission = "messaging.receipt.update"
+
+    @extend_schema(tags=["Messagerie"], responses={200: OpenApiResponse(), 404: OpenApiResponse()})
+    def post(self, request, pk):
+        device = current_device(request)
+        data = receipt_service.mark_delivered(user=request.user, device=device, pk=pk)
+        return Response({"success": True, "data": data})
+
+
+class MessageReadView(APIView):
+    """POST /messages/{id}/read — MSG-62/63/64. Respecte read_receipts_enabled."""
+
+    required_permission = "messaging.receipt.update"
+
+    @extend_schema(tags=["Messagerie"], responses={200: OpenApiResponse(), 404: OpenApiResponse()})
+    def post(self, request, pk):
+        device = current_device(request)
+        data = receipt_service.mark_read(user=request.user, device=device, pk=pk)
+        return Response({"success": True, "data": data})
+
+
+class ConversationReadView(APIView):
+    """POST /conversations/{id}/read — MSG-66. Tout lire jusqu'à last_read_message_id."""
+
+    required_permission = "messaging.receipt.update"
+
+    @extend_schema(
+        tags=["Messagerie"], request=ConversationReadSerializer, responses={200: OpenApiResponse()}
+    )
+    def post(self, request, pk):
+        ser = ConversationReadSerializer(data=request.data or {})
+        ser.is_valid(raise_exception=True)
+        device = current_device(request)
+        data = receipt_service.mark_conversation_read(
+            user=request.user,
+            device=device,
+            conversation_id=pk,
+            last_read_message_id=ser.validated_data["last_read_message_id"],
         )
         return Response({"success": True, "data": data})
