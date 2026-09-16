@@ -1,6 +1,6 @@
 # Jour 27 — MESSAGERIE-E (partiel) + F + G (enrichissements, blocage, typing)
 
-**Statut :** à faire.
+**Statut :** clos (2026-09-16).
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.
 **Préalable :** jours 0–26 **clos** ([jour 1](00-jour-1-auth-a.md) … [jour 26](00-jour-26-messagerie-c-d.md)). Toutes les 18 tables `apps.messaging` et les 18 permissions `messaging.*` existent depuis le jour 25 — ce jour n'en crée aucune de plus.
 
@@ -259,17 +259,17 @@ pytest apps/iam/tests/test_messaging_e.py apps/iam/tests/test_messaging_f.py app
 
 ## Checklist jour 27
 
-- [ ] Réactions (2 routes), idempotent
-- [ ] Transfert (règle cross-chiffrement §0 respectée : PRIVATE ⇒ corps obligatoire, GROUP→GROUP ⇒ recopie serveur)
-- [ ] Signets (3 routes)
-- [ ] Sondages : `send_message` étendu (`type=POLL`, GROUP only) + vote (remplace) + close (créateur/admin)
-- [ ] Blocage (3 routes sous `/me/`)
-- [ ] Signalement (1 route + 2 admin), anti-spam 10/jour
-- [ ] Typing WS (`typing.start`/`stop`/`updated`), dédup `cache` 5s, respecte prefs + privacy, jamais d'echo à l'émetteur
-- [ ] `test_messaging_e/f/g.py`
-- [ ] 0 régression MESSAGERIE-A/B/C/D, CRYPTO-A, NOTIF-A
-- [ ] 0 nouvelle migration, 0 nouvelle permission
-- [ ] SIRH non modifié
+- [x] Réactions (2 routes), idempotent
+- [x] Transfert (règle cross-chiffrement §0 respectée : PRIVATE ⇒ corps obligatoire, GROUP→GROUP ⇒ recopie serveur)
+- [x] Signets (3 routes)
+- [x] Sondages : `send_message` étendu (`type=POLL`, GROUP only) + vote (remplace) + close (créateur/admin)
+- [x] Blocage (3 routes sous `/me/`)
+- [x] Signalement (1 route + 2 admin), anti-spam 10/jour
+- [x] Typing WS (`typing.start`/`stop`/`updated`), dédup `cache` 5s, respecte prefs + privacy, jamais d'echo à l'émetteur
+- [x] `test_messaging_e/f/g.py`
+- [x] 0 régression MESSAGERIE-A/B/C/D, CRYPTO-A, NOTIF-A
+- [x] 0 nouvelle migration, 0 nouvelle permission
+- [x] SIRH non modifié
 
 ---
 
@@ -319,6 +319,6 @@ Cadence actuelle : **1 ligne** [A→Z §4.1](00-application-A-Z.md) = **1 plan d
 | 30     | APPELS-D, E, G                                  | §8 écran / CR                          |
 
 **Total : 31 plans (jours 0 à 30).**
-Déjà clos : **27** (0–26). Restant : **4** (27–30).
+Déjà clos : **28** (0–27). Restant : **3** (28–30).
 
 Hors ce compteur (A→Z §4.2) : MEDIA-F, APPELS-F, mentions / modération, social, IA.
