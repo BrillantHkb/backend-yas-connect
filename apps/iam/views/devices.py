@@ -14,10 +14,11 @@ from apps.iam.serializers.devices import (
 )
 from apps.iam.services import rate_limit_service
 from apps.iam.services.device_service import (
-    MSG_NOT_FOUND,
     clear_compromise,
     compromise_admin,
     compromise_owned,
+    current_device,
+    current_device_id,
     list_my_devices,
     patch_current_device,
     patch_owned_device,
@@ -25,23 +26,6 @@ from apps.iam.services.device_service import (
     serialize_device,
 )
 from apps.notifications.services import push_worker
-
-
-def _current_device_id(request):
-    session = getattr(request, "yas_session", None)
-    if session is None:
-        return None
-    return session.device_id
-
-
-def _current_device(request):
-    session = getattr(request, "yas_session", None)
-    if session is None or session.device_id is None:
-        raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND)
-    device = session.device
-    if device is None:
-        raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND)
-    return device
 
 
 class DeviceListView(APIView):
@@ -57,7 +41,7 @@ class DeviceListView(APIView):
     def get(self, request):
         devices = list_my_devices(
             user=request.user,
-            current_device_id=_current_device_id(request),
+            current_device_id=current_device_id(request),
         )
         return Response({"success": True, "data": {"devices": devices}})
 
@@ -78,12 +62,12 @@ class DeviceCurrentPatchView(APIView):
     def patch(self, request):
         ser = DeviceCurrentPatchSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        device = patch_current_device(device=_current_device(request), spec=ser.validated_data)
+        device = patch_current_device(device=current_device(request), spec=ser.validated_data)
         return Response(
             {
                 "success": True,
                 "data": serialize_device(
-                    device, current_device_id=_current_device_id(request)
+                    device, current_device_id=current_device_id(request)
                 ),
             }
         )
@@ -105,7 +89,7 @@ class DevicePushTestView(APIView):
         responses={200: OpenApiResponse(description="Diagnostic canaux"), 429: OpenApiResponse()},
     )
     def post(self, request):
-        device = _current_device(request)
+        device = current_device(request)
         if rate_limit_service.is_push_test_limited(device.id):
             raise AuthAPIError(429, "RATE_LIMITED", "Trop de tests, réessayez dans 30 secondes.")
         rate_limit_service.push_test_hit(device.id)
@@ -147,7 +131,7 @@ class DevicePatchView(APIView):
             {
                 "success": True,
                 "data": serialize_device(
-                    device, current_device_id=_current_device_id(request)
+                    device, current_device_id=current_device_id(request)
                 ),
             }
         )
@@ -187,7 +171,7 @@ class DeviceCompromiseView(APIView):
         compromise_owned(
             user=request.user,
             device_id=pk,
-            current_device_id=_current_device_id(request),
+            current_device_id=current_device_id(request),
         )
         return Response({"success": True, "data": {"compromised": True}})
 

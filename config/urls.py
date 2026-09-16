@@ -34,5 +34,6 @@ urlpatterns = [
     path("api/v1/users/", include("apps.iam.urls.users")),  # PROF-A fiche collègue
     path("api/v1/media/", include("apps.media.urls")),  # PROF-A fichiers avatar
     path("api/v1/", include("apps.notifications.urls")),  # NOTIF-A inbox + prefs
+    path("api/v1/crypto/", include("apps.crypto.urls")),  # CRYPTO-A bundles Signal
     path("api/v1/directory/", include("apps.annuaire.urls")),  # publics, pas de Bearer
 ]

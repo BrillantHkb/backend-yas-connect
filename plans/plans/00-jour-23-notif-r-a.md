@@ -268,7 +268,7 @@ Login jean (nouvel appareil) → `GET /api/v1/notifications` → une notif `DEVI
 
 ## Après le jour 23
 
-Jour 24 : **CRYPTO-R + CRYPTO-A** — bundles de clés HTTP par appareil + `conversation_keys` (GROUP/AI), formalise ANN-16-like FK partagée pour la crypto. Lab pas encore écrit.
+Jour 24 : [00-jour-24-crypto-r-a.md](00-jour-24-crypto-r-a.md) — **CRYPTO-R + CRYPTO-A** (bundles de clés Signal par appareil, `ensure_conversation_key` en hook interne).
 
 ---
 

@@ -7,6 +7,7 @@ import uuid
 from django.conf import settings
 from django.utils import timezone
 
+from apps.crypto.models import IdentityKey, OneTimePreKey, SignedPreKey
 from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import AuditLog, Device, Session
 from apps.iam.services.session_service import kill_session_rows
@@ -17,6 +18,25 @@ MSG_COMPROMISED = "Appareil signalé compromis."
 MSG_JAILBROKEN = "Appareil non autorisé (root/jailbreak)."
 MSG_NOT_FOUND = "Appareil introuvable."
 MSG_CURRENT = "Utiliser revoke sur l’appareil courant."
+
+
+def current_device_id(request):
+    """Appareil de la session JWT courante, ou None (ex. cookie admin)."""
+    session = getattr(request, "yas_session", None)
+    if session is None:
+        return None
+    return session.device_id
+
+
+def current_device(request) -> Device:
+    """Appareil de la session courante. 404 si absent — jamais un device_id du body (CRYPTO-A)."""
+    session = getattr(request, "yas_session", None)
+    if session is None or session.device_id is None:
+        raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND)
+    device = session.device
+    if device is None:
+        raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND)
+    return device
 
 
 def upsert_device(*, user, spec: dict, ip) -> tuple[Device, bool]:
@@ -84,7 +104,11 @@ def on_new_device(*, user, device, ip) -> None:
 
 
 def kill_device(*, device: Device, reason: str) -> None:
-    """AUTH-33/34 : sessions + refresh + push vide + untrust. Ligne conservée."""
+    """AUTH-33/34 : sessions + refresh + push vide + untrust. Ligne conservée.
+
+    CRYPTO-A : la ligne `Device` n'est jamais supprimée, donc le CASCADE FK des
+    tables de clés ne se déclenche jamais tout seul — on les purge explicitement.
+    """
     qs = Session.objects.filter(device=device, is_active=True)
     kill_session_rows(qs, reason=reason)
     device.push_token = ""
@@ -92,6 +116,10 @@ def kill_device(*, device: Device, reason: str) -> None:
     if reason == "DEVICE_COMPROMISED":
         device.compromised = True
     device.save(update_fields=["push_token", "trusted", "compromised", "updated_at"])
+
+    IdentityKey.objects.filter(device=device).delete()
+    SignedPreKey.objects.filter(device=device).delete()
+    OneTimePreKey.objects.filter(device=device).delete()
 
 
 def owned_device(*, user, device_id) -> Device:

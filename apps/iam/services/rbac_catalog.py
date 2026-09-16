@@ -1,4 +1,4 @@
-"""Catalogue seed AUTH-R : 73 permissions is_system (39 self + 34 admin).
+"""Catalogue seed AUTH-R : 76 permissions is_system (42 self + 34 admin).
 
 Codes = {module}.{resource}.{action} (regex R01, 3 segments).
 Écart table AUTH-R : `iam.user.security.read` → `iam.user_security.read` ;
@@ -42,6 +42,9 @@ _SELF = (
     ("notifications", "inbox", "read", "Liste, unread-count"),
     ("notifications", "inbox", "update", "Mark-read / read-all"),
     ("notifications", "preferences", "manage", "GET/PATCH prefs notifs"),
+    ("crypto", "keys", "manage", "Publier / compter ses prekeys"),
+    ("crypto", "bundle", "read", "Bundles d’un pair (démarrer 1-to-1)"),
+    ("crypto", "conversation_key", "read", "Clé cloud d’un fil GROUP/AI"),
     ("annuaire", "skill", "read", "Lire ses compétences"),
     ("annuaire", "skill", "manage", "Gérer ses compétences"),
     ("annuaire", "certification", "read", "Lire ses certifications"),
@@ -111,7 +114,7 @@ ALL_SYSTEM_CODES = frozenset(p["code"] for p in SYSTEM_PERMISSIONS)
 CODE_RE = r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$"
 ROLE_CODE_RE = r"^[A-Z][A-Z0-9_]*$"
 
-assert len(SELF_PERMISSIONS) == 39, len(SELF_PERMISSIONS)
+assert len(SELF_PERMISSIONS) == 42, len(SELF_PERMISSIONS)
 assert len(ADMIN_PERMISSIONS) == 34, len(ADMIN_PERMISSIONS)
-assert len(SYSTEM_PERMISSIONS) == 73
-assert len(ALL_SYSTEM_CODES) == 73
+assert len(SYSTEM_PERMISSIONS) == 76
+assert len(ALL_SYSTEM_CODES) == 76

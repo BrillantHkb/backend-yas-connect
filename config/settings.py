@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     "apps.annuaire",
     "apps.config.apps.ConfigAppConfig",  # system_settings LDAP + jobs (pas .env)
     "apps.notifications",
+    "apps.crypto",
     "channels",
     "apps.realtime",
 ]
@@ -240,6 +241,8 @@ MINIO_BUCKET = env("MINIO_BUCKET")
 
 FCM_SERVER_KEY = env("FCM_SERVER_KEY")
 APNS_KEY_PATH = env("APNS_KEY_PATH")
+
+CRYPTO_MASTER_KEY = env("CRYPTO_MASTER_KEY")
 
 # Vide = skip envoi (lab). Mailhog plus tard ; verify-email ne bloque pas.
 EMAIL_HOST = env("EMAIL_HOST", default="")
