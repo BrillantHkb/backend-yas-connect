@@ -847,7 +847,7 @@ Attributs, types, contraintes, « renseigné par » : **uniquement** les fichier
 | [CRYPTO-catalogue-tables.md](../catalogues/CRYPTO-catalogue-tables.md) | `apps.crypto` | Phase 3c ; 4 tables ; [code/crypto_models.py](code/crypto_models.py) ; plans [crypto_plans/](crypto_plans/) |
 | [INDEX-catalogue.md](../catalogues/INDEX-catalogue.md) | btree / GIN | Dès `0001` ; `TrigramExtension` + `django.contrib.postgres` |
 
-Chiffrement : [CRYPTO-00](crypto_plans/CRYPTO-00-modele-chiffrement.md) (décision). Lab [00-jour-21-crypto-00.md](00-jour-21-crypto-00.md) **clos** · [CRYPTO-A](crypto_plans/CRYPTO-A-cles.md) (API). Lab [00-jour-24-crypto-r-a.md](00-jour-24-crypto-r-a.md) · [CRYPTO-R](crypto_plans/CRYPTO-R-roles-permissions.md) · [routes](crypto_plans/CRYPTO-routes.md).
+Chiffrement : [CRYPTO-00](crypto_plans/CRYPTO-00-modele-chiffrement.md) (décision). Lab [00-jour-21-crypto-00.md](00-jour-21-crypto-00.md) **clos** · [CRYPTO-A](crypto_plans/CRYPTO-A-cles.md) (API). Lab [00-jour-24-crypto-r-a.md](00-jour-24-crypto-r-a.md) **clos** · [CRYPTO-R](crypto_plans/CRYPTO-R-roles-permissions.md) · [routes](crypto_plans/CRYPTO-routes.md).
 
 Plans fonctionnels Notifications : [NOTIF-R](notif_plans/NOTIF-R-roles-permissions.md) · [A in-app + push](notif_plans/NOTIF-A-in-app-push.md). Lab [00-jour-23-notif-r-a.md](00-jour-23-notif-r-a.md) **clos** · [routes](notif_plans/NOTIF-routes.md).
 

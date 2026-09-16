@@ -1,6 +1,6 @@
 # Jour 24 — CRYPTO-R + CRYPTO-A (bundles de clés Signal par appareil)
 
-**Statut :** à faire.  
+**Statut :** clos (2026-09-16).  
 **Produit :** YAS Connect. **Dépôt :** `backend-yas-connect`.  
 **Préalable :** jours 0–23 **clos** ([jour 1](00-jour-1-auth-a.md) … [jour 23](00-jour-23-notif-r-a.md)). CRYPTO-00 (jour 21) figé : ce jour l'implémente pour le 1-to-1 (bundles Signal), pas pour les groupes (ça, c'est `ensure_conversation_key`, hook seulement).
 
@@ -296,17 +296,17 @@ Coller le résultat dans `.env` → `CRYPTO_MASTER_KEY=...`.
 
 ## Checklist jour 24
 
-- [ ] App `apps.crypto` créée, migration `0001_initial`
-- [ ] 3 permissions `crypto.*` seedées
-- [ ] `CRYPTO_MASTER_KEY` réelle en `.env` ; `wrap`/`unwrap` AES-256-GCM ; `CRYPTO_MASTER_UNSET` géré
-- [ ] 5 routes CRY-01…05 vertes, appareil = session (jamais le body)
-- [ ] Bundles : consomme 1 OTPK/appareil (FIFO), `null` si épuisées, 409 si 0 appareil valide
-- [ ] `ensure_conversation_key` (hook, testé directement)
-- [ ] `require_sender_identity` (hook, testé directement)
-- [ ] `kill_device` supprime les clés du device révoqué/compromis
-- [ ] `test_crypto_a.py` + régression AUTH-E
-- [ ] 0 régression NOTIF-A
-- [ ] SIRH non modifié
+- [x] App `apps.crypto` créée, migration `0001_initial`
+- [x] 3 permissions `crypto.*` seedées
+- [x] `CRYPTO_MASTER_KEY` réelle en `.env` ; `wrap`/`unwrap` AES-256-GCM ; `CRYPTO_MASTER_UNSET` géré
+- [x] 5 routes CRY-01…05 vertes, appareil = session (jamais le body)
+- [x] Bundles : consomme 1 OTPK/appareil (FIFO), `null` si épuisées, 409 si 0 appareil valide
+- [x] `ensure_conversation_key` (hook, testé directement)
+- [x] `require_sender_identity` (hook, testé directement)
+- [x] `kill_device` supprime les clés du device révoqué/compromis
+- [x] `test_crypto_a.py` + régression AUTH-E
+- [x] 0 régression NOTIF-A
+- [x] SIRH non modifié
 
 ---
 
@@ -357,6 +357,6 @@ Cadence actuelle : **1 ligne** [A→Z §4.1](00-application-A-Z.md) = **1 plan d
 | 30     | APPELS-D, E, G                                  | §8 écran / CR                          |
 
 **Total : 31 plans (jours 0 à 30).**  
-Déjà clos : **24** (0–23). Restant : **7** (24–30).
+Déjà clos : **25** (0–24). Restant : **6** (25–30).
 
 Hors ce compteur (A→Z §4.2) : MEDIA-F, APPELS-F, mentions / modération, social, IA.
