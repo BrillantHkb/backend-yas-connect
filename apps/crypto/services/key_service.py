@@ -15,6 +15,7 @@ MSG_VALIDATION = "Paramètre invalide."
 MSG_NOT_FOUND = "Utilisateur introuvable."
 MSG_PEER_KEYS_MISSING = "Aucun appareil de ce contact n'a publié de clés."
 MSG_CRYPTO_KEYS_MISSING = "Votre appareil n'a pas encore publié d'identité de chiffrement."
+MSG_PEER_NOT_READY = "Ce contact n'a encore publié aucune clé de chiffrement."
 
 _OTPK_BATCH_MAX = 100
 _CONVERSATION_KEY_BYTES = 32
@@ -172,6 +173,18 @@ def get_bundles(*, target_user: User) -> dict:
 def require_sender_identity(*, device: Device) -> None:
     if not IdentityKey.objects.filter(device=device).exists():
         raise AuthAPIError(409, "CRYPTO_KEYS_MISSING", MSG_CRYPTO_KEYS_MISSING)
+
+
+# --- MESSAGERIE-B : garde destinataire (jour 25, non consommateur d'OTPK) -------
+
+
+def require_peer_ready(*, target_user: User) -> None:
+    """Existence seule (identity + au moins 1 SPK) — ne consomme jamais d'OTPK."""
+    ready = Device.objects.filter(
+        user=target_user, identity_key__isnull=False, signed_prekeys__isnull=False
+    ).exists()
+    if not ready:
+        raise AuthAPIError(409, "PEER_KEYS_MISSING", MSG_PEER_NOT_READY)
 
 
 # --- CRY-09 : clé de fil GROUP/AI (hook MESSAGERIE-C) ---------------------------

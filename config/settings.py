@@ -67,6 +67,7 @@ INSTALLED_APPS = [
     "apps.config.apps.ConfigAppConfig",  # system_settings LDAP + jobs (pas .env)
     "apps.notifications",
     "apps.crypto",
+    "apps.messaging",
     "channels",
     "apps.realtime",
 ]

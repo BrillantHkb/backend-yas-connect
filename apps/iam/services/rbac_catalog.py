@@ -1,4 +1,4 @@
-"""Catalogue seed AUTH-R : 76 permissions is_system (42 self + 34 admin).
+"""Catalogue seed AUTH-R : 94 permissions is_system (59 self + 35 admin).
 
 Codes = {module}.{resource}.{action} (regex R01, 3 segments).
 Écart table AUTH-R : `iam.user.security.read` → `iam.user_security.read` ;
@@ -45,6 +45,23 @@ _SELF = (
     ("crypto", "keys", "manage", "Publier / compter ses prekeys"),
     ("crypto", "bundle", "read", "Bundles d’un pair (démarrer 1-to-1)"),
     ("crypto", "conversation_key", "read", "Clé cloud d’un fil GROUP/AI"),
+    ("messaging", "conversation", "read", "Inbox, détail, épinglés"),
+    ("messaging", "conversation", "create", "Créer privé / groupe"),
+    ("messaging", "conversation", "update", "Métadonnées groupe, avatar"),
+    ("messaging", "conversation", "archive", "Archiver / désarchiver"),
+    ("messaging", "message", "read", "Historique, recherche"),
+    ("messaging", "message", "send", "Envoyer messages"),
+    ("messaging", "message", "update", "Éditer ses messages"),
+    ("messaging", "message", "delete", "Supprimer pour soi / tous"),
+    ("messaging", "message", "react", "Réactions emoji"),
+    ("messaging", "message", "forward", "Transférer"),
+    ("messaging", "receipt", "update", "Livré / lu"),
+    ("messaging", "member", "read", "Liste participants"),
+    ("messaging", "member", "manage", "Ajouter / retirer / rôles"),
+    ("messaging", "poll", "vote", "Voter / clôturer sondage"),
+    ("messaging", "block", "manage", "Blocage user"),
+    ("messaging", "report", "create", "Signaler message"),
+    ("messaging", "bookmark", "manage", "Signets"),
     ("annuaire", "skill", "read", "Lire ses compétences"),
     ("annuaire", "skill", "manage", "Gérer ses compétences"),
     ("annuaire", "certification", "read", "Lire ses certifications"),
@@ -86,6 +103,7 @@ _ADMIN = (
     ("media", "access_log", "read", "Journal accès d’un fichier"),
     ("media", "storage", "manage", "Quota admin user"),
     ("media", "file", "scan_override", "Forcer SKIP (SOC)"),
+    ("messaging", "report", "review", "Modération signalements"),
 )
 
 
@@ -114,7 +132,7 @@ ALL_SYSTEM_CODES = frozenset(p["code"] for p in SYSTEM_PERMISSIONS)
 CODE_RE = r"^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$"
 ROLE_CODE_RE = r"^[A-Z][A-Z0-9_]*$"
 
-assert len(SELF_PERMISSIONS) == 42, len(SELF_PERMISSIONS)
-assert len(ADMIN_PERMISSIONS) == 34, len(ADMIN_PERMISSIONS)
-assert len(SYSTEM_PERMISSIONS) == 76
-assert len(ALL_SYSTEM_CODES) == 76
+assert len(SELF_PERMISSIONS) == 59, len(SELF_PERMISSIONS)
+assert len(ADMIN_PERMISSIONS) == 35, len(ADMIN_PERMISSIONS)
+assert len(SYSTEM_PERMISSIONS) == 94
+assert len(ALL_SYSTEM_CODES) == 94

@@ -11,6 +11,7 @@ from rest_framework.test import APIClient
 from apps.crypto.models import IdentityKey, OneTimePreKey, SignedPreKey
 from apps.crypto.services.key_service import (
     ensure_conversation_key,
+    require_peer_ready,
     require_sender_identity,
 )
 from apps.iam.helpers.compliance import close_gates
@@ -248,6 +249,40 @@ def test_require_sender_identity_missing(jean):
     with pytest.raises(Exception) as exc:
         require_sender_identity(device=device)
     assert exc.value.code == "CRYPTO_KEYS_MISSING"
+
+
+# --- Delta MESSAGERIE-B : garde destinataire (jour 25) ------------------------------
+
+
+@pytest.mark.django_db
+def test_require_peer_ready_ok(api, marie):
+    _jwt(api, marie)
+    _publish_full_bundle(api)
+    require_peer_ready(target_user=marie)  # ne lève rien
+
+
+@pytest.mark.django_db
+def test_require_peer_ready_missing_spk(api, marie):
+    _jwt(api, marie)
+    api.put(
+        "/api/v1/crypto/me/identity",
+        {"registration_id": 1, "identity_public_key": _b64(b"id-only")},
+        format="json",
+    )
+    with pytest.raises(Exception) as exc:
+        require_peer_ready(target_user=marie)
+    assert exc.value.code == "PEER_KEYS_MISSING"
+
+
+@pytest.mark.django_db
+def test_require_peer_ready_never_consumes_otpk(api, marie):
+    _jwt(api, marie)
+    _publish_full_bundle(api, otpk_ids=(1, 2))
+    device = Device.objects.get(user=marie, device_uuid=DEVICE["device_uuid"])
+    before = OneTimePreKey.objects.filter(device=device, consumed_at__isnull=True).count()
+    require_peer_ready(target_user=marie)
+    after = OneTimePreKey.objects.filter(device=device, consumed_at__isnull=True).count()
+    assert before == after == 2
 
 
 # --- Delta AUTH-E : révocation ------------------------------------------------------

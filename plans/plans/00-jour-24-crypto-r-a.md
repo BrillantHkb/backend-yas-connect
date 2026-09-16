@@ -323,7 +323,7 @@ Coller le résultat dans `.env` → `CRYPTO_MASTER_KEY=...`.
 
 ## Après le jour 24
 
-Jour 25 : **MESSAGERIE-R, A, B** — premier jour de la Messagerie (rôles, inbox/conversations, messages 1-to-1), premier consommateur réel de `require_sender_identity`/bundles CRYPTO-A et de `emit()` NOTIF-A. Lab pas encore écrit.
+Jour 25 : **MESSAGERIE-R, A, B** — premier jour de la Messagerie (rôles, inbox/conversations, messages 1-to-1), premier consommateur réel de `require_sender_identity`/bundles CRYPTO-A et de `emit()` NOTIF-A. Lab [00-jour-25-messagerie-r-a-b.md](00-jour-25-messagerie-r-a-b.md).
 
 ---
 

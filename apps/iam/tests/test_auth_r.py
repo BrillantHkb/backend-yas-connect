@@ -87,10 +87,10 @@ def test_seed_codes_regex(user_ok, admin_ok):
     assert Role.objects.filter(code="USER", is_system=True).exists()
     assert Role.objects.filter(code="ADMIN", is_system=True).exists()
     qs = Permission.objects.filter(is_system=True)
-    assert qs.count() == 76
+    assert qs.count() == 94
     for code in qs.values_list("code", flat=True):
         assert CODE_RX.fullmatch(code), code
-    assert Permission.objects.filter(code__in=SELF_PERMISSION_CODES).count() == 42
+    assert Permission.objects.filter(code__in=SELF_PERMISSION_CODES).count() == 59
     assert set(ALL_SYSTEM_CODES) == set(qs.values_list("code", flat=True))
 
 
@@ -189,7 +189,7 @@ def test_roles_crud_and_guards(api, user_ok, admin_ok):
     admin_id = next(row["id"] for row in listed.data["data"]["roles"] if row["code"] == "ADMIN")
     detail = api.get(f"/api/v1/admin/roles/{admin_id}")
     assert detail.status_code == 200
-    assert len(detail.data["data"]["permission_codes"]) == 76
+    assert len(detail.data["data"]["permission_codes"]) == 94
 
     bad = api.post(
         "/api/v1/admin/roles",
