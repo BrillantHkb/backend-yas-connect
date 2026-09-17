@@ -346,9 +346,16 @@ def test_d05_reject_stays_inactive(mock_search, api, role, admin_ok, region, seg
     assert ok.status_code == 200
     pending.refresh_from_db()
     assert pending.is_active is False
-    assert pending.pending_approval is True
+    # W47 : un rejet doit sortir pending_approval=False, sinon indiscernable
+    # d'un dossier jamais traité dans la file ?pending=true (et ré-approuvable
+    # par erreur).
+    assert pending.pending_approval is False
     audit = AuditLog.objects.get(action="USER_REJECT", entity_id=pending.id)
     assert audit.metadata["reason"] == "Profil incomplet"
+
+    queue = api.get("/api/v1/admin/users?pending=true")
+    assert all(row["id"] != str(pending.id) for row in queue.data["data"]["results"])
+
     api.credentials()
     r = api.post(
         "/api/v1/auth/login",
@@ -356,7 +363,7 @@ def test_d05_reject_stays_inactive(mock_search, api, role, admin_ok, region, seg
         format="json",
     )
     assert r.status_code == 403
-    assert r.data["code"] == "ACCOUNT_PENDING"
+    assert r.data["code"] == "ACCOUNT_DISABLED"
 
 
 @pytest.mark.django_db

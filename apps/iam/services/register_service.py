@@ -319,19 +319,23 @@ def approve_user(*, user_id, actor: User, ip) -> None:
 
 
 def reject_user(*, user_id, reason: str, actor: User, ip) -> None:
-    """D05 : reste inactif. Motif audit seulement (pas dans la réponse HTTP)."""
+    """D05 : reste inactif, sort de la file pending=true (sinon indiscernable d'un
+    dossier jamais traité et re-approuvable par erreur). Motif audit seulement."""
     try:
         user = User.objects.get(pk=user_id)
     except User.DoesNotExist as exc:
         raise AuthAPIError(404, "NOT_FOUND", "Utilisateur introuvable.") from exc
     if user.ldap_dn:
         raise AuthAPIError(400, "LDAP_MANAGED", "Compte lié à Active Directory.")
+    old = {"is_active": user.is_active, "pending_approval": user.pending_approval}
+    user.pending_approval = False
+    user.save(update_fields=["pending_approval", "updated_at"])
     # Reste inactif ; le motif n’est pas exposé au client, seulement dans l’audit.
     _audit(
         action="USER_REJECT",
         user=user,
         entity_id=user.id,
-        old={"is_active": user.is_active, "pending_approval": user.pending_approval},
+        old=old,
         new={"is_active": user.is_active, "pending_approval": user.pending_approval},
         metadata={"reason": reason},
         ip=ip,
