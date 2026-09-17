@@ -21,6 +21,7 @@ class LoginHistoryOutSerializer(serializers.Serializer):
 
 class LoginHistoryListDataSerializer(serializers.Serializer):
     logins = LoginHistoryOutSerializer(many=True)
+    next_before = serializers.CharField(allow_null=True)
 
 
 class LoginHistoryEnvelopeSerializer(serializers.Serializer):

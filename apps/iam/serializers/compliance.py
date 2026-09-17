@@ -41,6 +41,9 @@ class GatesSerializer(serializers.Serializer):
 class MeDataSerializer(serializers.Serializer):
     user = ProfileMeUserSerializer()
     gates = GatesSerializer()
+    # Demande client web (2026-09-17) : codes RBAC exacts de l'utilisateur, pour
+    # décider quoi afficher sans dériver un rôle -> permissions côté client.
+    permissions = serializers.ListField(child=serializers.CharField())
 
 
 class MeEnvelopeSerializer(serializers.Serializer):

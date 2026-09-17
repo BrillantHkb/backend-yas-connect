@@ -2,11 +2,13 @@
 
 import asyncio
 import base64
+import uuid
 
 import pytest
 from asgiref.sync import async_to_sync
 from channels.layers import channel_layers
 from channels.testing import WebsocketCommunicator
+from config.asgi import application
 from django.core.cache import cache
 from django.db import connections
 from rest_framework.test import APIClient
@@ -15,7 +17,6 @@ from apps.iam.helpers.compliance import close_gates
 from apps.iam.helpers.mfa import login_until_jwt
 from apps.iam.models import PrivacySetting, Role, User
 from apps.messaging.models import ConversationMember, MessageRead
-from config.asgi import application
 
 PASSWORD = "Secret123!"
 UA = "Mozilla/5.0 pytest"
@@ -259,6 +260,25 @@ def test_ws_subscribe_non_member_silent(api, jean, marie, user_role):
 
         await asyncio.to_thread(_send_as_jean)
         assert await watcher.receive_nothing(timeout=0.3)
+        await watcher.disconnect()
+
+    _run_ws(_run)
+
+
+@pytest.mark.django_db(transaction=True, serialized_rollback=True)
+def test_ws_subscribe_over_max_rejected(api, jean):
+    """Audit W13 : plafond _SUBSCRIBE_MAX (100), même principe que WATCH côté présence."""
+    jean_token = _jwt(api, jean)
+
+    async def _run():
+        watcher = _ws(f"/ws/v1/messaging/?token={jean_token}")
+        connected, _ = await watcher.connect()
+        assert connected
+        too_many = [str(uuid.uuid4()) for _ in range(101)]
+        await watcher.send_json_to({"type": "subscribe", "conversation_ids": too_many})
+        error = await watcher.receive_json_from(timeout=2)
+        assert error["type"] == "ERROR"
+        assert error["code"] == "VALIDATION_ERROR"
         await watcher.disconnect()
 
     _run_ws(_run)

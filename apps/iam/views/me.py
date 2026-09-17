@@ -10,6 +10,13 @@ from apps.iam.serializers.profile import ProfilePatchSerializer
 from apps.iam.services.auth_service import client_ip
 from apps.iam.services.compliance_service import gates_payload
 from apps.iam.services.profile_service import patch_profile, serialize_me
+from apps.iam.services.rbac_service import load_role_perm_codes
+
+
+def _permissions(user) -> list[str]:
+    if user.role_id is None:
+        return []
+    return sorted(load_role_perm_codes(user.role_id))
 
 
 class MeView(APIView):
@@ -25,7 +32,9 @@ class MeView(APIView):
         responses={200: MeEnvelopeSerializer},
         description=(
             "Fiche JWT + portes CGU / wizard. Toujours 200 si session OK "
-            "(même si tos_required / onboarding_required). Pas de rôle (claim JWT)."
+            "(même si tos_required / onboarding_required). Pas de rôle (claim JWT) "
+            "mais la liste exacte des codes de permission de l'utilisateur "
+            "(cache RBAC, même source que HasPermission côté serveur)."
         ),
     )
     def get(self, request):
@@ -38,6 +47,7 @@ class MeView(APIView):
                 "data": {
                     "user": serialize_me(user),
                     "gates": gates_payload(user),
+                    "permissions": _permissions(user),
                 },
             }
         )
@@ -65,6 +75,7 @@ class MeView(APIView):
                 "data": {
                     "user": serialize_me(user),
                     "gates": gates_payload(user),
+                    "permissions": _permissions(user),
                 },
             }
         )

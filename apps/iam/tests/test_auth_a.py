@@ -234,6 +234,8 @@ def test_refresh_rotates(api, user_ok):
     assert r.data["data"]["refresh_token"] != old
     row = RefreshToken.objects.get(token_hash=hash_refresh_token(old))
     assert row.revoked_reason == "ROTATED"
+    # Hors fenêtre de grâce (cache.clear() simule son expiration) : vol = kill global.
+    cache.clear()
     reuse = api.post("/api/v1/auth/refresh", {"refresh_token": old}, format="json")
     assert reuse.status_code == 401
     assert reuse.data["code"] == "FORCE_LOGOUT"

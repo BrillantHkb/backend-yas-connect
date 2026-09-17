@@ -36,6 +36,7 @@ urlpatterns = [
     path("api/v1/users/", include("apps.iam.urls.users")),  # PROF-A fiche collègue
     path("api/v1/media/", include("apps.media.urls")),  # PROF-A fichiers avatar
     path("api/v1/", include("apps.media.urls_documents")),  # MEDIA-E GED
+    path("api/v1/", include("apps.config.urls")),  # GET /config plafonds publics (W40)
     path("api/v1/", include("apps.notifications.urls")),  # NOTIF-A inbox + prefs
     path("api/v1/crypto/", include("apps.crypto.urls")),  # CRYPTO-A bundles Signal
     path("api/v1/", include("apps.messaging.urls")),  # MESSAGERIE-A/B inbox + messages 1-to-1

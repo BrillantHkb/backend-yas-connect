@@ -95,7 +95,11 @@ class OneTimePrekeyCountView(APIView):
 
 
 class BundlesView(APIView):
-    """GET /api/v1/crypto/users/{id}/bundles — CRY-05/06/14, consomme 1 OTPK/appareil."""
+    """GET /api/v1/crypto/users/{id}/bundles — CRY-05/06/14, consomme 1 OTPK/appareil.
+
+    ?device_id= (audit W37) cible un seul appareil du contact au lieu de tous,
+    pour ne pas gaspiller un OTPK par appareil quand un seul est nécessaire.
+    """
 
     required_permission = "crypto.bundle.read"
 
@@ -103,11 +107,12 @@ class BundlesView(APIView):
         tags=["Crypto"],
         responses={
             200: OpenApiResponse(description="Bundles Signal, un par appareil"),
+            400: OpenApiResponse(description="VALIDATION_ERROR"),
             404: OpenApiResponse(description="NOT_FOUND"),
             409: OpenApiResponse(description="PEER_KEYS_MISSING"),
         },
     )
     def get(self, request, pk):
         target = get_target_user_or_404(pk)
-        data = get_bundles(target_user=target)
+        data = get_bundles(target_user=target, device_id=request.query_params.get("device_id"))
         return Response({"success": True, "data": data})

@@ -4,6 +4,7 @@ import uuid
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.cache import cache
 from django.utils import timezone
 
 from apps.iam.exceptions import AuthAPIError
@@ -31,6 +32,32 @@ from apps.iam.services.ua_service import parse_user_agent
 
 # Message unique AUTH-05 : inconnu / MDP faux / rate-limit (pas d’énumération)
 MSG_INVALID = "Identifiant ou mot de passe incorrect."
+
+# Demande client web (2026-09-17) : N onglets peuvent courir sur le même refresh
+# au même instant (verrou navigator.locks pas absolu — multi-profils, requête
+# relancée à la main). Une re-présentation de l'ancien token dans cette fenêtre
+# renvoie le couple déjà émis au lieu d'un FORCE_LOGOUT. Ne couvre PAS un vol
+# réel : un token volé est rejoué bien après quelques secondes. Cache down →
+# pas de grâce, comportement inchangé (fail-closed, cf. jti_blacklist.py).
+_REFRESH_GRACE_SECONDS = 10
+
+
+def _refresh_grace_key(digest: str) -> str:
+    return f"refresh:grace:{digest}"
+
+
+def _refresh_grace_get(digest: str):
+    try:
+        return cache.get(_refresh_grace_key(digest))
+    except Exception:
+        return None
+
+
+def _refresh_grace_set(digest: str, payload: dict) -> None:
+    try:
+        cache.set(_refresh_grace_key(digest), payload, timeout=_REFRESH_GRACE_SECONDS)
+    except Exception:
+        return
 
 
 def client_ip(request) -> str | None:
@@ -489,8 +516,13 @@ def refresh(*, raw: str, ip) -> dict:
     )
     if row is None:
         raise AuthAPIError(401, "INVALID_REFRESH", "Session expirée. Reconnectez-vous.")
-    # Réutilisation d’un token déjà rotaté / révoqué = vol → kill global
+    # Réutilisation d’un token déjà rotaté / révoqué = vol → kill global, sauf
+    # fenêtre de grâce (rotation normale, pas une révocation explicite).
     if row.revoked_at is not None or row.rotated_at is not None:
+        if row.revoked_reason == "ROTATED":
+            cached = _refresh_grace_get(digest)
+            if cached is not None:
+                return cached
         _force_logout_user(user=row.user, reason="REFRESH_REUSE")
         raise AuthAPIError(401, "FORCE_LOGOUT", "Session invalidée. Reconnectez-vous.")
 
@@ -520,7 +552,7 @@ def refresh(*, raw: str, ip) -> dict:
         role_code=session.user.role.code,
         jti=access_jti,
     )
-    return {
+    response = {
         "access_token": token,
         "refresh_token": new_raw,
         "token_type": "Bearer",
@@ -528,3 +560,5 @@ def refresh(*, raw: str, ip) -> dict:
         "refresh_expires_in": settings.YAS_JWT_REFRESH_TTL_SECONDS,
         "user": public_user(session.user),
     }
+    _refresh_grace_set(digest, response)
+    return response

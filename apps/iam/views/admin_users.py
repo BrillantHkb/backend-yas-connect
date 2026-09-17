@@ -26,6 +26,7 @@ from apps.iam.services.admin_user_service import (
     revoke_all_sessions,
 )
 from apps.iam.services.auth_service import client_ip
+from apps.iam.services.device_service import list_my_devices
 from apps.iam.services.lock_service import unlock_user
 from apps.iam.services.mfa_service import admin_reset_mfa
 from apps.iam.services.rbac_service import assign_user_role
@@ -293,8 +294,28 @@ class AdminUserLoginsView(APIView):
     def get(self, request, pk):
         target = get_user_or_404(pk)
         limit, before = parse_login_query(request)
-        logins = list_logins(user=target, limit=limit, before=before)
-        return Response({"success": True, "data": {"logins": logins}})
+        data = list_logins(user=target, limit=limit, before=before)
+        return Response({"success": True, "data": data})
+
+
+class AdminUserDevicesView(APIView):
+    """GET /api/v1/admin/users/{id}/devices — iam.user_security.read (audit W48).
+
+    Même permission et même principe que AdminUserLoginsView : un support/RH qui
+    peut déjà voir l'historique de connexion doit pouvoir voir les appareils
+    associés (utile pour diagnostiquer un compte compromis sans passer par la DB).
+    """
+
+    required_permission = "iam.user_security.read"
+
+    @extend_schema(
+        tags=["Admin"],
+        responses={200: OpenApiResponse(), 404: OpenApiResponse(description="NOT_FOUND")},
+    )
+    def get(self, request, pk):
+        target = get_user_or_404(pk)
+        devices = list_my_devices(user=target, current_device_id=None)
+        return Response({"success": True, "data": {"devices": devices}})
 
 
 class AdminUserRoleView(APIView):

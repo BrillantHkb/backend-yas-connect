@@ -2,6 +2,7 @@
 
 from django.urls import path
 
+from apps.iam.views.admin_audit import AdminAuditLogListView
 from apps.iam.views.admin_rbac import (
     PermissionDeleteView,
     PermissionListCreateView,
@@ -9,12 +10,12 @@ from apps.iam.views.admin_rbac import (
     RoleListCreateView,
     RolePermissionsView,
 )
-from apps.iam.views.admin_audit import AdminAuditLogListView
 from apps.iam.views.admin_regions import AdminRegionDetailView, AdminRegionListCreateView
 from apps.iam.views.admin_users import (
     AdminMfaResetView,
     AdminUserApproveView,
     AdminUserDetailView,
+    AdminUserDevicesView,
     AdminUserDisableView,
     AdminUserEnableView,
     AdminUserListView,
@@ -58,6 +59,11 @@ urlpatterns = [
         "users/<uuid:pk>/logins",
         AdminUserLoginsView.as_view(),
         name="admin-users-logins",
+    ),
+    path(
+        "users/<uuid:pk>/devices",
+        AdminUserDevicesView.as_view(),
+        name="admin-users-devices",
     ),
     path(
         "users/<uuid:pk>/role",

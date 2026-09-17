@@ -7,6 +7,7 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
+from apps.config.services.public_config_service import messaging_setting
 from apps.crypto.services import wrapping
 from apps.crypto.services.key_service import (
     group_content_key,
@@ -37,13 +38,24 @@ MSG_READ_ONLY_MEMBER = "Vous êtes en lecture seule sur ce fil."
 MSG_DUPLICATE = "Message déjà envoyé (client_message_id dupliqué)."
 MSG_MEDIA_INFECTED = "Fichier joint rejeté (analyse antivirus)."
 MSG_FORBIDDEN = "Action non autorisée sur ce message."
-MSG_EDIT_EXPIRED = "Fenêtre d'édition expirée (15 min)."
-MSG_DELETE_EXPIRED = "Fenêtre de suppression expirée (48 h)."
+MSG_EDIT_EXPIRED = "Fenêtre d'édition expirée."
+MSG_DELETE_EXPIRED = "Fenêtre de suppression expirée."
+MSG_CONTENT_TOO_LARGE = "Contenu chiffré trop volumineux."
 
-_EDIT_WINDOW = timedelta(minutes=15)
-_DELETE_WINDOW = timedelta(hours=48)
 _MESSAGES_LIMIT_MAX = 100
 _SEARCH_LIMIT_MAX = 50
+
+
+def _edit_window() -> timedelta:
+    return timedelta(minutes=int(messaging_setting("edit_window_minutes")))
+
+
+def _delete_window() -> timedelta:
+    return timedelta(hours=int(messaging_setting("delete_window_hours")))
+
+
+def _max_content_bytes() -> int:
+    return int(messaging_setting("max_encrypted_content_bytes"))
 
 _ALLOWED_SEND_TYPES = frozenset(
     {
@@ -234,6 +246,8 @@ def send_message(*, user, device, conversation_id, data: dict) -> dict:
         raw_content = data.get("encrypted_content") or ""
         if raw_content:
             content_bytes = _decode_b64(raw_content, "encrypted_content")
+            if len(content_bytes) > _max_content_bytes():
+                raise AuthAPIError(413, "CONTENT_TOO_LARGE", MSG_CONTENT_TOO_LARGE)
             if group_key is not None:
                 content_bytes = wrapping.wrap_with_key(group_key, content_bytes)
         elif media is None:
@@ -316,10 +330,12 @@ def edit_message(*, user, pk, encrypted_content_b64: str) -> dict:
     message, _member = _get_message_and_member(user, pk)
     if message.sender_id != user.id:
         raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
-    if timezone.now() - message.sent_at > _EDIT_WINDOW:
+    if timezone.now() - message.sent_at > _edit_window():
         raise AuthAPIError(403, "EDIT_WINDOW_EXPIRED", MSG_EDIT_EXPIRED)
     group_key = _resolve_group_key(message.conversation)
     new_content = _decode_b64(encrypted_content_b64, "encrypted_content")
+    if len(new_content) > _max_content_bytes():
+        raise AuthAPIError(413, "CONTENT_TOO_LARGE", MSG_CONTENT_TOO_LARGE)
     if group_key is not None:
         wrapped = wrapping.wrap_with_key(group_key, new_content)
     else:
@@ -361,7 +377,7 @@ def delete_message(*, user, pk, scope: str) -> dict:
     is_privileged = member.role in (ConversationMember.Role.OWNER, ConversationMember.Role.ADMIN)
     if not is_author and not is_privileged:
         raise AuthAPIError(403, "FORBIDDEN", MSG_FORBIDDEN)
-    if is_author and not is_privileged and timezone.now() - message.sent_at > _DELETE_WINDOW:
+    if is_author and not is_privileged and timezone.now() - message.sent_at > _delete_window():
         raise AuthAPIError(403, "DELETE_WINDOW_EXPIRED", MSG_DELETE_EXPIRED)
 
     with transaction.atomic():

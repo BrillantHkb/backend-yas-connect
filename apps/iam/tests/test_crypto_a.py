@@ -221,6 +221,45 @@ def test_bundle_excludes_device_without_signed_prekey(api, jean, marie):
     assert r.data["code"] == "PEER_KEYS_MISSING"
 
 
+@pytest.mark.django_db
+def test_get_bundles_device_id_targets_single_device(api, jean, marie):
+    """Audit W37 : cibler un appareil précis ne consomme pas d'OTPK sur les autres."""
+    _jwt(api, marie)
+    _publish_full_bundle(api, key_id=1, otpk_ids=(1, 2))
+    device_a = Device.objects.get(user=marie, device_uuid=DEVICE["device_uuid"])
+
+    _jwt(api, marie, device={"device_uuid": "marie-dev-2", "platform": "ANDROID"})
+    _publish_full_bundle(api, key_id=2, otpk_ids=(10, 11))
+    device_b = Device.objects.get(user=marie, device_uuid="marie-dev-2")
+
+    _jwt(api, jean)
+    r = api.get(f"/api/v1/crypto/users/{marie.id}/bundles?device_id={device_a.id}")
+    assert r.status_code == 200
+    bundles = r.data["data"]["bundles"]
+    assert len(bundles) == 1
+    assert bundles[0]["device_id"] == str(device_a.id)
+    assert OneTimePreKey.objects.filter(device=device_b, consumed_at__isnull=True).count() == 2
+
+
+@pytest.mark.django_db
+def test_get_bundles_unknown_device_id_404(api, jean, marie):
+    _jwt(api, marie)
+    _publish_full_bundle(api)
+    _jwt(api, jean)
+    r = api.get(f"/api/v1/crypto/users/{marie.id}/bundles?device_id={uuid.uuid4()}")
+    assert r.status_code == 404
+
+
+@pytest.mark.django_db
+def test_get_bundles_invalid_device_id_400(api, jean, marie):
+    _jwt(api, marie)
+    _publish_full_bundle(api)
+    _jwt(api, jean)
+    r = api.get(f"/api/v1/crypto/users/{marie.id}/bundles?device_id=not-a-uuid")
+    assert r.status_code == 400
+    assert r.data["code"] == "VALIDATION_ERROR"
+
+
 # --- Hooks internes (pas de route) -------------------------------------------------
 
 

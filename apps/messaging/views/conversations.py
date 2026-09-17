@@ -36,6 +36,14 @@ class ConversationListCreateView(APIView):
             OpenApiParameter("before", str, OpenApiParameter.QUERY, required=False),
         ],
         responses={200: OpenApiResponse(description="Inbox paginée")},
+        description=(
+            "Chaque fil porte `encrypted` : `true` pour PRIVATE (Double Ratchet "
+            "E2E par appareil, cf. /crypto), `false` pour GROUP/AI (clé de fil "
+            "détenue par la plateforme, chiffrement at-rest — pas de E2E groupe "
+            "au MVP, décision produit assumée). Aucune route de clé de groupe "
+            "n'existe côté client : le serveur (dé)chiffre `encrypted_content` "
+            "de façon transparente pour ces types."
+        ),
     )
     def get(self, request):
         params = request.query_params
@@ -88,6 +96,10 @@ class ConversationDetailView(APIView):
     @extend_schema(
         tags=["Messagerie"],
         responses={200: OpenApiResponse(), 404: OpenApiResponse(description="NOT_FOUND")},
+        description=(
+            "`encrypted` : `true` = E2E PRIVATE (/crypto), `false` = GROUP/AI "
+            "(clé serveur, pas de E2E groupe au MVP). Voir ConversationListCreateView."
+        ),
     )
     def get(self, request, pk):
         data = conversation_service.get_detail(user=request.user, conversation_id=pk)
@@ -113,6 +125,7 @@ class ConversationByUuidView(APIView):
     @extend_schema(
         tags=["Messagerie"],
         responses={200: OpenApiResponse(), 404: OpenApiResponse(description="NOT_FOUND")},
+        description="`encrypted` : voir ConversationListCreateView (pas de E2E groupe au MVP).",
     )
     def get(self, request, conversation_uuid):
         data = conversation_service.get_detail(

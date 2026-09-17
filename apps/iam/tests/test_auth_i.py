@@ -137,6 +137,22 @@ def test_me_security_logins_success_and_failures(api, user_ok):
 
 
 @pytest.mark.django_db
+def test_me_security_logins_next_before_cursor(api, user_ok):
+    """Demande client web (2026-09-17) : savoir s'il reste une page sans deviner
+    à partir du nombre de lignes reçu vs `limit`."""
+    _jwt(api, user_ok)
+    for _ in range(3):
+        _bad_login(api, user_ok.email)
+    r = api.get("/api/v1/me/security/logins?limit=2")
+    assert r.status_code == 200
+    assert len(r.data["data"]["logins"]) == 2
+    assert r.data["data"]["next_before"] is not None
+
+    r_last = api.get("/api/v1/me/security/logins?limit=50")
+    assert r_last.data["data"]["next_before"] is None
+
+
+@pytest.mark.django_db
 def test_me_security_logins_geo_null(api, user_ok):
     _jwt(api, user_ok)
     r = api.get("/api/v1/me/security/logins")
@@ -383,6 +399,27 @@ def test_new_user_logins_tos_required(api, user_fresh):
 def test_admin_logins_404_unknown(api, admin_ok):
     _jwt(api, admin_ok, password=ADMIN_PASSWORD)
     r = api.get(f"/api/v1/admin/users/{uuid4()}/logins")
+    assert r.status_code == 404
+    assert r.data["code"] == "NOT_FOUND"
+
+
+@pytest.mark.django_db
+def test_admin_devices_lists_target_user_devices(api, user_ok, admin_ok):
+    """Audit W48 : diagnostiquer un compte sans passer par la DB."""
+    _jwt(api, user_ok)
+    _jwt(api, admin_ok, password=ADMIN_PASSWORD)
+    r = api.get(f"/api/v1/admin/users/{user_ok.id}/devices")
+    assert r.status_code == 200
+    devices = r.data["data"]["devices"]
+    assert len(devices) == 1
+    assert devices[0]["device_uuid"] == DEVICE["device_uuid"]
+    assert "push_token" not in devices[0]
+
+
+@pytest.mark.django_db
+def test_admin_devices_404_unknown(api, admin_ok):
+    _jwt(api, admin_ok, password=ADMIN_PASSWORD)
+    r = api.get(f"/api/v1/admin/users/{uuid4()}/devices")
     assert r.status_code == 404
     assert r.data["code"] == "NOT_FOUND"
 

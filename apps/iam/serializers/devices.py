@@ -4,7 +4,12 @@ from rest_framework import serializers
 
 
 class DeviceSpecSerializer(serializers.Serializer):
-    """Corps device (AUTH-11/12). Le client web stocke device_uuid dans localStorage."""
+    """Corps device (AUTH-11/12). `device_uuid` : identifiant d'installation stable,
+    généré et conservé côté client — le stockage concret (localStorage, IndexedDB,
+    keychain...) est un choix client, hors contrat serveur. Il doit simplement
+    survivre aussi longtemps que les clés de chiffrement locales de l'appareil :
+    un appareil « connu » du serveur qui a perdu son historique déchiffrable est
+    pire qu'un appareil neuf (retour client web, 2026-09-17)."""
 
     device_uuid = serializers.CharField(max_length=128)  # ID install, obligatoire
     device_name = serializers.CharField(

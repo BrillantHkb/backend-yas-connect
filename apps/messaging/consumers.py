@@ -18,6 +18,11 @@ from apps.iam.services.session_service import touch_last_activity
 from apps.messaging.models import ConversationMember
 from apps.messaging.services import realtime_service, typing_service
 
+# Même plafond que WATCH côté présence (parse_watch_ids, WATCH_MAX) — un client
+# ne doit pas pouvoir s'abonner à un nombre illimité de fils en un seul appel.
+_SUBSCRIBE_MAX = 100
+MSG_SUBSCRIBE_TOO_MANY = "Trop de fils dans un seul subscribe (max 100)."
+
 
 def _token_from_scope(scope) -> str:
     qs = parse_qs((scope.get("query_string") or b"").decode())
@@ -94,7 +99,13 @@ class MessagingConsumer(JsonWebsocketConsumer):
             return
 
     def _subscribe(self, raw_ids):
-        for conversation_id in raw_ids or []:
+        raw_ids = raw_ids or []
+        if not isinstance(raw_ids, list) or len(raw_ids) > _SUBSCRIBE_MAX:
+            self.send_json(
+                {"type": "ERROR", "code": "VALIDATION_ERROR", "message": MSG_SUBSCRIBE_TOO_MANY}
+            )
+            return
+        for conversation_id in raw_ids:
             conversation_id = str(conversation_id)
             if conversation_id in self.subscribed:
                 continue

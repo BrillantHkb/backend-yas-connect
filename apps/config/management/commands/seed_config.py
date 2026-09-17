@@ -53,6 +53,21 @@ MEDIA_SETTINGS = [
     ("max_video_duration_seconds", 90, "int"),
 ]
 
+# Audit W40 : fenêtres/plafonds messagerie, jusque-là en dur dans le code
+# (message_service.py) — désormais lus via public_config_service.
+MESSAGING_SETTINGS = [
+    ("edit_window_minutes", 15, "int"),
+    ("delete_window_hours", 48, "int"),
+    ("max_members_default", 256, "int"),
+    ("max_encrypted_content_bytes", 65536, "int"),
+]
+
+# Audit W19 : mécanisme de version minimale — vide = désactivé, no-op tant
+# qu'aucune valeur n'est posée (même philosophie que CRYPTO_MASTER_KEY vide).
+CLIENT_SETTINGS = [
+    ("min_version", "", "string"),
+]
+
 
 class Command(BaseCommand):
     help = "Clés LDAP (system_settings) + job ldap_sync_users. Pas de secret dans .env."
@@ -140,6 +155,34 @@ class Command(BaseCommand):
             )
             action = "créé" if created else "à jour"
             self.stdout.write(f"media.{key} {action}")
+
+        for key, value, value_type in MESSAGING_SETTINGS:
+            _, created = SystemSetting.objects.update_or_create(
+                category="messaging",
+                setting_key=key,
+                defaults={
+                    "setting_value": value,
+                    "value_type": value_type,
+                    "is_sensitive": False,
+                    "editable": True,
+                },
+            )
+            action = "créé" if created else "à jour"
+            self.stdout.write(f"messaging.{key} {action}")
+
+        for key, value, value_type in CLIENT_SETTINGS:
+            _, created = SystemSetting.objects.update_or_create(
+                category="client",
+                setting_key=key,
+                defaults={
+                    "setting_value": value,
+                    "value_type": value_type,
+                    "is_sensitive": False,
+                    "editable": True,
+                },
+            )
+            action = "créé" if created else "à jour"
+            self.stdout.write(f"client.{key} {action}")
 
         now = timezone.now()
         ScheduledJob.objects.update_or_create(

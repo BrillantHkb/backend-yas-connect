@@ -49,11 +49,18 @@ def serialize_login(row: LoginHistory) -> dict:
     }
 
 
-def list_logins(*, user: User, limit: int, before=None) -> list[dict]:
+def list_logins(*, user: User, limit: int, before=None) -> dict:
+    """Fetch limit+1 (audit client web) : sans ça, impossible de savoir s'il reste
+    une page sans comparer le compte reçu à `limit` côté client."""
     qs = LoginHistory.objects.filter(user=user).select_related("device").order_by("-created_at")
     if before is not None:
         qs = qs.filter(created_at__lt=before)
-    return [serialize_login(row) for row in qs[:limit]]
+    rows = list(qs[: limit + 1])
+    next_before = None
+    if len(rows) > limit:
+        rows = rows[:limit]
+        next_before = rows[-1].created_at.isoformat() if rows[-1].created_at else None
+    return {"logins": [serialize_login(row) for row in rows], "next_before": next_before}
 
 
 def get_user_or_404(user_id) -> User:

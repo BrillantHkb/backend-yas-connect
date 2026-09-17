@@ -114,13 +114,29 @@ def test_refresh_ok_keeps_session_expires_at(api, user_ok):
 
 @pytest.mark.django_db
 def test_refresh_reuse_force_logout(api, user_ok):
+    """Hors fenêtre de grâce (cache.clear() simule son expiration) : vol = kill global."""
     first = login_until_jwt(api, email=user_ok.email, password=PASSWORD, device=DEVICE)
     old = first.data["data"]["refresh_token"]
     api.post("/api/v1/auth/refresh", {"refresh_token": old}, format="json")
+    cache.clear()
     reuse = api.post("/api/v1/auth/refresh", {"refresh_token": old}, format="json")
     assert reuse.status_code == 401
     assert reuse.data["code"] == "FORCE_LOGOUT"
     assert Session.objects.filter(user=user_ok, is_active=True).count() == 0
+
+
+@pytest.mark.django_db
+def test_refresh_reuse_within_grace_returns_same_pair(api, user_ok):
+    """Demande client web (2026-09-17) : course multi-onglets, re-présenter l'ancien
+    refresh dans la fenêtre de grâce renvoie le même couple, pas de FORCE_LOGOUT."""
+    first = login_until_jwt(api, email=user_ok.email, password=PASSWORD, device=DEVICE)
+    old = first.data["data"]["refresh_token"]
+    rotated = api.post("/api/v1/auth/refresh", {"refresh_token": old}, format="json")
+    reuse = api.post("/api/v1/auth/refresh", {"refresh_token": old}, format="json")
+    assert reuse.status_code == 200
+    assert reuse.data["data"]["refresh_token"] == rotated.data["data"]["refresh_token"]
+    assert reuse.data["data"]["access_token"] == rotated.data["data"]["access_token"]
+    assert Session.objects.filter(user=user_ok, is_active=True).count() == 1
 
 
 @pytest.mark.django_db

@@ -51,8 +51,8 @@ class LoginHistoryView(APIView):
     )
     def get(self, request):
         limit, before = parse_login_query(request)
-        logins = list_logins(user=request.user, limit=limit, before=before)
-        return Response({"success": True, "data": {"logins": logins}})
+        data = list_logins(user=request.user, limit=limit, before=before)
+        return Response({"success": True, "data": data})
 
 
 class EmailChangeView(APIView):

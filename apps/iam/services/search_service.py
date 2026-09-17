@@ -32,6 +32,10 @@ def _parse_uuid(raw, name: str):
 
 
 def _parse_limit_offset(params) -> tuple[int, int]:
+    """Pagination offset volontaire, pas une omission : le people-picker (ANN-01)
+    trie par pertinence/alphabétique sur une requête libre, pas chronologiquement
+    — le curseur keyset (`before`) utilisé ailleurs (messages, notifs, inbox) n'a
+    pas de sens ici. Exception documentée, pas à aligner sur le reste de l'API."""
     try:
         limit = int(params.get("limit", DEFAULT_LIMIT))
     except (TypeError, ValueError) as exc:

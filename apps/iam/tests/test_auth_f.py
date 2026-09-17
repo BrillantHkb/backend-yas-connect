@@ -84,6 +84,17 @@ def test_me_gates_open_for_new_user(api, user_fresh):
 
 
 @pytest.mark.django_db
+def test_me_exposes_permissions(api, user_fresh):
+    """Demande client web (2026-09-17) : codes RBAC exacts, pas de rôle à déduire."""
+    _jwt(api, user_fresh)
+    r = api.get("/api/v1/me/")
+    permissions = r.data["data"]["permissions"]
+    assert isinstance(permissions, list)
+    assert "iam.profile.read" in permissions
+    assert permissions == sorted(permissions)
+
+
+@pytest.mark.django_db
 def test_devices_blocked_tos(api, user_fresh):
     _jwt(api, user_fresh)
     r = api.get("/api/v1/me/devices")

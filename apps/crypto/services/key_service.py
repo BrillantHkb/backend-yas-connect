@@ -13,6 +13,7 @@ from apps.iam.models import Device, User
 
 MSG_VALIDATION = "Paramètre invalide."
 MSG_NOT_FOUND = "Utilisateur introuvable."
+MSG_DEVICE_NOT_FOUND = "Appareil introuvable pour ce contact."
 MSG_PEER_KEYS_MISSING = "Aucun appareil de ce contact n'a publié de clés."
 MSG_CRYPTO_KEYS_MISSING = "Votre appareil n'a pas encore publié d'identité de chiffrement."
 MSG_PEER_NOT_READY = "Ce contact n'a encore publié aucune clé de chiffrement."
@@ -128,12 +129,25 @@ def get_target_user_or_404(user_id) -> User:
         raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND) from exc
 
 
-def get_bundles(*, target_user: User) -> dict:
+def get_bundles(*, target_user: User, device_id=None) -> dict:
+    """device_id (audit W37) : cible un seul appareil pour éviter de consommer un
+    OTPK sur chaque appareil du contact quand le client n'a besoin que d'un seul
+    (ex. device déjà connu d'une session précédente)."""
     devices = (
         Device.objects.filter(user=target_user, identity_key__isnull=False)
         .select_related("identity_key")
         .prefetch_related("signed_prekeys")
     )
+    if device_id is not None:
+        try:
+            uuid.UUID(str(device_id))
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise AuthAPIError(
+                400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "device_id"}
+            ) from exc
+        devices = devices.filter(id=device_id)
+        if not devices.exists():
+            raise AuthAPIError(404, "NOT_FOUND", MSG_DEVICE_NOT_FOUND)
     bundles = []
     for device in devices:
         spk = device.signed_prekeys.order_by("-created_at").first()
