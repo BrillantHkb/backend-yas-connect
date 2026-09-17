@@ -10,7 +10,15 @@ from django.conf import settings
 from apps.config.models import SystemSetting
 from apps.iam.exceptions import AuthAPIError
 from apps.iam.models import AuditLog, User
-from apps.media.models import MediaAccessLog, MediaFile, StorageUsage
+from apps.media.models import (
+    AudioMessage,
+    Image,
+    MediaAccessLog,
+    MediaFile,
+    MediaMetadata,
+    StorageUsage,
+    Video,
+)
 from apps.media.services import storage
 
 MSG_VALIDATION = "Paramètre invalide."
@@ -21,6 +29,11 @@ MSG_DUPLICATE_FILE = "Ce fichier existe déjà (checksum déjà utilisé)."
 MSG_ALREADY_COMPLETED = "Upload déjà finalisé."
 MSG_NOT_FOUND = "Fichier introuvable."
 MSG_INFECTED = "Fichier rejeté par l’analyse antivirus."
+
+_METADATA_FIELDS = (
+    "width", "height", "duration_seconds", "codec",
+    "latitude", "longitude", "captured_at", "device_model",
+)
 
 _MULTIPART_MAX_BYTES = 10 * 1024 * 1024
 _CHECKSUM_RX = re.compile(r"^[0-9a-fA-F]{64}$")
@@ -115,8 +128,69 @@ def serialize_media(media: MediaFile) -> dict:
 def get_own_media_or_404(user: User, pk) -> MediaFile:
     try:
         return MediaFile.objects.get(pk=pk, owner=user)
-    except MediaFile.DoesNotExist as exc:
+    except (MediaFile.DoesNotExist, ValueError, TypeError) as exc:
         raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND) from exc
+
+
+# --- Jour 28 : metadata client + création des lignes spécialisées (stub) -------
+
+
+def _apply_metadata(media: MediaFile, metadata: dict) -> None:
+    fields = {k: v for k, v in metadata.items() if k in _METADATA_FIELDS and v not in (None, "")}
+    if fields:
+        MediaMetadata.objects.update_or_create(media=media, defaults=fields)
+
+
+def _resolution_string(width, height) -> str:
+    return f"{width}x{height}" if width and height else ""
+
+
+def _ensure_image(media: MediaFile) -> dict:
+    image, _ = Image.objects.get_or_create(
+        media=media,
+        defaults={
+            "thumbnail_path": media.storage_path,
+            "optimized_path": media.storage_path,
+            "format": media.mime_type.split("/")[-1] if media.mime_type else "",
+            "quality": 100,
+        },
+    )
+    return {
+        "annotated": image.annotated,
+        "blurred": image.blurred,
+        "format": image.format,
+        "quality": image.quality,
+    }
+
+
+def _ensure_video(media: MediaFile, metadata: dict) -> dict:
+    video, _ = Video.objects.get_or_create(
+        media=media,
+        defaults={
+            "duration_seconds": metadata.get("duration_seconds") or 0,
+            "resolution": _resolution_string(metadata.get("width"), metadata.get("height")),
+            "codec": metadata.get("codec") or "",
+        },
+    )
+    return {
+        "transcoding_status": video.transcoding_status,
+        "streaming_ready": video.streaming_ready,
+        "duration_seconds": video.duration_seconds,
+    }
+
+
+def _ensure_audio(media: MediaFile, metadata: dict) -> dict:
+    audio, _ = AudioMessage.objects.get_or_create(
+        media=media,
+        defaults={
+            "duration_seconds": metadata.get("duration_seconds") or 0,
+            "codec": metadata.get("codec") or "",
+        },
+    )
+    return {
+        "transcription_status": audio.transcription_status,
+        "duration_seconds": audio.duration_seconds,
+    }
 
 
 # --- MED-01 : init presign ----------------------------------------------------
@@ -158,7 +232,7 @@ def init_presigned_upload(*, user: User, data, actor, ip) -> dict:
     return {"upload_id": str(media.id), "presigned_url": url, "expires_in": 900}
 
 
-def complete_upload(*, user: User, upload_id, checksum, actor, ip) -> dict:
+def complete_upload(*, user: User, upload_id, checksum, actor, ip, metadata=None) -> dict:
     try:
         media = MediaFile.objects.get(pk=upload_id, owner=user)
     except (MediaFile.DoesNotExist, ValueError, TypeError) as exc:
@@ -192,11 +266,26 @@ def complete_upload(*, user: User, upload_id, checksum, actor, ip) -> dict:
     media.scan_status = scan_status
     media.save(update_fields=["checksum", "size_bytes", "scan_status", "updated_at"])
     _apply_quota_delta(user, real_size)
+
+    metadata = metadata or {}
+    if metadata:
+        _apply_metadata(media, metadata)
+    detail = None
+    if media.media_type == MediaFile.MediaType.IMAGE:
+        detail = _ensure_image(media)
+    elif media.media_type == MediaFile.MediaType.VIDEO:
+        detail = _ensure_video(media, metadata)
+    elif media.media_type == MediaFile.MediaType.AUDIO:
+        detail = _ensure_audio(media, metadata)
+
     _audit(
         action="MEDIA_UPLOAD_COMPLETE", actor=actor, entity_id=media.id,
         new=serialize_media(media), ip=ip,
     )
-    return serialize_media(media)
+    result = serialize_media(media)
+    if detail is not None:
+        result["detail"] = detail
+    return result
 
 
 # --- MED-01 : multipart direct -------------------------------------------------
@@ -247,16 +336,41 @@ def direct_upload(*, user: User, uploaded, media_type_hint, actor, ip) -> dict:
         action="MEDIA_UPLOAD_DIRECT", actor=actor, entity_id=media.id,
         new=serialize_media(media), ip=ip,
     )
-    return serialize_media(media)
+    detail = None
+    if media.media_type == MediaFile.MediaType.IMAGE:
+        detail = _ensure_image(media)
+    elif media.media_type == MediaFile.MediaType.VIDEO:
+        detail = _ensure_video(media, {})
+    elif media.media_type == MediaFile.MediaType.AUDIO:
+        detail = _ensure_audio(media, {})
+    result = serialize_media(media)
+    if detail is not None:
+        result["detail"] = detail
+    return result
 
 
 # --- MED-09/10/11 : métadonnées, download, delete ------------------------------
 
 
-def download_media(*, media: MediaFile, actor, ip) -> str:
+_VARIANTS = frozenset({"original", "thumbnail", "optimized"})
+
+
+def download_media(*, media: MediaFile, actor, ip, variant: str = "original") -> str:
     if media.scan_status == MediaFile.ScanStatus.INFECTED:
         raise AuthAPIError(403, "FILE_INFECTED", MSG_INFECTED)
-    url = storage.presigned_get_url(media.storage_path)
+    if variant not in _VARIANTS:
+        raise AuthAPIError(400, "VALIDATION_ERROR", MSG_VALIDATION, extra={"field": "variant"})
+
+    storage_key = media.storage_path
+    if variant in ("thumbnail", "optimized"):
+        try:
+            image = media.image_detail
+        except Image.DoesNotExist as exc:
+            raise AuthAPIError(404, "NOT_FOUND", MSG_NOT_FOUND) from exc
+        variant_path = image.thumbnail_path if variant == "thumbnail" else image.optimized_path
+        storage_key = variant_path or media.storage_path
+
+    url = storage.presigned_get_url(storage_key)
     MediaAccessLog.objects.create(
         media=media, user=actor, action=MediaAccessLog.Action.DOWNLOAD, ip_address=ip,
     )

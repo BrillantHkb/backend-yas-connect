@@ -285,7 +285,7 @@ pytest apps/iam/tests/test_messaging_e.py apps/iam/tests/test_messaging_f.py app
 
 ## Après le jour 27
 
-Jour 28 : **MEDIA-B, C, D, E** — album/galerie images, transcodage vidéo, transcription audio, GED documents. Premier jour Médias avancés depuis MEDIA-A (jour 22). Lab pas encore écrit.
+Jour 28 : **MEDIA-B, C, D, E** — album/galerie images, transcodage vidéo, transcription audio, GED documents. Premier jour Médias avancés depuis MEDIA-A (jour 22). Lab [00-jour-28-media-b-c-d-e.md](00-jour-28-media-b-c-d-e.md).
 
 ---
 

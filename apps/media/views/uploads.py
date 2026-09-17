@@ -1,7 +1,7 @@
 """MEDIA-A : upload générique presigné + multipart direct, métadonnées, download, delete."""
 
 from django.http import HttpResponseRedirect
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiResponse, extend_schema
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -59,6 +59,7 @@ class MediaUploadCompleteView(APIView):
             user=request.user,
             upload_id=upload_id,
             checksum=ser.validated_data["checksum"],
+            metadata=ser.validated_data.get("metadata"),
             actor=request.user,
             ip=client_ip(request),
         )
@@ -120,9 +121,13 @@ class MediaDownloadView(APIView):
 
     @extend_schema(
         tags=["Media"],
+        parameters=[OpenApiParameter("variant", str, OpenApiParameter.QUERY, required=False)],
         responses={302: OpenApiResponse(description="Redirect URL signée"), 403: OpenApiResponse()},
     )
     def get(self, request, pk):
         media = get_own_media_or_404(request.user, pk)
-        url = download_media(media=media, actor=request.user, ip=client_ip(request))
+        variant = request.query_params.get("variant", "original")
+        url = download_media(
+            media=media, actor=request.user, ip=client_ip(request), variant=variant
+        )
         return HttpResponseRedirect(url)
